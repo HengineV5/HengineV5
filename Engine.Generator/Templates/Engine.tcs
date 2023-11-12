@@ -1,0 +1,70 @@
+using System.Runtime.Intrinsics;
+using System.Runtime.CompilerServices;
+using System.Threading;
+using System.Threading.Tasks;
+using Engine;
+
+// Source file usings
+$usings~>using $usingName;<~~>\n<~
+
+namespace $namespace
+{
+	public partial class $engineName
+	{
+		$ecsName ecs;
+
+		$pipelines~>$pipelineName _|$pipelineName|;<~~>\n		<~
+
+		$uniqueArgs~>public $argType $argName;<~~>\n		<~
+
+		$config~>$stepName arg|$stepName|;<~~>\n		<~
+
+		bool initialized = false;
+
+		public $engineName()
+		{
+			ecs = new $ecsName();
+		}
+
+		public $ecsName GetEcs()
+		{
+			return ecs;
+		}
+
+		public void Initialize($config~>$stepName $stepVarName<~~>, <~)
+		{
+			$config~>arg|$stepName| = |$stepVarName|;<~~>\n			<~
+
+			$setup|$stepCount == 1|~>$stepTypes~>var _|$returnType|<~~>, <~ = $stepMethod($stepArguments~>arg|$argType|<~~>, <~);
+			$stepUsedTypes~>arg|$returnType| = _|$returnType|;<~~>\n			<~
+			<~|$stepCount > 1|~>var ($stepTypes~>_|$returnType|<~~>, <~) = $stepMethod($stepArguments~>arg|$argType|<~~>, <~);
+			$stepUsedTypes~>arg|$returnType| = _|$returnType|;<~~>\n			<~
+			<~~>\n			<~
+
+			$pipelines~>_|$pipelineName| = new $pipelineName($uniqueArgs~>$argName<~~>, <~);<~~>\n			<~
+
+			$pipelines~>_|$pipelineName|.Init();<~~>\n			<~
+
+			initialized = true;
+		}
+
+		public void Start()
+		{
+			if (!initialized)
+				throw new System.Exception("$engineName must be initialized by running initialize() before start.");
+
+			while (true)
+			{
+				var mainWorld = ecs.GetMain();
+
+				$pipelines~>_|$pipelineName|.Run(mainWorld);<~~>\n				<~
+
+				if (ShouldExit())
+				{
+					$pipelines~>_|$pipelineName|.Dispose();<~~>\n					<~
+					break;
+				}
+			}
+		}
+	}
+}
