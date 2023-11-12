@@ -72,12 +72,16 @@ namespace Engine
 		uint indiciesLength;
 
 		IWindow window;
-		Vk vk;
+		//Vk vk;
+		VkContext context;
 
+		/*
 		Instance instance;
 		PhysicalDevice physicalDevice;
 
 		Device device;
+		*/
+
 		Queue graphicsQueue;
 		Queue presentQueue;
 		SurfaceKHR surface;
@@ -120,6 +124,7 @@ namespace Engine
 
 		Memory<DescriptorSet> descriptorSets;
 
+		/*
 		string[] validationLayers = [
 			"VK_LAYER_KHRONOS_validation"
 		];
@@ -127,13 +132,14 @@ namespace Engine
 		string[] deviceExtensions = [
 			KhrSwapchain.ExtensionName
 		];
+		*/
 
 		int currentFrame = 0;
 		bool framebufferResized = false;
 
-		public VulkanRenderSystem(Vk vk, IWindow window)
+		public VulkanRenderSystem(VkContext context, IWindow window)
 		{
-			this.vk = vk;
+			this.context = context;
 			this.window = window;
         }
 
@@ -151,47 +157,47 @@ namespace Engine
 
 			window.FramebufferResize += Window_Resize;
 
-			instance = CreateInstance(vk, window, validationLayers);
-			physicalDevice = PickPhysicalDevice(vk, instance);
+			//instance = CreateInstance(vk, window, validationLayers);
+			//physicalDevice = PickPhysicalDevice(vk, instance);
 
-			Format depthFormat = FindSupportedFormat(vk, physicalDevice, [Format.D32Sfloat, Format.D32SfloatS8Uint, Format.D24UnormS8Uint], ImageTiling.Optimal, FormatFeatureFlags.DepthStencilAttachmentBit);
+			Format depthFormat = FindSupportedFormat(context, [Format.D32Sfloat, Format.D32SfloatS8Uint, Format.D24UnormS8Uint], ImageTiling.Optimal, FormatFeatureFlags.DepthStencilAttachmentBit);
 
-			var graphicsQueueFamily = GetGraphicsQueueFamily(vk, physicalDevice);
-			device = CreateLogicalDevice(vk, physicalDevice, graphicsQueueFamily, validationLayers, deviceExtensions);
-			graphicsQueue = GetQueue(vk, device, graphicsQueueFamily);
-			surface = CreateSurface(window, instance);
-			swapchain = CreateSwapChain(vk, window, instance, physicalDevice, device, surface, graphicsQueueFamily);
+			var graphicsQueueFamily = GetGraphicsQueueFamily(context);
+			//device = CreateLogicalDevice(vk, physicalDevice, graphicsQueueFamily, validationLayers, deviceExtensions);
+			graphicsQueue = GetQueue(context, graphicsQueueFamily);
+			surface = CreateSurface(context);
+			swapchain = CreateSwapChain(context, surface, graphicsQueueFamily);
 
-			var presentQueueFamily = GetPresentQueueFamily(vk, instance, physicalDevice, surface);
-			presentQueue = GetQueue(vk, device, presentQueueFamily);
+			var presentQueueFamily = GetPresentQueueFamily(context, surface);
+			presentQueue = GetQueue(context, presentQueueFamily);
 
-			var extent = ChooseSwapExtent(vk, window, instance, physicalDevice, surface);
-			images = GetSwapChainImages(vk, instance, device, swapchain);
-			imageViews = CreateImageViews(vk, images.Span, instance, physicalDevice, device, surface, ImageAspectFlags.ColorBit);
+			var extent = ChooseSwapExtent(context, surface);
+			images = GetSwapChainImages(context, swapchain);
+			imageViews = CreateImageViews(context, images.Span, surface, ImageAspectFlags.ColorBit);
 
-			commandPool = CreateCommandPool(vk, device, graphicsQueueFamily);
-			commandBuffers = CreateCommandBuffers(vk, device, commandPool, MAX_FRAMES_IN_FLIGHT);
+			commandPool = CreateCommandPool(context, graphicsQueueFamily);
+			commandBuffers = CreateCommandBuffers(context, commandPool, MAX_FRAMES_IN_FLIGHT);
 
-			depthImage = CreateTextureImage(vk, device, extent.Width, extent.Height, depthFormat, ImageTiling.Optimal, ImageUsageFlags.DepthStencilAttachmentBit);
-			depthImageMemory = CreateImageMemory(vk, physicalDevice, device, depthImage, MemoryPropertyFlags.DeviceLocalBit);
-			depthImageView = CreateImageView(vk, device, depthImage, depthFormat, ImageAspectFlags.DepthBit);
+			depthImage = CreateTextureImage(context, extent, depthFormat, ImageTiling.Optimal, ImageUsageFlags.DepthStencilAttachmentBit);
+			depthImageMemory = CreateImageMemory(context, depthImage, MemoryPropertyFlags.DeviceLocalBit);
+			depthImageView = CreateImageView(context, depthImage, depthFormat, ImageAspectFlags.DepthBit);
 
-			TransitionImageLayout(vk, device, commandPool, graphicsQueue, depthImage, depthFormat, ImageLayout.Undefined, ImageLayout.DepthStencilAttachmentOptimal);
+			TransitionImageLayout(context, commandPool, graphicsQueue, depthImage, depthFormat, ImageLayout.Undefined, ImageLayout.DepthStencilAttachmentOptimal);
 
-			renderPass = CreateRenderPass(vk, instance, physicalDevice, device, surface, depthFormat);
-			frameBuffers = CreateFrameBuffers(vk, imageViews.Span, depthImageView, device, renderPass, extent);
+			renderPass = CreateRenderPass(context, surface, depthFormat);
+			frameBuffers = CreateFrameBuffers(context, imageViews.Span, depthImageView, renderPass, extent);
 
-			descriptorSetLayout = CreateDescriptorSetLayout(vk, device);
-			pipelineLayout = CreatePipelineLayout(vk, device, descriptorSetLayout);
-			pipeline = CreateGraphicsPipeline(vk, device, extent, pipelineLayout, renderPass);
+			descriptorSetLayout = CreateDescriptorSetLayout(context);
+			pipelineLayout = CreatePipelineLayout(context, descriptorSetLayout);
+			pipeline = CreateGraphicsPipeline(context, extent, pipelineLayout, renderPass);
 
-			vertexBuffer = CreateBuffer<Vertex>(vk, device, BufferUsageFlags.TransferDstBit | BufferUsageFlags.VertexBufferBit, (uint)verticies.Length);
-			vertexBufferMemory = CreateBufferMemory(vk, physicalDevice, device, vertexBuffer, MemoryPropertyFlags.DeviceLocalBit);
-			indexBuffer = CreateBuffer<ushort>(vk, device, BufferUsageFlags.TransferDstBit | BufferUsageFlags.IndexBufferBit, (uint)indicies.Length);
-			indexBufferMemory = CreateBufferMemory(vk, physicalDevice, device, indexBuffer, MemoryPropertyFlags.DeviceLocalBit);
+			vertexBuffer = CreateBuffer<Vertex>(context, BufferUsageFlags.TransferDstBit | BufferUsageFlags.VertexBufferBit, (uint)verticies.Length);
+			vertexBufferMemory = CreateBufferMemory(context, vertexBuffer, MemoryPropertyFlags.DeviceLocalBit);
+			indexBuffer = CreateBuffer<ushort>(context, BufferUsageFlags.TransferDstBit | BufferUsageFlags.IndexBufferBit, (uint)indicies.Length);
+			indexBufferMemory = CreateBufferMemory(context, indexBuffer, MemoryPropertyFlags.DeviceLocalBit);
 
-			uniformBuffers = CreateBuffers<UniformBufferObject>(vk, device, BufferUsageFlags.UniformBufferBit, 1, MAX_FRAMES_IN_FLIGHT);
-			uniformBuffersMemory = CreateBufferMemories(vk, physicalDevice, device, uniformBuffers.Span, MemoryPropertyFlags.HostVisibleBit | MemoryPropertyFlags.HostCoherentBit);
+			uniformBuffers = CreateBuffers<UniformBufferObject>(context, BufferUsageFlags.UniformBufferBit, 1, MAX_FRAMES_IN_FLIGHT);
+			uniformBuffersMemory = CreateBufferMemories(context, uniformBuffers.Span, MemoryPropertyFlags.HostVisibleBit | MemoryPropertyFlags.HostCoherentBit);
 
 			uniformBufferObjects = new MappedMemory<UniformBufferObject>[MAX_FRAMES_IN_FLIGHT];
 			unsafe
@@ -199,32 +205,32 @@ namespace Engine
 				for (int i = 0; i < uniformBufferObjects.Length; i++)
 				{
 					void* dataPtr;
-					vk.MapMemory(device, uniformBuffersMemory.Span[i], 0, (ulong)sizeof(UniformBufferObject), 0, &dataPtr);
+					context.vk.MapMemory(context.device, uniformBuffersMemory.Span[i], 0, (ulong)sizeof(UniformBufferObject), 0, &dataPtr);
 
 					uniformBufferObjects.Span[i] = new((UniformBufferObject*)dataPtr);
 				}
 			}
 
-			Silk.NET.Vulkan.Buffer stagingBuffer = CreateBuffer<Vertex>(vk, device, BufferUsageFlags.TransferSrcBit, (uint)verticies.Length);
-			DeviceMemory stagingBufferMemory = CreateBufferMemory(vk, physicalDevice, device, stagingBuffer, MemoryPropertyFlags.HostVisibleBit | MemoryPropertyFlags.HostCoherentBit);
+			Silk.NET.Vulkan.Buffer stagingBuffer = CreateBuffer<Vertex>(context, BufferUsageFlags.TransferSrcBit, (uint)verticies.Length);
+			DeviceMemory stagingBufferMemory = CreateBufferMemory(context, stagingBuffer, MemoryPropertyFlags.HostVisibleBit | MemoryPropertyFlags.HostCoherentBit);
 
-			MapBufferMemory(vk, device, stagingBuffer, stagingBufferMemory, verticies.Span);
-			CopyBuffer(vk, device, commandPool, graphicsQueue, stagingBuffer, vertexBuffer, (uint)verticies.Span.Length * Vertex.SizeInBytes);
+			MapBufferMemory(context, stagingBuffer, stagingBufferMemory, verticies.Span);
+			CopyBuffer(context, commandPool, graphicsQueue, stagingBuffer, vertexBuffer, (uint)verticies.Span.Length * Vertex.SizeInBytes);
 
-			MapBufferMemory(vk, device, stagingBuffer, stagingBufferMemory, indicies.Span);
-			CopyBuffer(vk, device, commandPool, graphicsQueue, stagingBuffer, indexBuffer, (uint)indicies.Span.Length * sizeof(ushort));
+			MapBufferMemory(context, stagingBuffer, stagingBufferMemory, indicies.Span);
+			CopyBuffer(context, commandPool, graphicsQueue, stagingBuffer, indexBuffer, (uint)indicies.Span.Length * sizeof(ushort));
 
 			unsafe
 			{
-				vk.DestroyBuffer(device, stagingBuffer, null);
-				vk.FreeMemory(device, stagingBufferMemory, null);
+				context.vk.DestroyBuffer(context.device, stagingBuffer, null);
+				context.vk.FreeMemory(context.device, stagingBufferMemory, null);
 			}
 
-			imageAvailableSemaphores = CreateSemaphores(vk, device);
-			renderFinishedSemaphores = CreateSemaphores(vk, device);
-			inFlightFences = CreateFences(vk, device, FenceCreateFlags.SignaledBit);
+			imageAvailableSemaphores = CreateSemaphores(context);
+			renderFinishedSemaphores = CreateSemaphores(context);
+			inFlightFences = CreateFences(context, FenceCreateFlags.SignaledBit);
 
-			sampler = CreateTextureSampler(vk, physicalDevice, device);
+			sampler = CreateTextureSampler(context);
 
 			using var img = SixLabors.ImageSharp.Image.Load<Rgba32>("Images/viking_room.png");
 			int imageSize = img.Width * img.Height * img.PixelType.BitsPerPixel / 8;
@@ -232,33 +238,33 @@ namespace Engine
 			using var buff = MemoryPool<byte>.Shared.Rent(imageSize);
 			img.CopyPixelDataTo(buff.Memory.Span);
 
-			stagingBuffer = CreateBuffer<byte>(vk, device, BufferUsageFlags.TransferSrcBit, (uint)imageSize);
-			stagingBufferMemory = CreateBufferMemory(vk, physicalDevice, device, stagingBuffer, MemoryPropertyFlags.HostVisibleBit | MemoryPropertyFlags.HostCoherentBit);
+			stagingBuffer = CreateBuffer<byte>(context, BufferUsageFlags.TransferSrcBit, (uint)imageSize);
+			stagingBufferMemory = CreateBufferMemory(context, stagingBuffer, MemoryPropertyFlags.HostVisibleBit | MemoryPropertyFlags.HostCoherentBit);
 
-			MapBufferMemory(vk, device, stagingBuffer, stagingBufferMemory, buff.Memory.Span);
+			MapBufferMemory(context, stagingBuffer, stagingBufferMemory, buff.Memory.Span);
 
-			texture = CreateTextureImage(vk, device, (uint)img.Width, (uint)img.Height, Format.R8G8B8A8Srgb, ImageTiling.Optimal, ImageUsageFlags.TransferDstBit | ImageUsageFlags.SampledBit);
-			textureMemory = CreateImageMemory(vk, physicalDevice, device, texture, MemoryPropertyFlags.DeviceLocalBit);
-			textureImageView = CreateImageView(vk, device, texture, Format.R8G8B8A8Srgb, ImageAspectFlags.ColorBit);
+			texture = CreateTextureImage(context, new((uint)img.Width, (uint)img.Height), Format.R8G8B8A8Srgb, ImageTiling.Optimal, ImageUsageFlags.TransferDstBit | ImageUsageFlags.SampledBit);
+			textureMemory = CreateImageMemory(context, texture, MemoryPropertyFlags.DeviceLocalBit);
+			textureImageView = CreateImageView(context, texture, Format.R8G8B8A8Srgb, ImageAspectFlags.ColorBit);
 
-			TransitionImageLayout(vk, device, commandPool, graphicsQueue, texture, Format.R8G8B8A8Srgb, ImageLayout.Undefined, ImageLayout.TransferDstOptimal);
-			CopyBuffer(vk, device, commandPool, graphicsQueue, stagingBuffer, texture, (uint)img.Width, (uint)img.Height);
-			TransitionImageLayout(vk, device, commandPool, graphicsQueue, texture, Format.R8G8B8A8Srgb, ImageLayout.TransferDstOptimal, ImageLayout.ShaderReadOnlyOptimal);
+			TransitionImageLayout(context, commandPool, graphicsQueue, texture, Format.R8G8B8A8Srgb, ImageLayout.Undefined, ImageLayout.TransferDstOptimal);
+			CopyBuffer(context, commandPool, graphicsQueue, stagingBuffer, texture, (uint)img.Width, (uint)img.Height);
+			TransitionImageLayout(context, commandPool, graphicsQueue, texture, Format.R8G8B8A8Srgb, ImageLayout.TransferDstOptimal, ImageLayout.ShaderReadOnlyOptimal);
 
 			unsafe
 			{
-				vk.DestroyBuffer(device, stagingBuffer, null);
-				vk.FreeMemory(device, stagingBufferMemory, null);
+				context.vk.DestroyBuffer(context.device, stagingBuffer, null);
+				context.vk.FreeMemory(context.device, stagingBufferMemory, null);
 			}
 
-			descriptorPool = CreateDescriptorPool(vk, device, MAX_FRAMES_IN_FLIGHT);
-			descriptorSets = CreateDescriptorSets(vk, device, descriptorPool, descriptorSetLayout, uniformBuffers.Span, textureImageView, sampler);
+			descriptorPool = CreateDescriptorPool(context, MAX_FRAMES_IN_FLIGHT);
+			descriptorSets = CreateDescriptorSets(context, descriptorPool, descriptorSetLayout, uniformBuffers.Span, textureImageView, sampler);
 
-			PrintValidationLayers(vk);
-			PrintQueueFamilies(vk, physicalDevice);
-			//PrintExtensions(vk, physicalDevice);
-			PrintSurfaceCapabilities(vk, instance, physicalDevice, surface);
-			PrintMemoryTypes(vk, physicalDevice);
+			PrintValidationLayers(context);
+			PrintQueueFamilies(context);
+			//PrintExtensions(context);
+			PrintSurfaceCapabilities(context, surface);
+			PrintMemoryTypes(context);
 		}
 
 		private void Window_Resize(Vector2D<int> obj)
@@ -276,76 +282,76 @@ namespace Engine
 				window.DoEvents();
 			}
 
-			vk.DeviceWaitIdle(device);
+			context.vk.DeviceWaitIdle(context.device);
 			DisposeSwapChain();
 
-			Format depthFormat = FindSupportedFormat(vk, physicalDevice, [Format.D32Sfloat, Format.D32SfloatS8Uint, Format.D24UnormS8Uint], ImageTiling.Optimal, FormatFeatureFlags.DepthStencilAttachmentBit);
+			Format depthFormat = FindSupportedFormat(context, [Format.D32Sfloat, Format.D32SfloatS8Uint, Format.D24UnormS8Uint], ImageTiling.Optimal, FormatFeatureFlags.DepthStencilAttachmentBit);
 
-			var graphicsQueueFamily = GetGraphicsQueueFamily(vk, physicalDevice);
-			swapchain = CreateSwapChain(vk, window, instance, physicalDevice, device, surface, graphicsQueueFamily);
+			var graphicsQueueFamily = GetGraphicsQueueFamily(context);
+			swapchain = CreateSwapChain(context, surface, graphicsQueueFamily);
 
-			var extent = ChooseSwapExtent(vk, window, instance, physicalDevice, surface);
-            images = GetSwapChainImages(vk, instance, device, swapchain);
-			imageViews = CreateImageViews(vk, images.Span, instance, physicalDevice, device, surface, ImageAspectFlags.ColorBit);
+			var extent = ChooseSwapExtent(context, surface);
+            images = GetSwapChainImages(context, swapchain);
+			imageViews = CreateImageViews(context, images.Span, surface, ImageAspectFlags.ColorBit);
 
-			depthImage = CreateTextureImage(vk, device, extent.Width, extent.Height, depthFormat, ImageTiling.Optimal, ImageUsageFlags.DepthStencilAttachmentBit);
-			depthImageMemory = CreateImageMemory(vk, physicalDevice, device, depthImage, MemoryPropertyFlags.DeviceLocalBit);
-			depthImageView = CreateImageView(vk, device, depthImage, depthFormat, ImageAspectFlags.DepthBit);
+			depthImage = CreateTextureImage(context, extent, depthFormat, ImageTiling.Optimal, ImageUsageFlags.DepthStencilAttachmentBit);
+			depthImageMemory = CreateImageMemory(context, depthImage, MemoryPropertyFlags.DeviceLocalBit);
+			depthImageView = CreateImageView(context, depthImage, depthFormat, ImageAspectFlags.DepthBit);
 
-			renderPass = CreateRenderPass(vk, instance, physicalDevice, device, surface, depthFormat);
-			frameBuffers = CreateFrameBuffers(vk, imageViews.Span, depthImageView, device, renderPass, extent);
-			pipelineLayout = CreatePipelineLayout(vk, device, descriptorSetLayout);
+			renderPass = CreateRenderPass(context, surface, depthFormat);
+			frameBuffers = CreateFrameBuffers(context, imageViews.Span, depthImageView, renderPass, extent);
+			pipelineLayout = CreatePipelineLayout(context, descriptorSetLayout);
 
-			pipeline = CreateGraphicsPipeline(vk, device, extent, pipelineLayout, renderPass);
-			commandBuffers = CreateCommandBuffers(vk, device, commandPool, MAX_FRAMES_IN_FLIGHT);
+			pipeline = CreateGraphicsPipeline(context, extent, pipelineLayout, renderPass);
+			commandBuffers = CreateCommandBuffers(context, commandPool, MAX_FRAMES_IN_FLIGHT);
 		}
 
 		public unsafe void Dispose()
 		{
 			for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 			{
-				vk.DestroySemaphore(device, imageAvailableSemaphores.Span[i], null);
-				vk.DestroySemaphore(device, renderFinishedSemaphores.Span[i], null);
-				vk.DestroyFence(device, inFlightFences.Span[i], null);
+				context.vk.DestroySemaphore(context.device, imageAvailableSemaphores.Span[i], null);
+				context.vk.DestroySemaphore(context.device, renderFinishedSemaphores.Span[i], null);
+				context.vk.DestroyFence(context.device, inFlightFences.Span[i], null);
 			}
 
 			DisposeSwapChain();
 
-			vk.DestroyDescriptorSetLayout(device, descriptorSetLayout, null);
+			context.vk.DestroyDescriptorSetLayout(context.device, descriptorSetLayout, null);
 
-			vk.DestroyBuffer(device, vertexBuffer, null);
-			vk.FreeMemory(device, vertexBufferMemory, null);
+			context.vk.DestroyBuffer(context.device, vertexBuffer, null);
+			context.vk.FreeMemory(context.device, vertexBufferMemory, null);
 
 			for (int i = 0; i < uniformBuffers.Length; i++)
 			{
-				vk.DestroyBuffer(device, uniformBuffers.Span[i], null);
+				context.vk.DestroyBuffer(context.device, uniformBuffers.Span[i], null);
 			}
 
 			for (int i = 0; i < uniformBuffersMemory.Length; i++)
 			{
-				vk.FreeMemory(device, uniformBuffersMemory.Span[i], null);
+				context.vk.FreeMemory(context.device, uniformBuffersMemory.Span[i], null);
 			}
 
-			vk.DestroyCommandPool(device, commandPool, null);
+			context.vk.DestroyCommandPool(context.device, commandPool, null);
 
-			vk.DestroyDescriptorPool(device, descriptorPool, null);
-			vk.DestroyDescriptorSetLayout(device, descriptorSetLayout, null);
+			context.vk.DestroyDescriptorPool(context.device, descriptorPool, null);
+			context.vk.DestroyDescriptorSetLayout(context.device, descriptorSetLayout, null);
 
-			vk.DestroySampler(device, sampler, null);
+			context.vk.DestroySampler(context.device, sampler, null);
 
-			vk.DestroyImageView(device, textureImageView, null);
-			vk.DestroyImage(device, texture, null);
-			vk.FreeMemory(device, textureMemory, null);
+			context.vk.DestroyImageView(context.device, textureImageView, null);
+			context.vk.DestroyImage(context.device, texture, null);
+			context.vk.FreeMemory(context.device, textureMemory, null);
 
-			vk.DestroyImageView(device, depthImageView, null);
-			vk.DestroyImage(device, depthImage, null);
-			vk.FreeMemory(device, depthImageMemory, null);
+			context.vk.DestroyImageView(context.device, depthImageView, null);
+			context.vk.DestroyImage(context.device, depthImage, null);
+			context.vk.FreeMemory(context.device, depthImageMemory, null);
 
-			vk.TryGetInstanceExtension(instance, out KhrSurface khrSurface);
-			khrSurface.DestroySurface(instance, surface, null);
+			context.vk.TryGetInstanceExtension(context.instance, out KhrSurface khrSurface);
+			khrSurface.DestroySurface(context.instance, surface, null);
 
-			vk.DestroyDevice(device, null);
-			vk.DestroyInstance(instance, null);
+			context.vk.DestroyDevice(context.device, null);
+			context.vk.DestroyInstance(context.instance, null);
 		}
 
 		public unsafe void PreRun()
@@ -355,12 +361,12 @@ namespace Engine
             Thread.Sleep(10);
 
             Span<Fence> fences = [inFlightFences.Span[currentFrame]];
-			vk.WaitForFences(device, 1, fences, true, ulong.MaxValue);
+			context.vk.WaitForFences(context.device, 1, fences, true, ulong.MaxValue);
 
-			vk.TryGetDeviceExtension(instance, device, out KhrSwapchain khrSwapChain);
+			context.vk.TryGetDeviceExtension(context.instance, context.device, out KhrSwapchain khrSwapChain);
 
 			uint imageIndex = 0;
-			var aquireResult = khrSwapChain.AcquireNextImage(device, swapchain, ulong.MaxValue, imageAvailableSemaphores.Span[currentFrame], default, ref imageIndex);
+			var aquireResult = khrSwapChain.AcquireNextImage(context.device, swapchain, ulong.MaxValue, imageAvailableSemaphores.Span[currentFrame], default, ref imageIndex);
 			if (aquireResult == Result.ErrorOutOfDateKhr || framebufferResized)
 			{
 				framebufferResized = false;
@@ -368,14 +374,14 @@ namespace Engine
 				return;
 			}
 
-			vk.WaitForFences(device, 1, fences, true, ulong.MaxValue);
+			context.vk.WaitForFences(context.device, 1, fences, true, ulong.MaxValue);
 
-			vk.ResetCommandBuffer(commandBuffers.Span[currentFrame], 0);
+			context.vk.ResetCommandBuffer(commandBuffers.Span[currentFrame], 0);
 
-			var extent = ChooseSwapExtent(vk, window, instance, physicalDevice, surface);
+			var extent = ChooseSwapExtent(context, surface);
 
 			UniformBufferUpdate(ref uniformBufferObjects.Span[currentFrame].Value, extent);
-			RecordCommandBuffer(vk, commandBuffers.Span[currentFrame], renderPass, frameBuffers.Span[(int)imageIndex], new Rect2D(new(), extent), pipeline, vertexBuffer, indexBuffer, indiciesLength, pipelineLayout, descriptorSets.Span[currentFrame]);
+			RecordCommandBuffer(context, commandBuffers.Span[currentFrame], renderPass, frameBuffers.Span[(int)imageIndex], new Rect2D(new(), extent), pipeline, vertexBuffer, indexBuffer, indiciesLength, pipelineLayout, descriptorSets.Span[currentFrame]);
 
 			SubmitInfo submitInfo = new();
 			submitInfo.SType = StructureType.SubmitInfo;
@@ -406,8 +412,8 @@ namespace Engine
 				submitInfo.PSignalSemaphores = signalSemaphoresPtr;
 			}
 
-			vk.ResetFences(device, fences);
-			var result = vk.QueueSubmit(graphicsQueue, 1, submitInfo, inFlightFences.Span[currentFrame]);
+			context.vk.ResetFences(context.device, fences);
+			var result = context.vk.QueueSubmit(graphicsQueue, 1, submitInfo, inFlightFences.Span[currentFrame]);
             if (result != Result.Success)
 				throw new Exception("Failed to submit draw command buffer!");
 
@@ -455,25 +461,25 @@ namespace Engine
 		{
 			foreach (var frameBuffer in frameBuffers.Span)
 			{
-				vk.DestroyFramebuffer(device, frameBuffer, null);
+				context.vk.DestroyFramebuffer(context.device, frameBuffer, null);
 			}
 
 			foreach (var imageView in imageViews.Span)
 			{
-				vk.DestroyImageView(device, imageView, null);
+				context.vk.DestroyImageView(context.device, imageView, null);
 			}
 
 			fixed (CommandBuffer* commandBuffersPtr = commandBuffers.Span)
 			{
-				vk.FreeCommandBuffers(device, commandPool, (uint)commandBuffers.Length, commandBuffersPtr);
+				context.vk.FreeCommandBuffers(context.device, commandPool, (uint)commandBuffers.Length, commandBuffersPtr);
 			}
 
-			vk.DestroyPipeline(device, pipeline, null);
-			vk.DestroyPipelineLayout(device, pipelineLayout, null);
-			vk.DestroyRenderPass(device, renderPass, null);
+			context.vk.DestroyPipeline(context.device, pipeline, null);
+			context.vk.DestroyPipelineLayout(context.device, pipelineLayout, null);
+			context.vk.DestroyRenderPass(context.device, renderPass, null);
 
-			vk.TryGetDeviceExtension(instance, device, out KhrSwapchain khrSwapChain);
-			khrSwapChain.DestroySwapchain(device, swapchain, null);
+			context.vk.TryGetDeviceExtension(context.instance, context.device, out KhrSwapchain khrSwapChain);
+			khrSwapChain.DestroySwapchain(context.device, swapchain, null);
 		}
 
 		static float time = 0;
@@ -498,64 +504,10 @@ namespace Engine
 			ubo.proj.M22 *= -1;
 		}
 
-		static unsafe Instance CreateInstance(Vk vk, IWindow window, string[] validationLayers)
-		{
-			ApplicationInfo appInfo = new();
-			appInfo.SType = StructureType.ApplicationInfo;
-			appInfo.PApplicationName = (byte*)Marshal.StringToHGlobalAnsi("Hengine v5");
-			appInfo.ApplicationVersion = 0;
-			appInfo.PEngineName = (byte*)Marshal.StringToHGlobalAnsi("Hengine");
-			appInfo.EngineVersion = 0;
-			appInfo.ApiVersion = Vk.Version13;
-
-			InstanceCreateInfo createInfo = new();
-			createInfo.SType = StructureType.InstanceCreateInfo;
-			createInfo.PApplicationInfo = &appInfo;
-
-			var glfwExtensions = window.VkSurface.GetRequiredExtensions(out var count);
-			createInfo.EnabledExtensionCount = count;
-			createInfo.PpEnabledExtensionNames = glfwExtensions;
-
-			if (validationLayers.Length > 0)
-			{
-				createInfo.EnabledLayerCount = (uint)validationLayers.Length;
-				createInfo.PpEnabledLayerNames = (byte**)SilkMarshal.StringArrayToPtr(validationLayers);
-			}
-			else
-			{
-				createInfo.EnabledLayerCount = 0;
-			}
-
-			var result = vk.CreateInstance(createInfo, null, out Instance instance);
-			if (result != Result.Success)
-				throw new Exception("Failed to create vkInstance");
-
-			Marshal.FreeHGlobal((IntPtr)appInfo.PApplicationName);
-			Marshal.FreeHGlobal((IntPtr)appInfo.PEngineName);
-
-			return instance;
-		}
-
-		static unsafe PhysicalDevice PickPhysicalDevice(Vk vk, Instance instance)
-		{
-			uint deviceCount = 0;
-			vk.EnumeratePhysicalDevices(instance, &deviceCount, null);
-
-			Span<PhysicalDevice> devices = stackalloc PhysicalDevice[(int)deviceCount];
-			vk.EnumeratePhysicalDevices(instance, ref deviceCount, ref devices[0]);
-
-			PhysicalDeviceProperties properties = new();
-			PhysicalDeviceFeatures features = new();
-			vk.GetPhysicalDeviceProperties(devices[0], &properties);
-			vk.GetPhysicalDeviceFeatures(devices[0], &features);
-
-            return devices[0];
-        }
-
-		static unsafe uint GetGraphicsQueueFamily(Vk vk, PhysicalDevice physicalDevice)
+		static unsafe uint GetGraphicsQueueFamily(VkContext context)
 		{
 			Span<QueueFamilyProperties> qFamilies = stackalloc QueueFamilyProperties[16];
-			qFamilies = GetQueueFamilies(vk, qFamilies, physicalDevice);
+			qFamilies = GetQueueFamilies(context, qFamilies, context.physicalDevice);
 
 			for (uint i = 0; i < qFamilies.Length; i++)
 			{
@@ -566,16 +518,16 @@ namespace Engine
 			throw new Exception("Queue with graphics bit not found.");
 		}
 
-		static unsafe uint GetPresentQueueFamily(Vk vk, Instance instance, PhysicalDevice physicalDevice, SurfaceKHR surface)
+		static unsafe uint GetPresentQueueFamily(VkContext context, SurfaceKHR surface)
 		{
-			vk.TryGetInstanceExtension(instance, out KhrSurface khrSurface);
+			context.vk.TryGetInstanceExtension(context.instance, out KhrSurface khrSurface);
 
 			Span<QueueFamilyProperties> qFamilies = stackalloc QueueFamilyProperties[16];
-			qFamilies = GetQueueFamilies(vk, qFamilies, physicalDevice);
+			qFamilies = GetQueueFamilies(context, qFamilies, context.physicalDevice);
 
 			for (uint i = 0; i < qFamilies.Length; i++)
 			{
-				khrSurface.GetPhysicalDeviceSurfaceSupport(physicalDevice, i, surface, out Bool32 supported);
+				khrSurface.GetPhysicalDeviceSurfaceSupport(context.physicalDevice, i, surface, out Bool32 supported);
 
 				if (supported.Value == 1)
 					return i;
@@ -584,75 +536,29 @@ namespace Engine
 			throw new Exception("Queue with graphics bit not found.");
 		}
 
-		static unsafe Queue GetQueue(Vk vk, Device device, uint familyIndex)
+		static unsafe Queue GetQueue(VkContext context, uint familyIndex)
 		{
-			vk.GetDeviceQueue(device, familyIndex, 0, out Queue queue);
+			context.vk.GetDeviceQueue(context.device, familyIndex, 0, out Queue queue);
 
 			return queue;
 		}
 
-		static unsafe Device CreateLogicalDevice(Vk vk, PhysicalDevice physicalDevice, uint queueFamily, string[] validationLayers, string[] extensions)
+		static unsafe SurfaceKHR CreateSurface(VkContext context)
 		{
-			float queuePriority = 1f;
-
-			DeviceQueueCreateInfo queueCreateInfo = new();
-			queueCreateInfo.SType = StructureType.DeviceQueueCreateInfo;
-			queueCreateInfo.QueueFamilyIndex = queueFamily;
-			queueCreateInfo.QueueCount = 1;
-			queueCreateInfo.PQueuePriorities = &queuePriority;
-
-			PhysicalDeviceFeatures deviceFeatures = new();
-			deviceFeatures.SamplerAnisotropy = true;
-
-			DeviceCreateInfo createInfo = new();
-			createInfo.SType = StructureType.DeviceCreateInfo;
-			createInfo.PQueueCreateInfos = &queueCreateInfo;
-			createInfo.QueueCreateInfoCount = 1;
-			createInfo.PEnabledFeatures = &deviceFeatures;
-
-			if (validationLayers.Length > 0)
-			{
-				createInfo.EnabledLayerCount = (uint)validationLayers.Length;
-				createInfo.PpEnabledLayerNames = (byte**)SilkMarshal.StringArrayToPtr(validationLayers);
-			}
-			else
-			{
-				createInfo.EnabledLayerCount = 0;
-			}
-
-			if (extensions.Length > 0)
-			{
-				createInfo.EnabledExtensionCount = (uint)extensions.Length;
-				createInfo.PpEnabledExtensionNames = (byte**)SilkMarshal.StringArrayToPtr(extensions);
-			}
-			else
-			{
-				createInfo.EnabledLayerCount = 0;
-			}
-
-			var result = vk.CreateDevice(physicalDevice, createInfo, null, out Device device);
-			if (result != Result.Success)
-				throw new Exception("Failed to create vkDevice");
-
-			return device;
+			return context.window.VkSurface.Create<AllocationCallbacks>(context.instance.ToHandle(), null).ToSurface();
 		}
 
-		static unsafe SurfaceKHR CreateSurface(IWindow window, Instance instance)
+		static unsafe SwapchainKHR CreateSwapChain(VkContext context, SurfaceKHR surface, uint graphicsQueueFamily)
 		{
-			return window.VkSurface.Create<AllocationCallbacks>(instance.ToHandle(), null).ToSurface();
-		}
+			context.vk.TryGetDeviceExtension(context.instance, context.device, out KhrSwapchain khrSwapChain);
 
-		static unsafe SwapchainKHR CreateSwapChain(Vk vk, IWindow window, Instance instance, PhysicalDevice physicalDevice, Device device, SurfaceKHR surface, uint graphicsQueueFamily)
-		{
-			vk.TryGetDeviceExtension(instance, device, out KhrSwapchain khrSwapChain);
+            var format = ChooseSwapSurfaceFormat(context, surface);
+			var presentMode = ChooseSwapPresentMode(context, surface);
+			var extent = ChooseSwapExtent(context, surface);
+			var imageCount = ChooseImageCount(context, surface);
+			var transform = ChooseSwapSurfaceTransform(context, surface);
 
-            var format = ChooseSwapSurfaceFormat(vk, instance, physicalDevice, surface);
-			var presentMode = ChooseSwapPresentMode(vk, instance, physicalDevice, surface);
-			var extent = ChooseSwapExtent(vk, window, instance, physicalDevice, surface);
-			var imageCount = ChooseImageCount(vk, instance, physicalDevice, surface);
-			var transform = ChooseSwapSurfaceTransform(vk, instance, physicalDevice, surface);
-
-			var presentQueueFamily = GetPresentQueueFamily(vk, instance, physicalDevice, surface);
+			var presentQueueFamily = GetPresentQueueFamily(context, surface);
 
 			SwapchainCreateInfoKHR createInfo = new();
 			createInfo.SType = StructureType.SwapchainCreateInfoKhr;
@@ -684,14 +590,14 @@ namespace Engine
 			createInfo.Clipped = true;
 			createInfo.OldSwapchain = default;
 
-			var result = khrSwapChain.CreateSwapchain(device, createInfo, null, out SwapchainKHR swapchain);
+			var result = khrSwapChain.CreateSwapchain(context.device, createInfo, null, out SwapchainKHR swapchain);
 			if (result != Result.Success)
 				throw new Exception("Failed to create khrSwapchain");
 
 			return swapchain;
 		}
 
-		static unsafe ImageView CreateImageView(Vk vk, Device device, Silk.NET.Vulkan.Image image, Format format, ImageAspectFlags aspectMask)
+		static unsafe ImageView CreateImageView(VkContext context, Silk.NET.Vulkan.Image image, Format format, ImageAspectFlags aspectMask)
 		{
 			ImageViewCreateInfo createInfo = new();
 			createInfo.SType = StructureType.ImageViewCreateInfo;
@@ -711,27 +617,27 @@ namespace Engine
 			createInfo.SubresourceRange.BaseArrayLayer = 0;
 			createInfo.SubresourceRange.LayerCount = 1;
 
-			var result = vk.CreateImageView(device, createInfo, null, out ImageView imageView);
+			var result = context.vk.CreateImageView(context.device, createInfo, null, out ImageView imageView);
 			if (result != Result.Success)
 				throw new Exception("Failed to create vkImageView");
 
 			return imageView;
 		}
 
-		static unsafe Memory<ImageView> CreateImageViews(Vk vk, Span<Silk.NET.Vulkan.Image> images, Instance instance, PhysicalDevice physicalDevice, Device device, SurfaceKHR surface, ImageAspectFlags aspectMask)
+		static unsafe Memory<ImageView> CreateImageViews(VkContext context, Span<Silk.NET.Vulkan.Image> images, SurfaceKHR surface, ImageAspectFlags aspectMask)
 		{
-			var surfaceFormat = ChooseSwapSurfaceFormat(vk, instance, physicalDevice, surface);
+			var surfaceFormat = ChooseSwapSurfaceFormat(context, surface);
 
 			Memory<ImageView> imageViews = new ImageView[images.Length];
 			for (int i = 0; i < imageViews.Length; i++)
 			{
-				imageViews.Span[i] = CreateImageView(vk, device, images[i], surfaceFormat.Format, aspectMask);
+				imageViews.Span[i] = CreateImageView(context, images[i], surfaceFormat.Format, aspectMask);
 			}
 
 			return imageViews;
 		}
 
-		static unsafe Memory<Framebuffer> CreateFrameBuffers(Vk vk, Span<ImageView> imageViews, ImageView depthImageView, Device device, RenderPass renderPass, Extent2D swapchainExtent)
+		static unsafe Memory<Framebuffer> CreateFrameBuffers(VkContext context, Span<ImageView> imageViews, ImageView depthImageView, RenderPass renderPass, Extent2D swapchainExtent)
 		{
 			Memory<Framebuffer> frameBuffers = new Framebuffer[imageViews.Length];
 			for (int i = 0; i < frameBuffers.Length; i++)
@@ -750,7 +656,7 @@ namespace Engine
 				createInfo.Height = swapchainExtent.Height;
 				createInfo.Layers = 1;
 
-				var result = vk.CreateFramebuffer(device, createInfo, null, out Framebuffer framebuffer);
+				var result = context.vk.CreateFramebuffer(context.device, createInfo, null, out Framebuffer framebuffer);
 				if (result != Result.Success)
 					throw new Exception("Failed to create vkImageView");
 
@@ -760,12 +666,12 @@ namespace Engine
 			return frameBuffers;
 		}
 
-		static unsafe Pipeline CreateGraphicsPipeline(Vk vk, Device device, Extent2D swapchainExtent, PipelineLayout pipelineLayout, RenderPass renderPass)
+		static unsafe Pipeline CreateGraphicsPipeline(VkContext context, Extent2D swapchainExtent, PipelineLayout pipelineLayout, RenderPass renderPass)
 		{
 			var shader = Shader.FromFiles("Shaders/VulkanVert.spv", "Shaders/VulkanFrag.spv");
 
-			var vertShader = CreateShaderModule(vk, shader.Vertex, device);
-			var fragShader = CreateShaderModule(vk, shader.Fragment, device);
+			var vertShader = CreateShaderModule(context.vk, shader.Vertex, context.device);
+			var fragShader = CreateShaderModule(context.vk, shader.Fragment, context.device);
 
 			PipelineShaderStageCreateInfo vertexStageCreateInfo = new();
 			vertexStageCreateInfo.SType = StructureType.PipelineShaderStageCreateInfo;
@@ -905,17 +811,17 @@ namespace Engine
 			graphicsCreateInfo.BasePipelineIndex = -1;
 			graphicsCreateInfo.PDepthStencilState = &depthStencilStateCreateInfo;
 
-			var result = vk.CreateGraphicsPipelines(device, default, 1, graphicsCreateInfo, null, out Pipeline pipeline);
+			var result = context.vk.CreateGraphicsPipelines(context.device, default, 1, graphicsCreateInfo, null, out Pipeline pipeline);
 			if (result != Result.Success)
 				throw new Exception("Failed to create vkPipelineLayout");
 
-			vk.DestroyShaderModule(device, vertShader, null);
-			vk.DestroyShaderModule(device, fragShader, null);
+			context.vk.DestroyShaderModule(context.device, vertShader, null);
+			context.vk.DestroyShaderModule(context.device, fragShader, null);
 
 			return pipeline;
 		}
 
-		static unsafe PipelineLayout CreatePipelineLayout(Vk vk, Device device, DescriptorSetLayout descriptorSetLayout)
+		static unsafe PipelineLayout CreatePipelineLayout(VkContext context, DescriptorSetLayout descriptorSetLayout)
 		{
 			PipelineColorBlendAttachmentState colorBlendAttatchment = new();
 			colorBlendAttatchment.ColorWriteMask = ColorComponentFlags.RBit | ColorComponentFlags.GBit | ColorComponentFlags.BBit | ColorComponentFlags.ABit;
@@ -934,16 +840,16 @@ namespace Engine
 			pipelineLayoutCreateInfo.PushConstantRangeCount = 0;
 			pipelineLayoutCreateInfo.PPushConstantRanges = null;
 
-			var result = vk.CreatePipelineLayout(device, pipelineLayoutCreateInfo, null, out PipelineLayout pipelineLayout);
+			var result = context.vk.CreatePipelineLayout(context.device, pipelineLayoutCreateInfo, null, out PipelineLayout pipelineLayout);
 			if (result != Result.Success)
 				throw new Exception("Failed to create vkPipelineLayout");
 
 			return pipelineLayout;
 		}
 
-		static unsafe RenderPass CreateRenderPass(Vk vk, Instance instance, PhysicalDevice physicalDevice, Device device, SurfaceKHR surface, Format depthFormat)
+		static unsafe RenderPass CreateRenderPass(VkContext context, SurfaceKHR surface, Format depthFormat)
 		{
-			var surfaceFormat = ChooseSwapSurfaceFormat(vk, instance, physicalDevice, surface);
+			var surfaceFormat = ChooseSwapSurfaceFormat(context, surface);
 
 			AttachmentDescription colorAttachment = new();
 			colorAttachment.Format = surfaceFormat.Format;
@@ -1000,7 +906,7 @@ namespace Engine
 			createInfo.DependencyCount = 1;
 			createInfo.PDependencies = &dependency;
 
-			var result = vk.CreateRenderPass(device, createInfo, null, out RenderPass renderPass);
+			var result = context.vk.CreateRenderPass(context.device, createInfo, null, out RenderPass renderPass);
 			if (result != Result.Success)
 				throw new Exception("Failed to create vkRenderPass");
 
@@ -1025,21 +931,21 @@ namespace Engine
 			return shaderModule;
 		}
 
-		static unsafe CommandPool CreateCommandPool(Vk vk, Device device, uint graphicsQueueFamily)
+		static unsafe CommandPool CreateCommandPool(VkContext context, uint graphicsQueueFamily)
 		{
 			CommandPoolCreateInfo createInfo = new();
 			createInfo.SType = StructureType.CommandPoolCreateInfo;
 			createInfo.Flags = CommandPoolCreateFlags.ResetCommandBufferBit;
 			createInfo.QueueFamilyIndex = graphicsQueueFamily;
 
-			var result = vk.CreateCommandPool(device, createInfo, null, out CommandPool commandPool);
+			var result = context.vk.CreateCommandPool(context.device, createInfo, null, out CommandPool commandPool);
 			if (result != Result.Success)
 				throw new Exception("Failed to create vkShaderModule");
 
 			return commandPool;
 		}
 
-		static unsafe Memory<CommandBuffer> CreateCommandBuffers(Vk vk, Device device, CommandPool commandPool, uint count)
+		static unsafe Memory<CommandBuffer> CreateCommandBuffers(VkContext context, CommandPool commandPool, uint count)
 		{
 			Memory<CommandBuffer> commandBuffers = new CommandBuffer[count];
 
@@ -1051,7 +957,7 @@ namespace Engine
 
 			fixed (CommandBuffer* commandBufferPtr = commandBuffers.Span)
 			{
-				var result = vk.AllocateCommandBuffers(device, allocInfo, commandBufferPtr);
+				var result = context.vk.AllocateCommandBuffers(context.device, allocInfo, commandBufferPtr);
 				if (result != Result.Success)
 					throw new Exception("Failed to create vkShaderModule");
 			}
@@ -1059,7 +965,7 @@ namespace Engine
 			return commandBuffers;
 		}
 
-		static unsafe CommandBuffer CreateCommandBuffer(Vk vk, Device device, CommandPool commandPool)
+		static unsafe CommandBuffer CreateCommandBuffer(VkContext context, CommandPool commandPool)
 		{
 			CommandBufferAllocateInfo allocInfo = new();
 			allocInfo.SType = StructureType.CommandBufferAllocateInfo;
@@ -1067,14 +973,14 @@ namespace Engine
 			allocInfo.Level = CommandBufferLevel.Primary;
 			allocInfo.CommandBufferCount = 1;
 
-			var result = vk.AllocateCommandBuffers(device, allocInfo, out CommandBuffer commandBuffer);
+			var result = context.vk.AllocateCommandBuffers(context.device, allocInfo, out CommandBuffer commandBuffer);
 			if (result != Result.Success)
 				throw new Exception("Failed to create vkShaderModule");
 
 			return commandBuffer;
 		}
 
-		static unsafe Memory<Silk.NET.Vulkan.Semaphore> CreateSemaphores(Vk vk, Device device)
+		static unsafe Memory<Silk.NET.Vulkan.Semaphore> CreateSemaphores(VkContext context)
 		{
 			Memory<Silk.NET.Vulkan.Semaphore> semaphores = new Silk.NET.Vulkan.Semaphore[MAX_FRAMES_IN_FLIGHT];
 
@@ -1083,7 +989,7 @@ namespace Engine
 
 			for (int i = 0; i < semaphores.Length; i++)
 			{
-				var result = vk.CreateSemaphore(device, createInfo, null, out semaphores.Span[i]);
+				var result = context.vk.CreateSemaphore(context.device, createInfo, null, out semaphores.Span[i]);
 				if (result != Result.Success)
 					throw new Exception("Failed to create vkShaderModule");
 			}
@@ -1091,7 +997,7 @@ namespace Engine
 			return semaphores;
 		}
 
-		static unsafe Memory<Fence> CreateFences(Vk vk, Device device, FenceCreateFlags flags)
+		static unsafe Memory<Fence> CreateFences(VkContext context, FenceCreateFlags flags)
 		{
 			Memory<Fence> fences = new Fence[MAX_FRAMES_IN_FLIGHT];
 
@@ -1101,7 +1007,7 @@ namespace Engine
 
 			for (int i = 0; i < fences.Length; i++)
 			{
-				var result = vk.CreateFence(device, createInfo, null, out fences.Span[i]);
+				var result = context.vk.CreateFence(context.device, createInfo, null, out fences.Span[i]);
 				if (result != Result.Success)
 					throw new Exception("Failed to create vkShaderModule");
 			}
@@ -1109,7 +1015,7 @@ namespace Engine
 			return fences;
 		}
 
-		static unsafe Silk.NET.Vulkan.Buffer CreateBuffer<T>(Vk vk, Device device, BufferUsageFlags bufferUsage, uint dataCount) where T : unmanaged
+		static unsafe Silk.NET.Vulkan.Buffer CreateBuffer<T>(VkContext context, BufferUsageFlags bufferUsage, uint dataCount) where T : unmanaged
 		{
 			BufferCreateInfo createInfo = new();
 			createInfo.SType = StructureType.BufferCreateInfo;
@@ -1118,92 +1024,92 @@ namespace Engine
 			createInfo.SharingMode = SharingMode.Exclusive;
 			createInfo.Flags = BufferCreateFlags.None;
 
-			var result = vk.CreateBuffer(device, createInfo, null, out Silk.NET.Vulkan.Buffer buffer);
+			var result = context.vk.CreateBuffer(context.device, createInfo, null, out Silk.NET.Vulkan.Buffer buffer);
 			if (result != Result.Success)
 				throw new Exception("Failed to create vkBuffer");
 
 			return buffer;
 		}
 
-		static Memory<Silk.NET.Vulkan.Buffer> CreateBuffers<T>(Vk vk, Device device, BufferUsageFlags bufferUsage, uint dataCount, uint bufferCount) where T : unmanaged
+		static Memory<Silk.NET.Vulkan.Buffer> CreateBuffers<T>(VkContext context, BufferUsageFlags bufferUsage, uint dataCount, uint bufferCount) where T : unmanaged
 		{
 			Memory<Silk.NET.Vulkan.Buffer> buffers = new Silk.NET.Vulkan.Buffer[bufferCount];
 			for (int i = 0; i < buffers.Length; i++)
 			{
-				buffers.Span[i] = CreateBuffer<T>(vk, device, bufferUsage, dataCount);
+				buffers.Span[i] = CreateBuffer<T>(context, bufferUsage, dataCount);
 			}
 
 			return buffers;
 		}
 
-		static unsafe DeviceMemory CreateBufferMemory(Vk vk, PhysicalDevice physicalDevice, Device device, Silk.NET.Vulkan.Buffer buffer, MemoryPropertyFlags properties)
+		static unsafe DeviceMemory CreateBufferMemory(VkContext context, Silk.NET.Vulkan.Buffer buffer, MemoryPropertyFlags properties)
 		{
-			vk.GetBufferMemoryRequirements(device, buffer, out MemoryRequirements memRequirements);
+			context.vk.GetBufferMemoryRequirements(context.device, buffer, out MemoryRequirements memRequirements);
 
 			MemoryAllocateInfo allocInfo = new();
 			allocInfo.SType = StructureType.MemoryAllocateInfo;
 			allocInfo.AllocationSize = memRequirements.Size;
-			allocInfo.MemoryTypeIndex = FindMemoryType(vk, physicalDevice, memRequirements.MemoryTypeBits, properties);
+			allocInfo.MemoryTypeIndex = FindMemoryType(context, memRequirements.MemoryTypeBits, properties);
 
-			var result = vk.AllocateMemory(device, allocInfo, null, out DeviceMemory bufferMemory);
+			var result = context.vk.AllocateMemory(context.device, allocInfo, null, out DeviceMemory bufferMemory);
 			if (result != Result.Success)
 				throw new Exception("Failed to allocate buffer memory");
 
-			vk.BindBufferMemory(device, buffer, bufferMemory, 0);
+			context.vk.BindBufferMemory(context.device, buffer, bufferMemory, 0);
 
 			return bufferMemory;
 		}
 
-		static unsafe DeviceMemory CreateImageMemory(Vk vk, PhysicalDevice physicalDevice, Device device, Silk.NET.Vulkan.Image image, MemoryPropertyFlags properties)
+		static unsafe DeviceMemory CreateImageMemory(VkContext context, Silk.NET.Vulkan.Image image, MemoryPropertyFlags properties)
 		{
-			vk.GetImageMemoryRequirements(device, image, out MemoryRequirements memRequirements);
+			context.vk.GetImageMemoryRequirements(context.device, image, out MemoryRequirements memRequirements);
 
 			MemoryAllocateInfo allocInfo = new();
 			allocInfo.SType = StructureType.MemoryAllocateInfo;
 			allocInfo.AllocationSize = memRequirements.Size;
-			allocInfo.MemoryTypeIndex = FindMemoryType(vk, physicalDevice, memRequirements.MemoryTypeBits, properties);
+			allocInfo.MemoryTypeIndex = FindMemoryType(context, memRequirements.MemoryTypeBits, properties);
 
-			var result = vk.AllocateMemory(device, allocInfo, null, out DeviceMemory bufferMemory);
+			var result = context.vk.AllocateMemory(context.device, allocInfo, null, out DeviceMemory bufferMemory);
 			if (result != Result.Success)
 				throw new Exception("Failed to allocate buffer memory");
 
-			vk.BindImageMemory(device, image, bufferMemory, 0);
+			context.vk.BindImageMemory(context.device, image, bufferMemory, 0);
 
 			return bufferMemory;
 		}
 
-		static Memory<DeviceMemory> CreateBufferMemories(Vk vk, PhysicalDevice physicalDevice, Device device, Span<Silk.NET.Vulkan.Buffer> buffers, MemoryPropertyFlags properties)
+		static Memory<DeviceMemory> CreateBufferMemories(VkContext context, Span<Silk.NET.Vulkan.Buffer> buffers, MemoryPropertyFlags properties)
 		{
 			Memory<DeviceMemory> bufferMemories = new DeviceMemory[buffers.Length];
 			for (int i = 0; i < buffers.Length; i++)
 			{
-				bufferMemories.Span[i] = CreateBufferMemory(vk, physicalDevice, device, buffers[i], properties);
+				bufferMemories.Span[i] = CreateBufferMemory(context, buffers[i], properties);
 			}
 
 			return bufferMemories;
 		}
 
-		static unsafe void MapBufferMemory<T>(Vk vk, Device device, Silk.NET.Vulkan.Buffer buffer, DeviceMemory bufferMemory, T data) where T : unmanaged
+		static unsafe void MapBufferMemory<T>(VkContext context, Silk.NET.Vulkan.Buffer buffer, DeviceMemory bufferMemory, T data) where T : unmanaged
 		{
-			vk.GetBufferMemoryRequirements(device, buffer, out MemoryRequirements memRequirements);
+			context.vk.GetBufferMemoryRequirements(context.device, buffer, out MemoryRequirements memRequirements);
 
 			void* dataPtr;
-			vk.MapMemory(device, bufferMemory, 0, memRequirements.Size, 0, &dataPtr);
+			context.vk.MapMemory(context.device, bufferMemory, 0, memRequirements.Size, 0, &dataPtr);
 			((T*)dataPtr)[0] = data;
-			vk.UnmapMemory(device, bufferMemory);
+			context.vk.UnmapMemory(context.device, bufferMemory);
 		}
 
-		static unsafe void MapBufferMemory<T>(Vk vk, Device device, Silk.NET.Vulkan.Buffer buffer, DeviceMemory bufferMemory, Span<T> data) where T : unmanaged
+		static unsafe void MapBufferMemory<T>(VkContext context, Silk.NET.Vulkan.Buffer buffer, DeviceMemory bufferMemory, Span<T> data) where T : unmanaged
 		{
-			vk.GetBufferMemoryRequirements(device, buffer, out MemoryRequirements memRequirements);
+			context.vk.GetBufferMemoryRequirements(context.device, buffer, out MemoryRequirements memRequirements);
 
 			void* dataPtr;
-			vk.MapMemory(device, bufferMemory, 0, memRequirements.Size, 0, &dataPtr);
+			context.vk.MapMemory(context.device, bufferMemory, 0, memRequirements.Size, 0, &dataPtr);
 			data.CopyTo(new Span<T>(dataPtr, data.Length));
-			vk.UnmapMemory(device, bufferMemory);
+			context.vk.UnmapMemory(context.device, bufferMemory);
 		}
 
-		static unsafe DescriptorSetLayout CreateDescriptorSetLayout(Vk vk, Device device)
+		static unsafe DescriptorSetLayout CreateDescriptorSetLayout(VkContext context)
 		{
 			DescriptorSetLayoutBinding uniformBinding = new();
 			uniformBinding.Binding = 0;
@@ -1229,14 +1135,14 @@ namespace Engine
 
 			createInfo.PBindings = bindingsPtr;
 
-			var result = vk.CreateDescriptorSetLayout(device, createInfo, null, out DescriptorSetLayout descriptorSetLayout);
+			var result = context.vk.CreateDescriptorSetLayout(context.device, createInfo, null, out DescriptorSetLayout descriptorSetLayout);
 			if (result != Result.Success)
 				throw new Exception("Failed to create vkDescriptorSetLayout");
 
 			return descriptorSetLayout;
 		}
 
-		static unsafe DescriptorPool CreateDescriptorPool(Vk vk, Device device, uint size)
+		static unsafe DescriptorPool CreateDescriptorPool(VkContext context, uint size)
 		{
 			DescriptorPoolSize uniformSize = new();
 			uniformSize.Type = DescriptorType.UniformBuffer;
@@ -1256,14 +1162,14 @@ namespace Engine
 			createInfo.PPoolSizes = bindingsPtr;
 			createInfo.MaxSets = size;
 
-            var result = vk.CreateDescriptorPool(device, createInfo, null, out DescriptorPool descriptorPool);
+            var result = context.vk.CreateDescriptorPool(context.device, createInfo, null, out DescriptorPool descriptorPool);
 			if (result != Result.Success)
 				throw new Exception("Failed to create vkDescriptorPool");
 
 			return descriptorPool;
 		}
 
-		static unsafe Memory<DescriptorSet> CreateDescriptorSets(Vk vk, Device device, DescriptorPool descriptorPool, DescriptorSetLayout layout, Span<Silk.NET.Vulkan.Buffer> uniformBuffers, ImageView textureImageView, Sampler sampler)
+		static unsafe Memory<DescriptorSet> CreateDescriptorSets(VkContext context, DescriptorPool descriptorPool, DescriptorSetLayout layout, Span<Silk.NET.Vulkan.Buffer> uniformBuffers, ImageView textureImageView, Sampler sampler)
 		{
 			DescriptorSetLayout* layouts = stackalloc DescriptorSetLayout[MAX_FRAMES_IN_FLIGHT];
 			for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
@@ -1280,7 +1186,7 @@ namespace Engine
 			Memory<DescriptorSet> descriptorSets = new DescriptorSet[MAX_FRAMES_IN_FLIGHT];
 			fixed(DescriptorSet* escriptorSetsPtr = descriptorSets.Span)
 			{
-				var result = vk.AllocateDescriptorSets(device, allocInfo, escriptorSetsPtr);
+				var result = context.vk.AllocateDescriptorSets(context.device, allocInfo, escriptorSetsPtr);
 				if (result != Result.Success)
 					throw new Exception("Failed to allocate vkDescriptorSets");
 			}
@@ -1315,19 +1221,19 @@ namespace Engine
 				imageDescriptorWrite.DescriptorCount = 1;
 				imageDescriptorWrite.PImageInfo = &imageInfo;
 
-				vk.UpdateDescriptorSets(device, [bufferDescriptorWrite, imageDescriptorWrite], 0, null);
+				context.vk.UpdateDescriptorSets(context.device, [bufferDescriptorWrite, imageDescriptorWrite], 0, null);
 			}
 
 			return descriptorSets;
 		}
 		
-		static unsafe Silk.NET.Vulkan.Image CreateTextureImage(Vk vk, Device device, uint width, uint height, Format format, ImageTiling tiling, ImageUsageFlags usage)
+		static unsafe Silk.NET.Vulkan.Image CreateTextureImage(VkContext context, Extent2D extent, Format format, ImageTiling tiling, ImageUsageFlags usage)
 		{
 			ImageCreateInfo createInfo = new();
 			createInfo.SType = StructureType.ImageCreateInfo;
 			createInfo.ImageType = ImageType.ImageType2D;
-			createInfo.Extent.Width = width;
-			createInfo.Extent.Height = height;
+			createInfo.Extent.Width = extent.Width;
+			createInfo.Extent.Height = extent.Height;
 			createInfo.Extent.Depth = 1;
 			createInfo.MipLevels = 1;
 			createInfo.ArrayLayers = 1;
@@ -1339,14 +1245,14 @@ namespace Engine
 			createInfo.Samples = SampleCountFlags.Count1Bit;
 			createInfo.Flags = ImageCreateFlags.None;
 
-			var result = vk.CreateImage(device, createInfo, null, out Silk.NET.Vulkan.Image image);
+			var result = context.vk.CreateImage(context.device, createInfo, null, out Silk.NET.Vulkan.Image image);
 			if (result != Result.Success)
 				throw new Exception("Failed to create vkImage");
 
 			return image;
 		}
 
-		static unsafe Sampler CreateTextureSampler(Vk vk, PhysicalDevice physicalDevice, Device device)
+		static unsafe Sampler CreateTextureSampler(VkContext context)
 		{
 			SamplerCreateInfo createInfo = new();
 			createInfo.SType = StructureType.SamplerCreateInfo;
@@ -1356,7 +1262,7 @@ namespace Engine
 			createInfo.AddressModeV = SamplerAddressMode.Repeat;
 			createInfo.AddressModeW = SamplerAddressMode.Repeat;
 
-			vk.GetPhysicalDeviceProperties(physicalDevice, out PhysicalDeviceProperties properties);
+			context.vk.GetPhysicalDeviceProperties(context.physicalDevice, out PhysicalDeviceProperties properties);
 
 			createInfo.AnisotropyEnable = true;
 			createInfo.MaxAnisotropy = properties.Limits.MaxSamplerAnisotropy;
@@ -1369,19 +1275,19 @@ namespace Engine
 			createInfo.MinLod = 0f;
 			createInfo.MaxLod = 0f;
 
-			var result = vk.CreateSampler(device, createInfo, null, out Sampler sampler);
+			var result = context.vk.CreateSampler(context.device, createInfo, null, out Sampler sampler);
 			if (result != Result.Success)
 				throw new Exception("Failed to create vkImage");
 
 			return sampler;
 		}
 
-		static unsafe SurfaceFormatKHR ChooseSwapSurfaceFormat(Vk vk, Instance instance, PhysicalDevice physicalDevice, SurfaceKHR surface)
+		static unsafe SurfaceFormatKHR ChooseSwapSurfaceFormat(VkContext context, SurfaceKHR surface)
 		{
-			vk.TryGetInstanceExtension(instance, out KhrSurface khrSurface);
+			context.vk.TryGetInstanceExtension(context.instance, out KhrSurface khrSurface);
 
 			Span<SurfaceFormatKHR> surfaceFormats = stackalloc SurfaceFormatKHR[16];
-			surfaceFormats = GetSurfaceFormats(surfaceFormats, khrSurface, physicalDevice, surface);
+			surfaceFormats = GetSurfaceFormats(surfaceFormats, khrSurface, context.physicalDevice, surface);
 
 			foreach (var format in surfaceFormats)
 			{
@@ -1393,12 +1299,12 @@ namespace Engine
 			return surfaceFormats[0];
 		}
 
-		static unsafe PresentModeKHR ChooseSwapPresentMode(Vk vk, Instance instance, PhysicalDevice physicalDevice, SurfaceKHR surface)
+		static unsafe PresentModeKHR ChooseSwapPresentMode(VkContext context, SurfaceKHR surface)
 		{
-			vk.TryGetInstanceExtension(instance, out KhrSurface khrSurface);
+			context.vk.TryGetInstanceExtension(context.instance, out KhrSurface khrSurface);
 
 			Span<PresentModeKHR> presentModees = stackalloc PresentModeKHR[16];
-			presentModees = GetSurfacePresentModes(presentModees, khrSurface, physicalDevice, surface);
+			presentModees = GetSurfacePresentModes(presentModees, khrSurface, context.physicalDevice, surface);
 
 			foreach (var mode in presentModees)
 			{
@@ -1409,15 +1315,15 @@ namespace Engine
 			return PresentModeKHR.FifoKhr;
 		}
 
-		static Extent2D ChooseSwapExtent(Vk vk, IWindow window, Instance instance, PhysicalDevice physicalDevice, SurfaceKHR surface)
+		static Extent2D ChooseSwapExtent(VkContext context, SurfaceKHR surface)
 		{
-			vk.TryGetInstanceExtension(instance, out KhrSurface khrSurface);
-			khrSurface.GetPhysicalDeviceSurfaceCapabilities(physicalDevice, surface, out SurfaceCapabilitiesKHR capabilities);
+			context.vk.TryGetInstanceExtension(context.instance, out KhrSurface khrSurface);
+			khrSurface.GetPhysicalDeviceSurfaceCapabilities(context.physicalDevice, surface, out SurfaceCapabilitiesKHR capabilities);
 
 			if (capabilities.CurrentExtent.Width != uint.MaxValue)
 				return capabilities.CurrentExtent;
 
-			var frameBuffer = window.FramebufferSize;
+			var frameBuffer = context.window.FramebufferSize;
 
 			Extent2D actualExtent = new()
 			{
@@ -1431,10 +1337,10 @@ namespace Engine
 			return actualExtent;
 		}
 
-		static uint ChooseImageCount(Vk vk, Instance instance, PhysicalDevice physicalDevice, SurfaceKHR surface)
+		static uint ChooseImageCount(VkContext context, SurfaceKHR surface)
 		{
-			vk.TryGetInstanceExtension(instance, out KhrSurface khrSurface);
-			khrSurface.GetPhysicalDeviceSurfaceCapabilities(physicalDevice, surface, out SurfaceCapabilitiesKHR capabilities);
+			context.vk.TryGetInstanceExtension(context.instance, out KhrSurface khrSurface);
+			khrSurface.GetPhysicalDeviceSurfaceCapabilities(context.physicalDevice, surface, out SurfaceCapabilitiesKHR capabilities);
 			
 			if (capabilities.MaxImageCount == 0)
 				return capabilities.MinImageCount + 2;
@@ -1442,22 +1348,22 @@ namespace Engine
 			return Math.Clamp(capabilities.MinImageCount + 2, capabilities.MinImageCount, capabilities.MaxImageCount);
 		}
 
-		static SurfaceTransformFlagsKHR ChooseSwapSurfaceTransform(Vk vk, Instance instance, PhysicalDevice physicalDevice, SurfaceKHR surface)
+		static SurfaceTransformFlagsKHR ChooseSwapSurfaceTransform(VkContext context, SurfaceKHR surface)
 		{
-			vk.TryGetInstanceExtension(instance, out KhrSurface khrSurface);
-			khrSurface.GetPhysicalDeviceSurfaceCapabilities(physicalDevice, surface, out SurfaceCapabilitiesKHR capabilities);
+			context.vk.TryGetInstanceExtension(context.instance, out KhrSurface khrSurface);
+			khrSurface.GetPhysicalDeviceSurfaceCapabilities(context.physicalDevice, surface, out SurfaceCapabilitiesKHR capabilities);
 
 			return capabilities.SupportedTransforms;
 		}
 
-		static unsafe void RecordCommandBuffer(Vk vk, CommandBuffer commandBuffer, RenderPass renderPass, Framebuffer framebuffer, Rect2D renderArea, Pipeline graphicsPipeline, Silk.NET.Vulkan.Buffer vertexBuffers, Silk.NET.Vulkan.Buffer indexBuffer, uint indicies, PipelineLayout layout, DescriptorSet descriptorSet)
+		static unsafe void RecordCommandBuffer(VkContext context, CommandBuffer commandBuffer, RenderPass renderPass, Framebuffer framebuffer, Rect2D renderArea, Pipeline graphicsPipeline, Silk.NET.Vulkan.Buffer vertexBuffers, Silk.NET.Vulkan.Buffer indexBuffer, uint indicies, PipelineLayout layout, DescriptorSet descriptorSet)
 		{
 			CommandBufferBeginInfo beginInfo = new();
 			beginInfo.SType = StructureType.CommandBufferBeginInfo;
 			beginInfo.Flags = 0;
 			beginInfo.PInheritanceInfo = null;
 
-			vk.BeginCommandBuffer(commandBuffer, beginInfo);
+			context.vk.BeginCommandBuffer(commandBuffer, beginInfo);
 
             RenderPassBeginInfo renderPassInfo = new();
 			renderPassInfo.SType = StructureType.RenderPassBeginInfo;
@@ -1474,8 +1380,8 @@ namespace Engine
 			renderPassInfo.ClearValueCount = 2;
 			renderPassInfo.PClearValues = clearColors;
 
-			vk.CmdBeginRenderPass(commandBuffer, renderPassInfo, SubpassContents.Inline);
-			vk.CmdBindPipeline(commandBuffer, PipelineBindPoint.Graphics, graphicsPipeline);
+			context.vk.CmdBeginRenderPass(commandBuffer, renderPassInfo, SubpassContents.Inline);
+			context.vk.CmdBindPipeline(commandBuffer, PipelineBindPoint.Graphics, graphicsPipeline);
 
 			Viewport viewport = new();
 			viewport.X = 0;
@@ -1484,35 +1390,35 @@ namespace Engine
 			viewport.Height = renderArea.Extent.Height;
 			viewport.MinDepth = 0f;
 			viewport.MaxDepth = 1f;
-			
-			vk.CmdSetViewport(commandBuffer, 0, 1, viewport);
+
+			context.vk.CmdSetViewport(commandBuffer, 0, 1, viewport);
 
 			Rect2D scissor = new();
 			scissor.Offset = new(0, 0);
 			scissor.Extent = renderArea.Extent;
 
-			vk.CmdSetScissor(commandBuffer, 0, 1, &scissor);
+			context.vk.CmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-			vk.CmdBindVertexBuffers(commandBuffer, 0, [vertexBuffers], [0]);
-			vk.CmdBindIndexBuffer(commandBuffer, indexBuffer, 0, IndexType.Uint16);
+			context.vk.CmdBindVertexBuffers(commandBuffer, 0, [vertexBuffers], [0]);
+			context.vk.CmdBindIndexBuffer(commandBuffer, indexBuffer, 0, IndexType.Uint16);
 
-			vk.CmdBindDescriptorSets(commandBuffer, PipelineBindPoint.Graphics, layout, 0, 1, descriptorSet, 0, null);
+			context.vk.CmdBindDescriptorSets(commandBuffer, PipelineBindPoint.Graphics, layout, 0, 1, descriptorSet, 0, null);
 
-			vk.CmdDrawIndexed(commandBuffer, indicies, 1, 0, 0, 0);
-			vk.CmdEndRenderPass(commandBuffer);
+			context.vk.CmdDrawIndexed(commandBuffer, indicies, 1, 0, 0, 0);
+			context.vk.CmdEndRenderPass(commandBuffer);
 
-			var result = vk.EndCommandBuffer(commandBuffer);
+			var result = context.vk.EndCommandBuffer(commandBuffer);
 			if (result != Result.Success)
 				throw new Exception("Failed to end vkCommandBuffer");
 		}
 
-		static unsafe void PrintExtensions(Vk vk, PhysicalDevice device)
+		static unsafe void PrintExtensions(VkContext context)
 		{
 			uint instanceExtensionCount = 0;
-			vk.EnumerateInstanceExtensionProperties((byte*)null, &instanceExtensionCount, null);
+			context.vk.EnumerateInstanceExtensionProperties((byte*)null, &instanceExtensionCount, null);
 
 			Span<ExtensionProperties> extensionProps = stackalloc ExtensionProperties[(int)instanceExtensionCount];
-			vk.EnumerateInstanceExtensionProperties((byte*)null, &instanceExtensionCount, extensionProps);
+			context.vk.EnumerateInstanceExtensionProperties((byte*)null, &instanceExtensionCount, extensionProps);
 
             Console.WriteLine("Instance extensions:");
             foreach (var item in extensionProps)
@@ -1523,10 +1429,10 @@ namespace Engine
             Console.WriteLine();
 
 			uint deviceExtensionCount = 0;
-			vk.EnumerateDeviceExtensionProperties(device, (byte*)null, &deviceExtensionCount, null);
+			context.vk.EnumerateDeviceExtensionProperties(context.physicalDevice, (byte*)null, &deviceExtensionCount, null);
 
 			Span<ExtensionProperties> deviceProps = stackalloc ExtensionProperties[(int)deviceExtensionCount];
-			vk.EnumerateDeviceExtensionProperties(device, (byte*)null, &deviceExtensionCount, deviceProps);
+			context.vk.EnumerateDeviceExtensionProperties(context.physicalDevice, (byte*)null, &deviceExtensionCount, deviceProps);
 
 			Console.WriteLine("Device extensions:");
 			foreach (var item in deviceProps)
@@ -1535,19 +1441,19 @@ namespace Engine
 			}
 		}
 
-		static unsafe void PrintSurfaceCapabilities(Vk vk, Instance instance, PhysicalDevice physicalDevice, SurfaceKHR surface)
+		static unsafe void PrintSurfaceCapabilities(VkContext context, SurfaceKHR surface)
 		{
-			vk.TryGetInstanceExtension(instance, out KhrSurface khrSurface);
+			context.vk.TryGetInstanceExtension(context.instance, out KhrSurface khrSurface);
 
-			khrSurface.GetPhysicalDeviceSurfaceCapabilities(physicalDevice, surface, out SurfaceCapabilitiesKHR capabilities);
+			khrSurface.GetPhysicalDeviceSurfaceCapabilities(context.physicalDevice, surface, out SurfaceCapabilitiesKHR capabilities);
             Console.WriteLine($"Extent: {capabilities.CurrentExtent.Width}, {capabilities.CurrentExtent.Height}");
             Console.WriteLine($"Image Count: {capabilities.MinImageCount}-{capabilities.MaxImageCount}");
 
             Span<SurfaceFormatKHR> surfaceFormats = stackalloc SurfaceFormatKHR[16];
-			surfaceFormats = GetSurfaceFormats(surfaceFormats, khrSurface, physicalDevice, surface);
+			surfaceFormats = GetSurfaceFormats(surfaceFormats, khrSurface, context.physicalDevice, surface);
 
 			Span<PresentModeKHR> presentModees = stackalloc PresentModeKHR[16];
-			presentModees = GetSurfacePresentModes(presentModees, khrSurface, physicalDevice, surface);
+			presentModees = GetSurfacePresentModes(presentModees, khrSurface, context.physicalDevice, surface);
 
 			Console.WriteLine("Surface formats:");
 			foreach (var item in surfaceFormats)
@@ -1562,10 +1468,10 @@ namespace Engine
 			}
 		}
 
-		static unsafe void PrintQueueFamilies(Vk vk, PhysicalDevice physicalDevice)
+		static unsafe void PrintQueueFamilies(VkContext context)
 		{
 			Span<QueueFamilyProperties> qFamilies = stackalloc QueueFamilyProperties[16];
-			qFamilies = GetQueueFamilies(vk, qFamilies, physicalDevice);
+			qFamilies = GetQueueFamilies(context, qFamilies, context.physicalDevice);
 
 			Console.WriteLine("Queue families:");
 			foreach (var family in qFamilies)
@@ -1574,13 +1480,13 @@ namespace Engine
 			}
 		}
 
-		static unsafe void PrintValidationLayers(Vk vk)
+		static unsafe void PrintValidationLayers(VkContext context)
 		{
 			uint layerCount = 0;
-			vk.EnumerateInstanceLayerProperties(ref layerCount, null);
+			context.vk.EnumerateInstanceLayerProperties(ref layerCount, null);
 
 			Span<LayerProperties> layerProperties = stackalloc LayerProperties[(int)layerCount];
-			vk.EnumerateInstanceLayerProperties(ref layerCount, ref layerProperties[0]);
+			context.vk.EnumerateInstanceLayerProperties(ref layerCount, ref layerProperties[0]);
 
 			Console.WriteLine("Validation Layers:");
 			foreach (var layer in layerProperties)
@@ -1591,9 +1497,9 @@ namespace Engine
 			}
 		}
 
-		static void PrintMemoryTypes(Vk vk, PhysicalDevice physicalDevice)
+		static void PrintMemoryTypes(VkContext context)
 		{
-			vk.GetPhysicalDeviceMemoryProperties(physicalDevice, out PhysicalDeviceMemoryProperties memoryProperties);
+			context.vk.GetPhysicalDeviceMemoryProperties(context.physicalDevice, out PhysicalDeviceMemoryProperties memoryProperties);
 			Console.WriteLine("Memory Types:");
 			foreach (var layer in memoryProperties.MemoryTypes.AsSpan())
 			{
@@ -1604,14 +1510,14 @@ namespace Engine
 			}
 		}
 
-		static unsafe Span<QueueFamilyProperties> GetQueueFamilies(Vk vk, Span<QueueFamilyProperties> buff, PhysicalDevice physicalDevice)
+		static unsafe Span<QueueFamilyProperties> GetQueueFamilies(VkContext context, Span<QueueFamilyProperties> buff, PhysicalDevice physicalDevice)
 		{
 			uint qFamilyCount = 0;
-			vk.GetPhysicalDeviceQueueFamilyProperties(physicalDevice, ref qFamilyCount, null);
+			context.vk.GetPhysicalDeviceQueueFamilyProperties(physicalDevice, ref qFamilyCount, null);
 
 			fixed (QueueFamilyProperties* buffPtr = buff)
 			{
-				vk.GetPhysicalDeviceQueueFamilyProperties(physicalDevice, ref qFamilyCount, buffPtr);
+				context.vk.GetPhysicalDeviceQueueFamilyProperties(physicalDevice, ref qFamilyCount, buffPtr);
 			}
 
 			return buff.Slice(0, (int)qFamilyCount);
@@ -1635,15 +1541,15 @@ namespace Engine
 			return buff.Slice(0, (int)presentModeCount);
 		}
 
-		static unsafe Memory<Silk.NET.Vulkan.Image> GetSwapChainImages(Vk vk, Instance instance, Device device, SwapchainKHR swapchain)
+		static unsafe Memory<Silk.NET.Vulkan.Image> GetSwapChainImages(VkContext context, SwapchainKHR swapchain)
 		{
-			vk.TryGetDeviceExtension(instance, device, out KhrSwapchain khrSwapChain);
+			context.vk.TryGetDeviceExtension(context.instance, context.device, out KhrSwapchain khrSwapChain);
 
 			uint imageCount = 0;
-			khrSwapChain.GetSwapchainImages(device, swapchain, ref imageCount, null);
+			khrSwapChain.GetSwapchainImages(context.device, swapchain, ref imageCount, null);
 
 			Memory<Silk.NET.Vulkan.Image> images = new Silk.NET.Vulkan.Image[imageCount];
-			khrSwapChain.GetSwapchainImages(device, swapchain, &imageCount, images.Span);
+			khrSwapChain.GetSwapchainImages(context.device, swapchain, &imageCount, images.Span);
 
 			return images;
 		}
@@ -1699,9 +1605,9 @@ namespace Engine
 			return description;
 		}
 
-		static uint FindMemoryType(Vk vk, PhysicalDevice physicalDevice, uint typeFilter, MemoryPropertyFlags properties)
+		static uint FindMemoryType(VkContext context, uint typeFilter, MemoryPropertyFlags properties)
 		{
-			vk.GetPhysicalDeviceMemoryProperties(physicalDevice, out PhysicalDeviceMemoryProperties memoryProperties);
+			context.vk.GetPhysicalDeviceMemoryProperties(context.physicalDevice, out PhysicalDeviceMemoryProperties memoryProperties);
 
 			for (uint i = 0; i < memoryProperties.MemoryTypeCount; i++)
 			{
@@ -1714,11 +1620,11 @@ namespace Engine
 			throw new Exception("Failed to find suitable memory type.");
 		}
 
-		static Format FindSupportedFormat(Vk vk, PhysicalDevice physicalDevice, Span<Format> formats, ImageTiling tiling, FormatFeatureFlags features)
+		static Format FindSupportedFormat(VkContext context, Span<Format> formats, ImageTiling tiling, FormatFeatureFlags features)
 		{
 			for (int i = 0; i < formats.Length; i++)
 			{
-				vk.GetPhysicalDeviceFormatProperties(physicalDevice, formats[i], out FormatProperties formatProperties);
+				context.vk.GetPhysicalDeviceFormatProperties(context.physicalDevice, formats[i], out FormatProperties formatProperties);
 
 				if (tiling == ImageTiling.Linear && formatProperties.LinearTilingFeatures.HasFlag(features))
 					return formats[i];
@@ -1735,51 +1641,51 @@ namespace Engine
 			return format == Format.D32SfloatS8Uint || format == Format.D24UnormS8Uint;
 		}
 		
-		static unsafe CommandBuffer BeginSingleShotCommands(Vk vk, Device device, CommandPool commandPool)
+		static unsafe CommandBuffer BeginSingleShotCommands(VkContext context, CommandPool commandPool)
 		{
-			CommandBuffer commandBuffer = CreateCommandBuffer(vk, device, commandPool);
+			CommandBuffer commandBuffer = CreateCommandBuffer(context, commandPool);
 
 			CommandBufferBeginInfo beginInfo = new();
 			beginInfo.SType = StructureType.CommandBufferBeginInfo;
 			beginInfo.Flags = CommandBufferUsageFlags.OneTimeSubmitBit;
 
-			vk.BeginCommandBuffer(commandBuffer, beginInfo);
+			context.vk.BeginCommandBuffer(commandBuffer, beginInfo);
 
 			return commandBuffer;
 		}
 
-		static unsafe void EndSingleShotCommands(Vk vk, CommandBuffer commandBuffer, CommandPool commandPool, Device device, Queue queue)
+		static unsafe void EndSingleShotCommands(VkContext context, CommandBuffer commandBuffer, CommandPool commandPool, Queue queue)
 		{
-			vk.EndCommandBuffer(commandBuffer);
+			context.vk.EndCommandBuffer(commandBuffer);
 
 			SubmitInfo submitInfo = new();
 			submitInfo.SType = StructureType.SubmitInfo;
 			submitInfo.CommandBufferCount = 1;
 			submitInfo.PCommandBuffers = &commandBuffer;
 
-			vk.QueueSubmit(queue, 1, &submitInfo, default);
-			vk.QueueWaitIdle(queue);
+			context.vk.QueueSubmit(queue, 1, &submitInfo, default);
+			context.vk.QueueWaitIdle(queue);
 
-			vk.FreeCommandBuffers(device, commandPool, 1, commandBuffer);
+			context.vk.FreeCommandBuffers(context.device, commandPool, 1, commandBuffer);
 		}
 
-		static unsafe void CopyBuffer(Vk vk, Device device, CommandPool commandPool, Queue queue, Silk.NET.Vulkan.Buffer srcBuffer, Silk.NET.Vulkan.Buffer dstBuffer, ulong size)
+		static unsafe void CopyBuffer(VkContext context, CommandPool commandPool, Queue queue, Silk.NET.Vulkan.Buffer srcBuffer, Silk.NET.Vulkan.Buffer dstBuffer, ulong size)
 		{
-			CommandBuffer commandBuffer = BeginSingleShotCommands(vk , device, commandPool);
+			CommandBuffer commandBuffer = BeginSingleShotCommands(context, commandPool);
 
 			BufferCopy copyRegion = new();
 			copyRegion.SrcOffset = 0;
 			copyRegion.DstOffset = 0;
 			copyRegion.Size = size;
 
-			vk.CmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, copyRegion);
+			context.vk.CmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, copyRegion);
 
-			EndSingleShotCommands(vk , commandBuffer, commandPool, device, queue);
+			EndSingleShotCommands(context, commandBuffer, commandPool, queue);
 		}
 
-		static unsafe void CopyBuffer(Vk vk, Device device, CommandPool commandPool, Queue queue, Silk.NET.Vulkan.Buffer srcBuffer, Silk.NET.Vulkan.Image dstImage, uint width, uint height)
+		static unsafe void CopyBuffer(VkContext context, CommandPool commandPool, Queue queue, Silk.NET.Vulkan.Buffer srcBuffer, Silk.NET.Vulkan.Image dstImage, uint width, uint height)
 		{
-			CommandBuffer commandBuffer = BeginSingleShotCommands(vk, device, commandPool);
+			CommandBuffer commandBuffer = BeginSingleShotCommands(context, commandPool);
 
 			BufferImageCopy copyRegion = new();
 			copyRegion.BufferOffset = 0;
@@ -1794,14 +1700,14 @@ namespace Engine
 			copyRegion.ImageOffset = new(0, 0, 0);
 			copyRegion.ImageExtent = new(width, height, 1);
 
-			vk.CmdCopyBufferToImage(commandBuffer, srcBuffer, dstImage, ImageLayout.TransferDstOptimal, 1, copyRegion);
+			context.vk.CmdCopyBufferToImage(commandBuffer, srcBuffer, dstImage, ImageLayout.TransferDstOptimal, 1, copyRegion);
 
-			EndSingleShotCommands(vk, commandBuffer, commandPool, device, queue);
+			EndSingleShotCommands(context, commandBuffer, commandPool, queue);
 		}
 
-		static unsafe void TransitionImageLayout(Vk vk, Device device, CommandPool commandPool, Queue queue, Silk.NET.Vulkan.Image image, Format format, ImageLayout oldLayout, ImageLayout newLayout)
+		static unsafe void TransitionImageLayout(VkContext context, CommandPool commandPool, Queue queue, Silk.NET.Vulkan.Image image, Format format, ImageLayout oldLayout, ImageLayout newLayout)
 		{
-			CommandBuffer commandBuffer = BeginSingleShotCommands(vk, device, commandPool);
+			CommandBuffer commandBuffer = BeginSingleShotCommands(context, commandPool);
 
 			ImageMemoryBarrier barrier = new();
 			barrier.SType = StructureType.ImageMemoryBarrier;
@@ -1856,9 +1762,9 @@ namespace Engine
 				throw new Exception("Invlaid layout transition!");
 			}
 
-			vk.CmdPipelineBarrier(commandBuffer, sourceStage, destinationStage, DependencyFlags.None, 0, null, 0, null, 1, &barrier);
+			context.vk.CmdPipelineBarrier(commandBuffer, sourceStage, destinationStage, DependencyFlags.None, 0, null, 0, null, 1, &barrier);
 
-			EndSingleShotCommands(vk, commandBuffer, commandPool, device, queue);
+			EndSingleShotCommands(context, commandBuffer, commandPool, queue);
 		}
 	} 
 }

@@ -20,12 +20,12 @@ namespace Engine
 			KhrSwapchain.ExtensionName,
 		];
 
-		Vk vk;
-		IWindow window;
+		public Vk vk;
+		public IWindow window;
 
-		Instance instance;
-		PhysicalDevice physicalDevice;
-		Device device;
+		public Instance instance;
+		public PhysicalDevice physicalDevice;
+		public Device device;
 
 		public VkContext(Vk vk, IWindow window)
 		{
@@ -176,7 +176,7 @@ namespace Engine
 			VkContext vkContext = new VkContext(vk, window);
 			vkContext.Setup(engineConfig, vulkanConfig);
 
-			return vkContext;
+            return vkContext;
 		}
 	}
 }

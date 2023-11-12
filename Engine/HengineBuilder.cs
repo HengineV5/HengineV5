@@ -33,23 +33,6 @@ namespace Engine
 			{
 				return this;
 			}
-
-			/*
-			public HengineConfig Setup<TOut>(Func<TOut> setup)
-			{
-				return this;
-			}
-
-			public HengineConfig Setup<TIn, TOut>(Func<TIn, TOut> setup)
-			{
-				return this;
-			}
-
-			public HengineConfig Setup<TIn1, TIn2, TOut>(Func<TIn1, TIn2, TOut> setup)
-			{
-				return this;
-			}
-			*/
 		}
 
 		public ref struct HenginePipeline

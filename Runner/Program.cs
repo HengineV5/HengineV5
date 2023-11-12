@@ -24,11 +24,22 @@ namespace Runner
 
 		static void Main(string[] args)
 		{
-			Hengine engine = new Hengine();
-			engine.Initialize(new EngineConfig()
+			var engineConfig = new EngineConfig()
 			{
-				appName = "Hengine v5"
-			});
+				appName = "Hengine v5",
+				appVersion = new Version(0, 0, 1),
+
+				engineName = "Hengine",
+				engineVersion = new Version(5, 0, 0)
+			};
+
+			var vulkanConfig = new VulkanConfig()
+			{
+				validationLayers = ["VK_LAYER_KHRONOS_validation"]
+			};
+
+			Hengine engine = new Hengine();
+			engine.Initialize(engineConfig, vulkanConfig);
 
 			var ecs = engine.GetEcs();
 			Main mainWorld = ecs.GetMain();

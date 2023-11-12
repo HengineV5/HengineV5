@@ -70,10 +70,12 @@ namespace Engine
 				.Config(x =>
 				{
 					x.WithConfig<EngineConfig>();
+					x.WithConfig<VulkanConfig>();
 
 					//x.Setup(GlfwSetup.OpenGLSetup);
 					x.Setup(GlfwSetup.VulkanSetup);
 					x.Setup(GlfwSetup.WindowSetup);
+					x.Setup(VulkanSetup.ContextSetup);
 				})
 				.Layout(x =>
 				{
