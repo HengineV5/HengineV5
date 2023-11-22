@@ -49,6 +49,7 @@ namespace Engine
 				.ArchType(x =>
 				{
 					x.ArchType<Position, Rotation, Scale, ShaderProgram, VertexArrayObject>("Entity");
+					x.ArchType<Position, Rotation, Scale>("Entity2");
 				})
 				.System(x =>
 				{
@@ -59,7 +60,7 @@ namespace Engine
 				})
 				.World(x =>
 				{
-					x.World<HengineEcs.Entity>("Main");
+					x.World<HengineEcs.Entity, HengineEcs.Entity2>("Main");
 				})
 				.Build<HengineEcs>();
 		}

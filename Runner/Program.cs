@@ -22,6 +22,15 @@ namespace Runner
 			ball.VertexArrayObject.Set(vao);
 		}
 
+		static void Create(Main world, Vector3 pos)
+		{
+			var objRef = world.Create(new Entity2());
+			Entity2.Ref ball = world.Get(objRef);
+			ball.Position.Set(pos);
+			ball.Scale.Set(Vector3.One);
+			ball.Rotation.Set(Quaternion.Identity);
+		}
+
 		static void Main(string[] args)
 		{
 			var engineConfig = new EngineConfig()
@@ -49,6 +58,9 @@ namespace Runner
 
 			// Vulkan
 			var shader = Shader.FromFiles("Shaders/VulkanVert.spv", "Shaders/VulkanFrag.spv");
+
+			Create(mainWorld, new(0, 0, -5));
+			//Create(mainWorld,  new(3, 0, -5));
 
 			// OpenGL
 			/*
