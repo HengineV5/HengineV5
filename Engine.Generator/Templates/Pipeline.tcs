@@ -33,7 +33,7 @@ namespace $namespace
 
 				$pipelineSystems~>world.Loop(_|$systemName|);<~~>\n				<~
 
-				$pipelineSystems|$hasPreRun == true|~>_|$systemName|.PostRun();<~~>\n				<~
+				$pipelineSystems|$hasPostRun == true|~>_|$systemName|.PostRun();<~~>\n				<~
 
 			}
 

@@ -19,15 +19,19 @@ namespace $namespace
 
 		$config~>$stepName arg|$stepName|;<~~>\n		<~
 
+		$resourceManagers~>|$resourceManagerNamespace|.|$resourceManagerName| _|$resourceManagerName|;<~~>\n		<~
+
 		bool initialized = false;
 
 		public $engineName()
 		{
-			ecs = new $ecsName();
 		}
 
 		public $ecsName GetEcs()
 		{
+			if (!initialized)
+				throw new System.Exception("$engineName must be initialized by running before GetEcs() can be called.");
+
 			return ecs;
 		}
 
@@ -35,15 +39,19 @@ namespace $namespace
 		{
 			$config~>arg|$stepName| = |$stepVarName|;<~~>\n			<~
 
-			$setup|$stepCount == 1|~>$stepTypes~>var _|$returnType|<~~>, <~ = $stepMethod($stepArguments~>arg|$argType|<~~>, <~);
+			$setup|$stepCount == 1|~>$stepTypes~>var _|$returnType|<~~>, <~ = $stepMethod($stepArguments~>$argName<~~>, <~);
 			$stepUsedTypes~>arg|$returnType| = _|$returnType|;<~~>\n			<~
-			<~|$stepCount > 1|~>var ($stepTypes~>_|$returnType|<~~>, <~) = $stepMethod($stepArguments~>arg|$argType|<~~>, <~);
+			<~|$stepCount > 1|~>var ($stepTypes~>_|$returnType|<~~>, <~) = $stepMethod($stepArguments~>$argName<~~>, <~);
 			$stepUsedTypes~>arg|$returnType| = _|$returnType|;<~~>\n			<~
 			<~~>\n			<~
+
+			$resourceManagers~>_|$resourceManagerName| = new |$resourceManagerNamespace|.|$resourceManagerName|($resourceManagerArguments~>$argName<~~>, <~);<~~>\n			<~
 
 			$pipelines~>_|$pipelineName| = new $pipelineName($uniqueArgs~>$argName<~~>, <~);<~~>\n			<~
 
 			$pipelines~>_|$pipelineName|.Init();<~~>\n			<~
+
+			ecs = new $ecsName($resourceManagers~>_|$resourceManagerName|<~~>, <~);
 
 			initialized = true;
 		}

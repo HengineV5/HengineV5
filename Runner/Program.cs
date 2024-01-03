@@ -10,6 +10,7 @@ namespace Runner
 {
 	internal class Program
 	{
+		/*
 		static void Create(Main world, ShaderProgram shader, VertexArrayObject vao, Vector3 pos)
 		{
 			var objRef = world.Create(new Entity());
@@ -21,14 +22,26 @@ namespace Runner
 			ball.ShaderProgram.Set(shader);
 			ball.VertexArrayObject.Set(vao);
 		}
+		*/
 
-		static void Create(Main world, Vector3 pos)
+		static void Create(Main world, Vector3 pos, Mesh mesh, ETexture texture)
 		{
-			var objRef = world.Create(new Entity2());
-			Entity2.Ref ball = world.Get(objRef);
-			ball.Position.Set(pos);
-			ball.Scale.Set(Vector3.One);
-			ball.Rotation.Set(Quaternion.Identity);
+			var objRef = world.Create(new Entity());
+			Entity.Ref entRef = world.Get(objRef);
+			entRef.Position.Set(pos);
+			entRef.Scale.Set(Vector3.One);
+			entRef.Rotation.Set(Quaternion.Identity);
+			entRef.Mesh.Set(mesh);
+			entRef.ETexture.Set(texture);
+		}
+
+		static void CreateCamera(Main world, Camera camera, Vector3 position)
+		{
+			var objRef = world.Create(new Cam());
+			Cam.Ref entRef = world.Get(objRef);
+			entRef.Camera.Set(camera);
+			entRef.Position.Set(position);
+			entRef.Rotation.Set(Quaternion.Identity);
 		}
 
 		static void Main(string[] args)
@@ -53,36 +66,29 @@ namespace Runner
 			var ecs = engine.GetEcs();
 			Main mainWorld = ecs.GetMain();
 
-			var meshBall = Mesh.LoadOBJ("Models/Ball.obj");
-			var meshBox = Mesh.LoadOBJ("Models/Box.obj");
+			var meshBall = Mesh.LoadOBJ("Ball", "Models/Ball.obj");
+			var meshBox = Mesh.LoadOBJ("Box", "Models/Box.obj");
 
-			// Vulkan
-			var shader = Shader.FromFiles("Shaders/VulkanVert.spv", "Shaders/VulkanFrag.spv");
+			var texture = ETexture.LoadImage("Haakon", "Images/image_2.png");
+			var texture2 = ETexture.LoadImage("Statue", "Images/image.png");
 
-			Create(mainWorld, new(0, 0, -5));
-			//Create(mainWorld,  new(3, 0, -5));
+			Camera camera = new Camera
+			{
+				width = 800,
+				height = 600,
+				fov = 1.22173f, // 70 degrees
+				zNear = 0.1f,
+				zFar = 1000
+			};
 
-			// OpenGL
-			/*
-			var gl = engine.argGL;
+			CreateCamera(mainWorld, camera, Vector3.Zero);
 
-			var shader = Engine.Graphics.Shader.FromFiles("Shaders/Shader.vert", "Shaders/Shader.frag");
-			var shaderProgram = shader.CreateProgram(gl);
+			Create(mainWorld, new(3, 0, -5), meshBox, texture);
+			Create(mainWorld, new(0, 0, -5), meshBall, texture);
+			Create(mainWorld, new(-3, 0, -5), meshBall, texture2);
 
-			var vaoBall = meshBall.CreateVertexArray(gl);
-			var vbBall = meshBall.CreateVertexBuffer(gl);
-			var ebBall = meshBall.CreateElementBuffer(gl);
-
-			var vaoBox = meshBox.CreateVertexArray(gl);
-			var vbBox = meshBox.CreateVertexBuffer(gl);
-			var ebBox = meshBox.CreateElementBuffer(gl);
-
-			Create(mainWorld, shaderProgram, vaoBall, new(0, 0, -5));
-			Create(mainWorld, shaderProgram, vaoBox, new(3, 0, -5));
-
-			engine.argIWindow.Dispose();
-			*/
 			engine.Start();
+			engine.argIWindow.Dispose();
 		}
 
 		static IWindow CreateWindow()

@@ -8,6 +8,7 @@ namespace Engine
 		public delegate void LayoutAction(HengineLayout layout);
 		public delegate void PipelineAction(HenginePipeline pipeline);
 		public delegate void WorldAction(HengineWorld world);
+		public delegate void ResourceAction(HengineResource resource);
 
 		public ref struct HengineLayout
 		{
@@ -56,6 +57,14 @@ namespace Engine
 			}
 		}
 
+		public ref struct HengineResource
+		{
+			public HengineResource ResourceManager<T>() where T : class
+			{
+				return this;
+			}
+		}
+
 		public HengineBuilder()
 		{
 		}
@@ -66,6 +75,11 @@ namespace Engine
 		}
 
 		public HengineBuilder Layout(LayoutAction layout)
+		{
+			return this;
+		}
+
+		public HengineBuilder Resource(ResourceAction resource)
 		{
 			return this;
 		}

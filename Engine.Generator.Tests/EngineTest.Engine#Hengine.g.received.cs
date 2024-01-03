@@ -26,15 +26,19 @@ namespace Test
 		TestConfig1 argTestConfig1;
 		TestConfig2 argTestConfig2;
 
+		Test.MeshResourceManager _MeshResourceManager;
+
 		bool initialized = false;
 
 		public Hengine()
 		{
-			ecs = new HengineEcs();
 		}
 
 		public HengineEcs GetEcs()
 		{
+			if (!initialized)
+				throw new System.Exception("Hengine must be initialized by running before GetEcs() can be called.");
+
 			return ecs;
 		}
 
@@ -53,11 +57,15 @@ namespace Test
 			argTestClass = _TestClass;
 			argTestClass3 = _TestClass3;
 			
+			_MeshResourceManager = new Test.MeshResourceManager(argTestClass4);
+
 			_GraphicsPipeline = new GraphicsPipeline(argGL, argTestClass, argTestClass3);
 			_PhysicsPipeline = new PhysicsPipeline(argTestClass3, argGL);
 
 			_GraphicsPipeline.Init();
 			_PhysicsPipeline.Init();
+
+			ecs = new HengineEcs(_MeshResourceManager);
 
 			initialized = true;
 		}

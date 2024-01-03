@@ -13,8 +13,9 @@ namespace Engine.Generator
 	{
 		public string Template => ResourceReader.GetResource("Engine.tcs");
 
-		public Model<ReturnType> CreateModel(Compilation compilation, IdentifierNameSyntax node)
+		public bool TryCreateModel(Compilation compilation, IdentifierNameSyntax node, out Model<ReturnType> model, out List<Diagnostic> diagnostics)
 		{
+			diagnostics = new List<Diagnostic>();
 			var builderRoot = GetBuilderRoot(node);
 
 			var builderSteps = builderRoot.DescendantNodes()
@@ -23,14 +24,18 @@ namespace Engine.Generator
 
 			var layoutStep = builderSteps.Single(x => x.Name.Identifier.Text == "Layout");
 			var configStep = builderSteps.Single(x => x.Name.Identifier.Text == "Config");
+			var resourceStep = builderSteps.Single(x => x.Name.Identifier.Text == "Resource");
 
-			var model = new Model<ReturnType>();
+			model = new Model<ReturnType>();
 			model.Set("namespace".AsSpan(), Parameter.Create(node.GetNamespace()));
 			model.Set("engineName".AsSpan(), Parameter.Create(GetEngineName(node)));
 			model.Set("ecsName".AsSpan(), Parameter.Create(GetEcsName(node)));
 
 			var usings = GetUsings(node);
 			model.Set("usings".AsSpan(), Parameter.CreateEnum<IModel<ReturnType>>(usings.Select(x => x.GetModel())));
+
+			var resourceManagers = GetResourceManagers(compilation, resourceStep);
+			model.Set("resourceManagers".AsSpan(), Parameter.CreateEnum<IModel<ReturnType>>(resourceManagers.Select(x => x.GetModel())));
 
 			var pipelines = PipelineGenerator.GetPipelines(compilation, layoutStep);
 			model.Set("pipelines".AsSpan(), Parameter.CreateEnum<IModel<ReturnType>>(pipelines.Select(x => x.GetModel())));
@@ -47,7 +52,7 @@ namespace Engine.Generator
 			model.Set("uniqueArgs".AsSpan(), Parameter.CreateEnum<IModel<ReturnType>>(uniqueArgs.Select(x => x.GetModel())));
 			model.Set("setup".AsSpan(), Parameter.CreateEnum<IModel<ReturnType>>(setupSteps.Select(x => x.GetModel(uniqueSystemArgs, uniqueSetupArgs))));
 
-			return model;
+			return true;
 		}
 
 		public bool Filter(IdentifierNameSyntax node)
@@ -118,7 +123,7 @@ namespace Engine.Generator
 			return models;
 		}
 
-		static List<SetupStep> GetSetupSteps(Compilation compilation, MemberAccessExpressionSyntax step, IEnumerable<ConfigStep> configSteps)
+		static List<SetupStep> GetSetupSteps(Compilation compilation, MemberAccessExpressionSyntax step, List<ConfigStep> configSteps)
 		{
 			var nodes = compilation.SyntaxTrees.SelectMany(x => x.GetRoot().DescendantNodesAndSelf());
 
@@ -195,6 +200,61 @@ namespace Engine.Generator
 			return models;
 		}
 
+		static List<ResourceManager> GetResourceManagers(Compilation compilation, MemberAccessExpressionSyntax step)
+		{
+			var nodes = compilation.SyntaxTrees.SelectMany(x => x.GetRoot().DescendantNodesAndSelf());
+			List<ResourceManager> models = new();
+
+			var parentExpression = step.Parent as InvocationExpressionSyntax;
+			var lambda = parentExpression.ArgumentList.Arguments.Single().Expression as SimpleLambdaExpressionSyntax;
+
+			foreach (var pipeline in lambda.Block.Statements.Where(x => x is ExpressionStatementSyntax).Cast<ExpressionStatementSyntax>())
+			{
+				if (pipeline.Expression is not InvocationExpressionSyntax invocation)
+					continue;
+
+				if (invocation.Expression is not MemberAccessExpressionSyntax invocationAccess)
+					continue;
+
+				if (invocationAccess.Name is not GenericNameSyntax genericName)
+					continue;
+
+				if (genericName.Identifier.Text != "ResourceManager")
+					continue;
+
+				if (genericName.TypeArgumentList.Arguments.Count != 1)
+					continue;
+
+				var nameArg = genericName.TypeArgumentList.Arguments[0] as IdentifierNameSyntax;
+				var nameToken = nameArg.Identifier.Text;
+
+				var resourceManagerNode = nodes.FindNode<ClassDeclarationSyntax>(x => x.Identifier.Text == nameToken);
+
+				List<MethodArgumentType> arguments = new List<MethodArgumentType>();
+				if (resourceManagerNode.Members.TryFindNode(out ConstructorDeclarationSyntax constructor))
+				{
+					foreach (var argument in constructor.ParameterList.Parameters)
+					{
+						var argName = argument.Type as IdentifierNameSyntax;
+
+						arguments.Add(new MethodArgumentType()
+						{
+							type = argName.Identifier.Text
+						});
+					}
+				}
+
+				models.Add(new ResourceManager()
+				{
+					name = nameToken,
+					arguments = arguments,
+					ns = resourceManagerNode.GetNamespace()
+				});
+			}
+
+			return models;
+		}
+
 		static string GetMethodName(MemberAccessExpressionSyntax methodAccess)
 		{
 			if (methodAccess.Name is IdentifierNameSyntax identifierName)
@@ -236,7 +296,7 @@ namespace Engine.Generator
 			return models;
 		}
 
-		static List<MethodArgumentType> GetMethodArguments(MethodDeclarationSyntax method, IEnumerable<ConfigStep> configSteps)
+		static List<MethodArgumentType> GetMethodArguments(MethodDeclarationSyntax method, List<ConfigStep> configSteps)
 		{
 			List<MethodArgumentType> models = new();
 
@@ -253,7 +313,7 @@ namespace Engine.Generator
 			return models;
 		}
 
-		static List<MethodArgumentType> GetMethodNonConfigArguments(MethodDeclarationSyntax method, IEnumerable<ConfigStep> configSteps)
+		static List<MethodArgumentType> GetMethodNonConfigArguments(MethodDeclarationSyntax method, List<ConfigStep> configSteps)
 		{
 			List<MethodArgumentType> models = new();
 
@@ -343,7 +403,26 @@ namespace Engine.Generator
 		public Model<ReturnType> GetModel()
 		{
 			var model = new Model<ReturnType>();
+			model.Set("argName".AsSpan(), Parameter.Create($"arg{type}"));
 			model.Set("argType".AsSpan(), Parameter.Create(type));
+
+			return model;
+		}
+	}
+
+	struct ResourceManager
+	{
+		public string name;
+		public string ns;
+		public List<MethodArgumentType> arguments;
+
+		public Model<ReturnType> GetModel()
+		{
+			var model = new Model<ReturnType>();
+
+			model.Set("resourceManagerName".AsSpan(), Parameter.Create(name));
+			model.Set("resourceManagerNamespace".AsSpan(), Parameter.Create(ns));
+			model.Set("resourceManagerArguments".AsSpan(), Parameter.CreateEnum<IModel<ReturnType>>(arguments.Select(x => x.GetModel())));
 
 			return model;
 		}

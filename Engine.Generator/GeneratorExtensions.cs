@@ -56,5 +56,37 @@ namespace Engine.Generator
 		{
 			return nodes.Where(x => x is T).Cast<T>().Single(predicate);
 		}
+
+		public static bool TryFindNode<T>(this IEnumerable<SyntaxNode> nodes, Func<T, bool> predicate, out T node) where T : SyntaxNode
+		{
+			var filteredNodes = nodes.Where(x => x is T).Cast<T>();
+
+			if (filteredNodes.Any(predicate))
+			{
+				node = filteredNodes.Single(predicate);
+				return true;
+			}
+			else
+			{
+				node = default;
+				return false;
+			}
+		}
+
+		public static bool TryFindNode<T>(this IEnumerable<SyntaxNode> nodes, out T node) where T : SyntaxNode
+		{
+			var filteredNodes = nodes.Where(x => x is T).Cast<T>();
+
+			if (filteredNodes.Any())
+			{
+				node = filteredNodes.Single();
+				return true;
+			}
+			else
+			{
+				node = default;
+				return false;
+			}
+		}
 	}
 }

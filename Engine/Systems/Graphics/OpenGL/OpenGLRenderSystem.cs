@@ -5,11 +5,21 @@ using Engine.Graphics;
 using Silk.NET.OpenGL;
 using Silk.NET.Windowing;
 using System.Numerics;
+using System.Text;
 using Shader = Engine.Graphics.Shader;
 
 namespace Engine
 {
-	[System]
+	public struct OpenGLRenderContext
+	{
+		public Camera camera;
+		public Vector3 cameraPosition;
+		public Quaternion cameraRotation;
+	}
+
+	[System<OpenGLRenderContext>]
+	[UsingResource<OpenGLMeshResourceManager>]
+	[UsingResource<OpenGLTextureResourceManager>]
 	public partial class OpenGLRenderSystem
 	{
 		private static readonly Material defaultMaterial = new Material
@@ -29,26 +39,20 @@ namespace Engine
 
 		GL gl;
 		IWindow window;
-		Camera camera;
+
+		Shader shader;
+		ShaderProgram shaderProgram;
 
         public OpenGLRenderSystem(GL gl, IWindow window)
         {
             this.gl = gl;
 			this.window = window;
-
-			camera = new Camera
-			{
-				Width = 800,
-				Height = 600,
-				Fov = 1.22173f, // 70 degrees
-				ZNear = 0.1f,
-				ZFar = 1000
-			};
 		}
 
 		public void Init()
 		{
-
+			shader = Shader.FromFiles("Shaders/Shader.vert", "Shaders/Shader.frag");
+			shaderProgram = CreateShaderProgram(gl, shader);
 		}
 
 		public void Dispose()
@@ -58,25 +62,42 @@ namespace Engine
 
 		public void PreRun()
 		{
-			gl.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 			window.DoEvents();
+			gl.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
 			Thread.Sleep(10);
 		}
 
-        public unsafe void Update(Position.Ref position, Rotation.Ref rotation, Scale.Ref scale, VertexArrayObject.Ref vao, ShaderProgram.Ref shader)
+		[SystemUpdate, SystemLayer(0)]
+		public void CameraUpdate(ref OpenGLRenderContext context, Position.Ref position, Rotation.Ref rotation, Camera.Ref camera)
 		{
-			ShaderUniforms shaderUniforms = Shader.GetShaderUniforms(gl, shader);
+			context.camera = new Camera()
+			{
+				zNear = camera.zNear,
+				zFar = camera.zFar,
+				fov = camera.fov,
+				width = camera.width,
+				height = camera.height,
+			};
 
-			gl.BindVertexArray(vao.ID);
-			gl.UseProgram((uint)shader.ID);
+			context.cameraPosition = new Vector3(position.x, position.y, position.z);
+			context.cameraRotation = new Quaternion(rotation.x, rotation.y, rotation.z, rotation.w);
+		}
+
+		[SystemUpdate, SystemLayer(1)]
+		public unsafe void Update(ref OpenGLRenderContext context, Position.Ref position, Rotation.Ref rotation, Scale.Ref scale, ref GlMeshBuffer mesh, ref GlTextureBuffer texture)
+		{
+			ShaderUniforms shaderUniforms = GetShaderUniforms(gl, shaderProgram);
+
+			gl.BindVertexArray(mesh.vao.ID);
+			gl.UseProgram((uint)shaderProgram.ID);
 
 			SetModelUniforms(position, rotation, scale, shaderUniforms);
-			SetCameraUniforms(camera, new Position(), new Rotation(), shaderUniforms);
+			SetCameraUniforms(context.camera, context.cameraPosition, context.cameraRotation, shaderUniforms);
 			SetMaterialUniforms(defaultMaterial, shaderUniforms);
 			SetLightUniforms(defaultLight, new Position(), shaderUniforms);
 
-			gl.DrawElements(PrimitiveType.Triangles, vao.length, DrawElementsType.UnsignedInt, null);
+			gl.DrawElements(PrimitiveType.Triangles, mesh.vao.length, DrawElementsType.UnsignedInt, null);
 		}
 
 		public void PostRun()
@@ -99,7 +120,7 @@ namespace Engine
 		unsafe void SetCameraUniforms(in Camera camera, in Position position, in Rotation rotation, in ShaderUniforms uniforms)
 		{
 			Matrix4x4 view = Matrix4x4.CreateTranslation(-new Vector3(position.x, position.y, position.z)) * Matrix4x4.CreateFromQuaternion(new Quaternion(rotation.x, rotation.y, rotation.z, rotation.w));
-			Matrix4x4 projection = Matrix4x4.CreatePerspectiveFieldOfView(camera.Fov, camera.Width / camera.Height, camera.ZNear, camera.ZFar);
+			Matrix4x4 projection = Matrix4x4.CreatePerspectiveFieldOfView(camera.fov, camera.width / camera.height, camera.zNear, camera.zFar);
 
 			UniformMatrix4(gl, uniforms.Camera.View, false, view);
 			gl.Uniform3(uniforms.Camera.ViewPos, 1, position.x);
@@ -125,6 +146,80 @@ namespace Engine
 		unsafe void UniformMatrix4(GL gl, int location, bool transpose, in Matrix4x4 matrix)
 		{
 			gl.UniformMatrix4(location, 1, transpose, matrix.M11);
+		}
+
+		static ShaderProgram CreateShaderProgram(GL gl, Shader shader)
+		{
+			uint program = gl.CreateProgram();
+			uint vertexID = gl.CreateShader(ShaderType.VertexShader);
+			uint fragmentID = gl.CreateShader(ShaderType.FragmentShader);
+
+			CompileShader(gl, vertexID, shader.Vertex);
+			CompileShader(gl, fragmentID, shader.Fragment);
+
+			gl.AttachShader(program, vertexID);
+			gl.AttachShader(program, fragmentID);
+
+			gl.LinkProgram(program);
+			gl.ValidateProgram(program);
+
+			gl.DeleteShader(vertexID);
+			gl.DeleteShader(fragmentID);
+
+			gl.GetProgram(program, GLEnum.LinkStatus, out var status);
+			if (status == 0)
+				Console.WriteLine($"Error linking shader {gl.GetProgramInfoLog(program)}");
+
+			return new ShaderProgram()
+			{
+				ID = program,
+			};
+		}
+
+		static ShaderUniforms GetShaderUniforms(GL gl, in ShaderProgram program)
+		{
+			return new ShaderUniforms
+			{
+				Model = new ModelUniforms
+				{
+					Translation = gl.GetUniformLocation((uint)program.ID, "u_Translation"),
+					Rotation = gl.GetUniformLocation((uint)program.ID, "u_Rotation"),
+					Scale = gl.GetUniformLocation((uint)program.ID, "u_Scale"),
+				},
+
+				Camera = new CameraUniforms
+				{
+					View = gl.GetUniformLocation((uint)program.ID, "u_View"),
+					ViewPos = gl.GetUniformLocation((uint)program.ID, "u_ViewPos"),
+					Projection = gl.GetUniformLocation((uint)program.ID, "u_Projection"),
+				},
+
+				Light = new LightUniforms
+				{
+					Ambient = gl.GetUniformLocation((uint)program.ID, "u_Light.ambient"),
+					Diffuse = gl.GetUniformLocation((uint)program.ID, "u_Light.diffuse"),
+					Specular = gl.GetUniformLocation((uint)program.ID, "u_Light.specular"),
+					Position = gl.GetUniformLocation((uint)program.ID, "u_Light.position"),
+				},
+
+				Material = new MaterialUniforms
+				{
+					Ambient = gl.GetUniformLocation((uint)program.ID, "u_Material.ambient"),
+					Diffuse = gl.GetUniformLocation((uint)program.ID, "u_Material.diffuse"),
+					Specular = gl.GetUniformLocation((uint)program.ID, "u_Material.specular"),
+					Shininess = gl.GetUniformLocation((uint)program.ID, "u_Material.shininess"),
+				}
+			};
+		}
+
+		static void CompileShader(GL gl, uint id, byte[] source)
+		{
+			gl.ShaderSource(id, Encoding.UTF8.GetString(source));
+			gl.CompileShader(id);
+
+			gl.GetShader(id, ShaderParameterName.CompileStatus, out int result);
+			if (result == 0)
+				throw new Exception(gl.GetShaderInfoLog(id));
 		}
 
 		/*

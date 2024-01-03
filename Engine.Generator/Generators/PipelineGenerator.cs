@@ -13,8 +13,9 @@ namespace Engine.Generator
 	{
 		public string Template => ResourceReader.GetResource("Pipeline.tcs");
 
-		public Model<ReturnType> CreateModel(Compilation compilation, IdentifierNameSyntax node)
+		public bool TryCreateModel(Compilation compilation, IdentifierNameSyntax node, out Model<ReturnType> model, out List<Diagnostic> diagnostics)
 		{
+			diagnostics = new List<Diagnostic>();
 			var builderRoot = EngineGenerator.GetBuilderRoot(node);
 
 			var builderSteps = builderRoot.DescendantNodes()
@@ -23,7 +24,7 @@ namespace Engine.Generator
 
 			var layoutStep = builderSteps.Single(x => x.Name.Identifier.Text == "Layout");
 
-			var model = new Model<ReturnType>();
+			model = new Model<ReturnType>();
 			model.Set("namespace".AsSpan(), Parameter.Create(node.GetNamespace()));
 			model.Set("engineName".AsSpan(), Parameter.Create(EngineGenerator.GetEngineName(node)));
 			model.Set("ecsName".AsSpan(), Parameter.Create(EngineGenerator.GetEcsName(node)));
@@ -34,7 +35,7 @@ namespace Engine.Generator
 			var pipelines = GetPipelines(compilation, layoutStep);
 			model.Set("pipelines".AsSpan(), Parameter.CreateEnum<IModel<ReturnType>>(pipelines.Select(x => x.GetModel())));
 
-			return model;
+			return true;
 		}
 
 		public bool Filter(IdentifierNameSyntax node)

@@ -6,76 +6,259 @@ using Image = Silk.NET.Vulkan.Image;
 using Semaphore = Silk.NET.Vulkan.Semaphore;
 using Buffer = Silk.NET.Vulkan.Buffer;
 using System.Runtime.CompilerServices;
+using Engine.Components.Graphics;
+using System.Numerics;
+using EnCS;
 
 namespace Engine
 {
-	public struct FrameData
-	{
-		public Semaphore imageAvailable;
-		public Semaphore renderFinished;
-		public Fence inFlight;
-
-		public DescriptorSet descriptorSet;
-		public CommandBuffer commandBuffer;
-		public MappedMemory<UniformBufferObject> uboMemory;
-	}
-
 	public struct RenderPipeline
 	{
+		public struct FrameData
+		{
+			public Semaphore imageAvailable;
+			public Semaphore renderFinished;
+			public Fence inFlight;
+
+			public DescriptorSet descriptorSet;
+			//public FixedArray8<DescriptorSet> descriptorSets;
+			public CommandBuffer commandBuffer;
+			public MappedMemory<UniformBufferObject> uboMemory;
+		}
+
+		struct PushConstant
+		{
+			public Matrix4x4 model;
+		}
+
 		const int MAX_FRAMES_IN_FLIGHT = 3;
 
 		Swapchain swapchain;
 		RenderPass renderPass;
 		Sampler sampler;
+		DescriptorSetLayout descriptorSetLayout;
 		PipelineLayout pipelineLayout;
 		Pipeline pipeline;
 
+		Memory<ImageView> swapchainImages;
 		Memory<Framebuffer> frameBuffers;
 		Memory<FrameData> framesInFlight;
 
 		int currentFrame;
+		uint imageIndex;
 
-		public RenderPipeline(Swapchain swapchain, RenderPass renderPass, PipelineLayout pipelineLayout, Pipeline pipeline, Memory<Framebuffer> frameBuffers, Memory<FrameData> framesInFlight)
+		public RenderPipeline(Swapchain swapchain, RenderPass renderPass, Sampler sampler, DescriptorSetLayout descriptorSetLayout, PipelineLayout pipelineLayout, Pipeline pipeline, Memory<ImageView> swapchainImages, Memory<Framebuffer> frameBuffers, Memory<FrameData> framesInFlight) : this()
 		{
 			this.swapchain = swapchain;
 			this.renderPass = renderPass;
+			this.sampler = sampler;
+			this.descriptorSetLayout = descriptorSetLayout;
 			this.pipelineLayout = pipelineLayout;
 			this.pipeline = pipeline;
+			this.swapchainImages = swapchainImages;
 			this.frameBuffers = frameBuffers;
 			this.framesInFlight = framesInFlight;
 			this.currentFrame = 0;
+			this.imageIndex = 0;
 		}
 
-		public void Render(VkContext context, ref UniformBufferObject ubo, Buffer vertexBuffer, Buffer indexBuffer, uint indicies)
+		public void Dispose(VkContext context)
+		{
+			/*
+			for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+			{
+				context.vk.DestroySemaphore(context.device, imageAvailableSemaphores.Span[i], null);
+				context.vk.DestroySemaphore(context.device, renderFinishedSemaphores.Span[i], null);
+				context.vk.DestroyFence(context.device, inFlightFences.Span[i], null);
+			}
+
+			DisposeSwapChain();
+
+			context.vk.DestroyDescriptorSetLayout(context.device, descriptorSetLayout, null);
+
+			context.vk.DestroyBuffer(context.device, vertexBuffer, null);
+			context.vk.FreeMemory(context.device, vertexBufferMemory, null);
+
+			for (int i = 0; i < uniformBuffers.Length; i++)
+			{
+				context.vk.DestroyBuffer(context.device, uniformBuffers.Span[i], null);
+			}
+
+			for (int i = 0; i < uniformBuffersMemory.Length; i++)
+			{
+				context.vk.FreeMemory(context.device, uniformBuffersMemory.Span[i], null);
+			}
+
+			context.vk.DestroyCommandPool(context.device, commandPool, null);
+
+			context.vk.DestroyDescriptorPool(context.device, descriptorPool, null);
+			context.vk.DestroyDescriptorSetLayout(context.device, descriptorSetLayout, null);
+
+			context.vk.DestroySampler(context.device, sampler, null);
+
+			context.vk.DestroyImageView(context.device, textureImageView, null);
+			context.vk.DestroyImage(context.device, texture, null);
+			context.vk.FreeMemory(context.device, textureMemory, null);
+
+			context.vk.DestroyImageView(context.device, depthImageView, null);
+			context.vk.DestroyImage(context.device, depthImage, null);
+			context.vk.FreeMemory(context.device, depthImageMemory, null);
+
+			context.vk.TryGetInstanceExtension(context.instance, out KhrSurface khrSurface);
+			khrSurface.DestroySurface(context.instance, surface, null);
+
+			context.vk.DestroyDevice(context.device, null);
+			context.vk.DestroyInstance(context.instance, null);
+			*/
+		}
+
+		unsafe void DisposeSwapchain(VkContext context, CommandPool commandPool)
+		{
+			swapchain.Dispose(context);
+
+			foreach (var frameBuffer in frameBuffers.Span)
+			{
+				context.vk.DestroyFramebuffer(context.device, frameBuffer, null);
+			}
+
+			foreach (var imageView in swapchainImages.Span)
+			{
+				context.vk.DestroyImageView(context.device, imageView, null);
+			}
+
+			foreach (var frame in framesInFlight.Span)
+			{
+				context.vk.FreeCommandBuffers(context.device, commandPool, [frame.commandBuffer]);
+			}
+
+			context.vk.DestroyPipeline(context.device, pipeline, null);
+			context.vk.DestroyPipelineLayout(context.device, pipelineLayout, null);
+			context.vk.DestroyRenderPass(context.device, renderPass, null);
+		}
+
+		public void RecreateSwapchain(VkContext context, SurfaceKHR surface, CommandPool commandPool)
+		{
+			/*
+			 Vector2D<int> framebufferSize = window!.FramebufferSize;
+
+			while (framebufferSize.X == 0 || framebufferSize.Y == 0)
+			{
+				framebufferSize = window.FramebufferSize;
+				window.DoEvents();
+			}
+			 */
+
+			context.vk.DeviceWaitIdle(context.device);
+
+			swapchain.Dispose(context);
+			DisposeSwapchain(context, commandPool);
+
+			swapchain = Swapchain.Create(context, surface, commandPool);
+			renderPass = CreateRenderPass(context, swapchain, Swapchain.GetDepthFormat(context));
+			pipelineLayout = CreatePipelineLayout(context, descriptorSetLayout);
+			pipeline = CreateGraphicsPipeline(context, swapchain.GetExtent(), pipelineLayout, renderPass);
+
+			swapchain.GetImages(context, swapchainImages.Span);
+			for (int i = 0; i < frameBuffers.Span.Length; i++)
+			{
+				frameBuffers.Span[i] = VulkanHelper.CreateFrameBuffer(context, [swapchainImages.Span[i], swapchain.GetDepthImage()], renderPass, swapchain.GetExtent());
+			}
+
+			for (int i = 0; i < framesInFlight.Span.Length; i++)
+			{
+				framesInFlight.Span[i].commandBuffer = VulkanHelper.CreateCommandBuffer(context, commandPool);
+			}
+		}
+
+		public unsafe Result StartRender(VkContext context)
+		{
+			ref FrameData frame = ref framesInFlight.Span[currentFrame];
+			VulkanHelper.WaitForFence(context, frame.inFlight);
+
+			var aquireResult = swapchain.AcquireNextImageIndex(context, frame.imageAvailable, out imageIndex);
+
+			if (aquireResult == Result.ErrorOutOfDateKhr)
+				return aquireResult;
+
+			VulkanHelper.WaitForFence(context, frame.inFlight);
+			context.vk.ResetCommandBuffer(frame.commandBuffer, CommandBufferResetFlags.ReleaseResourcesBit);
+
+			System.Drawing.Color color = System.Drawing.Color.CornflowerBlue;
+			ClearColorValue clearColor = new() { Float32_0 = color.R / 255f, Float32_1 = color.G / 255f, Float32_2 = color.B / 255f, Float32_3 = color.A / 255f };
+
+			var renderArea = new Rect2D(new(), swapchain.GetExtent());
+
+			Framebuffer framebuffer = frameBuffers.Span[(int)imageIndex];
+			BeginRenderCommand(context, frame.commandBuffer, framebuffer, clearColor, renderArea);
+			RenderSetViewportAndScissor(context, frame.commandBuffer, renderArea);
+
+			context.vk.CmdBindDescriptorSets(frame.commandBuffer, PipelineBindPoint.Graphics, pipelineLayout, 0, 1, frame.descriptorSet, 0, null);
+
+			return aquireResult;
+		}
+
+		public unsafe void Render(VkContext context, ref UniformBufferObject ubo, Buffer vertexBuffer, Buffer indexBuffer, uint indicies, ImageView texture)
 		{
 			ref FrameData frame = ref framesInFlight.Span[currentFrame];
 			frame.uboMemory.Value = ubo;
 
-			VulkanHelper.WaitForFence(context, frame.inFlight);
+			/*
+			{
+				DescriptorImageInfo imageInfo = new();
+				imageInfo.ImageLayout = ImageLayout.ReadOnlyOptimal;
+				imageInfo.ImageView = texture;
+				imageInfo.Sampler = sampler;
 
-			uint imageIndex = swapchain.AcquireNextImageIndex(context, frame.imageAvailable);
-			Framebuffer framebuffer = frameBuffers.Span[(int)imageIndex];
+				WriteDescriptorSet imageDescriptorWrite = new();
+				imageDescriptorWrite.SType = StructureType.WriteDescriptorSet;
+				imageDescriptorWrite.DstSet = frame.descriptorSet;
+				imageDescriptorWrite.DstBinding = 1;
+				imageDescriptorWrite.DstArrayElement = 0;
+				imageDescriptorWrite.DescriptorType = DescriptorType.CombinedImageSampler;
+				imageDescriptorWrite.DescriptorCount = 1;
+				imageDescriptorWrite.PImageInfo = &imageInfo;
 
-			VulkanHelper.WaitForFence(context, frame.inFlight);
-			RecordCommandBuffer(context, ref frame, framebuffer, new Rect2D(new(), swapchain.GetExtent()), vertexBuffer, indexBuffer, indicies);
+				context.vk.UpdateDescriptorSets(context.device, [imageDescriptorWrite], 0, null);
+			}
+			*/
 
-			context.vk.ResetFences(context.device, [frame.inFlight]);
+			var pc = new PushConstant()
+			{
+				model = ubo.scale * ubo.rotation * ubo.translation
+			};
 
-			VulkanHelper.QueueSubmitCommands(context, swapchain.GetGraphicsQueue(), frame.commandBuffer, frame.imageAvailable, frame.inFlight, PipelineStageFlags.ColorAttachmentOutputBit);
+			context.vk.CmdBindPipeline(frame.commandBuffer, PipelineBindPoint.Graphics, pipeline);
+
+			context.vk.CmdBindVertexBuffers(frame.commandBuffer, 0, [vertexBuffer], [0]);
+			context.vk.CmdBindIndexBuffer(frame.commandBuffer, indexBuffer, 0, IndexType.Uint16);
+
+			context.vk.CmdPushConstants(frame.commandBuffer, pipelineLayout, ShaderStageFlags.VertexBit, 0, (uint)sizeof(PushConstant), ref pc);
+
+			context.vk.CmdDrawIndexed(frame.commandBuffer, indicies, 1, 0, 0, 0);
+		}
+
+		public void EndRender(VkContext context)
+		{
+            ref FrameData frame = ref framesInFlight.Span[currentFrame];
+
+			FinishRender(context, frame.commandBuffer);
+			var result = context.vk.ResetFences(context.device, [frame.inFlight]);
+
+            VulkanHelper.QueueSubmitCommands(context, swapchain.GetGraphicsQueue(), frame.commandBuffer, frame.imageAvailable, frame.inFlight, PipelineStageFlags.ColorAttachmentOutputBit);
 			VulkanHelper.QueuePresent(context, swapchain.GetPresentQueue(), swapchain.GetSwapchain(), imageIndex, frame.imageAvailable);
 
 			// TODO: Improve
 			currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 		}
 
-		unsafe void RecordCommandBuffer(VkContext context, ref FrameData frameData, Framebuffer framebuffer, Rect2D renderArea, Buffer vertexBuffers, Buffer indexBuffer, uint indicies)
+		unsafe void BeginRenderCommand(VkContext context, CommandBuffer commandBuffer, Framebuffer framebuffer, ClearColorValue clearColor, Rect2D renderArea)
 		{
 			CommandBufferBeginInfo beginInfo = new();
 			beginInfo.SType = StructureType.CommandBufferBeginInfo;
 			beginInfo.Flags = 0;
 			beginInfo.PInheritanceInfo = null;
 
-			context.vk.BeginCommandBuffer(frameData.commandBuffer, beginInfo);
+			context.vk.BeginCommandBuffer(commandBuffer, beginInfo);
 
 			RenderPassBeginInfo renderPassInfo = new();
 			renderPassInfo.SType = StructureType.RenderPassBeginInfo;
@@ -83,18 +266,18 @@ namespace Engine
 			renderPassInfo.Framebuffer = framebuffer;
 			renderPassInfo.RenderArea = renderArea;
 
-			System.Drawing.Color color = System.Drawing.Color.CornflowerBlue;
-
 			ClearValue* clearColors = stackalloc ClearValue[2];
-			clearColors[0] = new(color: new() { Float32_0 = color.R / 255f, Float32_1 = color.G / 255f, Float32_2 = color.B / 255f, Float32_3 = color.A / 255f });
-			clearColors[1] = new(depthStencil: new(1.0f, 0));
+			clearColors[0] = new (clearColor);
+			clearColors[1] = new (depthStencil: new(1.0f, 0));
 
 			renderPassInfo.ClearValueCount = 2;
 			renderPassInfo.PClearValues = clearColors;
 
-			context.vk.CmdBeginRenderPass(frameData.commandBuffer, renderPassInfo, SubpassContents.Inline);
-			context.vk.CmdBindPipeline(frameData.commandBuffer, PipelineBindPoint.Graphics, pipeline);
+			context.vk.CmdBeginRenderPass(commandBuffer, renderPassInfo, SubpassContents.Inline);
+		}
 
+		unsafe void RenderSetViewportAndScissor(VkContext context, CommandBuffer commandBuffer, Rect2D renderArea)
+		{
 			Viewport viewport = new();
 			viewport.X = 0;
 			viewport.Y = 0;
@@ -103,32 +286,29 @@ namespace Engine
 			viewport.MinDepth = 0f;
 			viewport.MaxDepth = 1f;
 
-			context.vk.CmdSetViewport(frameData.commandBuffer, 0, 1, viewport);
+			context.vk.CmdSetViewport(commandBuffer, 0, 1, viewport);
 
 			Rect2D scissor = new();
 			scissor.Offset = new(0, 0);
 			scissor.Extent = renderArea.Extent;
 
-			context.vk.CmdSetScissor(frameData.commandBuffer, 0, 1, &scissor);
+			context.vk.CmdSetScissor(commandBuffer, 0, 1, &scissor);
+		}
 
-			context.vk.CmdBindVertexBuffers(frameData.commandBuffer, 0, [vertexBuffers], [0]);
-			context.vk.CmdBindIndexBuffer(frameData.commandBuffer, indexBuffer, 0, IndexType.Uint16);
+		void FinishRender(VkContext context, CommandBuffer commandBuffer)
+		{
+			context.vk.CmdEndRenderPass(commandBuffer);
 
-			context.vk.CmdBindDescriptorSets(frameData.commandBuffer, PipelineBindPoint.Graphics, pipelineLayout, 0, 1, frameData.descriptorSet, 0, null);
-
-			context.vk.CmdDrawIndexed(frameData.commandBuffer, indicies, 1, 0, 0, 0);
-			context.vk.CmdEndRenderPass(frameData.commandBuffer);
-
-			var result = context.vk.EndCommandBuffer(frameData.commandBuffer);
+			var result = context.vk.EndCommandBuffer(commandBuffer);
 			if (result != Result.Success)
 				throw new Exception("Failed to end vkCommandBuffer");
 		}
 
-		public static RenderPipeline Create(VkContext context, Swapchain swapchain, SurfaceKHR surface, ImageView image, CommandPool commandPool)
+		public static RenderPipeline Create(VkContext context, SurfaceKHR surface, ImageView image, CommandPool commandPool)
 		{
-			Format depthFormat = VulkanHelper.FindSupportedFormat(context, [Format.D32Sfloat, Format.D32SfloatS8Uint, Format.D24UnormS8Uint], ImageTiling.Optimal, FormatFeatureFlags.DepthStencilAttachmentBit);
-			ImageView depthImageView = CreateDepthImage(context, swapchain.GetExtent(), depthFormat, commandPool, swapchain.GetGraphicsQueue());
-			RenderPass renderPass = CreateRenderPass(context, swapchain, depthFormat);
+			Swapchain swapchain = Swapchain.Create(context, surface, commandPool);
+
+			RenderPass renderPass = CreateRenderPass(context, swapchain, Swapchain.GetDepthFormat(context));
 
 			Sampler sampler = VulkanHelper.CreateSampler(context);
 
@@ -136,29 +316,19 @@ namespace Engine
 			PipelineLayout pipelineLayout = CreatePipelineLayout(context, descriptorSetLayout);
 			Pipeline pipeline = CreateGraphicsPipeline(context, swapchain.GetExtent(), pipelineLayout, renderPass);
 
-			Span<ImageView> swapchainImages = stackalloc ImageView[(int)swapchain.GetImageCount()];
-			swapchainImages = swapchain.GetImages(context, swapchainImages);
+			Memory<ImageView> swapchainImages = new ImageView[swapchain.GetImageCount()];
+			swapchain.GetImages(context, swapchainImages.Span);
 
 			Memory<Framebuffer> frameBuffers = new Framebuffer[swapchain.GetImageCount()];
 			for (int i = 0; i < frameBuffers.Span.Length; i++)
 			{
-				frameBuffers.Span[i] = VulkanHelper.CreateFrameBuffer(context, [swapchainImages[i], depthImageView], renderPass, swapchain.GetExtent());
+				frameBuffers.Span[i] = VulkanHelper.CreateFrameBuffer(context, [swapchainImages.Span[i], swapchain.GetDepthImage()], renderPass, swapchain.GetExtent());
 			}
 
-			DescriptorPool descriptorPool = VulkanHelper.CreateDescriptorPool(context, MAX_FRAMES_IN_FLIGHT);
+			DescriptorPool descriptorPool = VulkanHelper.CreateDescriptorPool(context, MAX_FRAMES_IN_FLIGHT * 8);
 			Memory<FrameData> framesInFlight = CreateFramesInFlight(context, descriptorPool, commandPool, descriptorSetLayout, sampler, image);
 
-			return new RenderPipeline(swapchain, renderPass, pipelineLayout, pipeline, frameBuffers, framesInFlight);
-		}
-
-		static ImageView CreateDepthImage(VkContext context, Extent2D extent, Format depthFormat, CommandPool commandPool, Queue transferQueue)
-		{
-			Image depthImage = VulkanHelper.CreateImage(context, extent, depthFormat, ImageTiling.Optimal, ImageUsageFlags.DepthStencilAttachmentBit);
-			VulkanHelper.CreateMemory(context, depthImage, MemoryPropertyFlags.DeviceLocalBit);
-
-			VulkanHelper.TransitionImageLayout(context, commandPool, transferQueue, depthImage, depthFormat, ImageLayout.Undefined, ImageLayout.DepthStencilAttachmentOptimal);
-
-			return VulkanHelper.CreateImageView(context, depthImage, depthFormat, ImageAspectFlags.DepthBit);
+			return new RenderPipeline(swapchain, renderPass, sampler, descriptorSetLayout, pipelineLayout, pipeline, swapchainImages, frameBuffers, framesInFlight);
 		}
 
 		static unsafe Memory<FrameData> CreateFramesInFlight(VkContext context, DescriptorPool descriptorPool, CommandPool commandPool, DescriptorSetLayout layout, Sampler sampler, ImageView image)
@@ -220,6 +390,61 @@ namespace Engine
 
 				framesInFlight.Span[i].descriptorSet = descriptorSet;
 			}
+
+			/*
+			Buffer uniformBuffer = VulkanHelper.CreateBuffer<UniformBufferObject>(context, BufferUsageFlags.UniformBufferBit, 1);
+			DeviceMemory uniformBuffersMemory = VulkanHelper.CreateBufferMemory(context, uniformBuffer, MemoryPropertyFlags.HostVisibleBit | MemoryPropertyFlags.HostCoherentBit);
+
+			void* dataPtr;
+			context.vk.MapMemory(context.device, uniformBuffersMemory, 0, (ulong)sizeof(UniformBufferObject), 0, &dataPtr);
+			framesInFlight.Span[0].uboMemory = new((UniformBufferObject*)dataPtr);
+			framesInFlight.Span[1].uboMemory = new((UniformBufferObject*)dataPtr);
+			framesInFlight.Span[2].uboMemory = new((UniformBufferObject*)dataPtr);
+
+			DescriptorSetAllocateInfo allocInfo = new();
+			allocInfo.SType = StructureType.DescriptorSetAllocateInfo;
+			allocInfo.DescriptorPool = descriptorPool;
+			allocInfo.DescriptorSetCount = 1;
+			allocInfo.PSetLayouts = &layout;
+
+			var result = context.vk.AllocateDescriptorSets(context.device, allocInfo, out DescriptorSet descriptorSet);
+			if (result != Result.Success)
+				throw new Exception("Failed to allocate vkDescriptorSets");
+
+			DescriptorBufferInfo bufferInfo = new();
+			bufferInfo.Buffer = uniformBuffer;
+			bufferInfo.Offset = 0;
+			bufferInfo.Range = (ulong)sizeof(UniformBufferObject);
+
+			DescriptorImageInfo imageInfo = new();
+			imageInfo.ImageLayout = ImageLayout.ReadOnlyOptimal;
+			imageInfo.ImageView = image;
+			imageInfo.Sampler = sampler;
+
+			WriteDescriptorSet bufferDescriptorWrite = new();
+			bufferDescriptorWrite.SType = StructureType.WriteDescriptorSet;
+			bufferDescriptorWrite.DstSet = descriptorSet;
+			bufferDescriptorWrite.DstBinding = 0;
+			bufferDescriptorWrite.DstArrayElement = 0;
+			bufferDescriptorWrite.DescriptorType = DescriptorType.UniformBuffer;
+			bufferDescriptorWrite.DescriptorCount = 1;
+			bufferDescriptorWrite.PBufferInfo = &bufferInfo;
+
+			WriteDescriptorSet imageDescriptorWrite = new();
+			imageDescriptorWrite.SType = StructureType.WriteDescriptorSet;
+			imageDescriptorWrite.DstSet = descriptorSet;
+			imageDescriptorWrite.DstBinding = 1;
+			imageDescriptorWrite.DstArrayElement = 0;
+			imageDescriptorWrite.DescriptorType = DescriptorType.CombinedImageSampler;
+			imageDescriptorWrite.DescriptorCount = 1;
+			imageDescriptorWrite.PImageInfo = &imageInfo;
+
+			context.vk.UpdateDescriptorSets(context.device, [bufferDescriptorWrite, imageDescriptorWrite], 0, null);
+
+			framesInFlight.Span[0].descriptorSet = descriptorSet;
+			framesInFlight.Span[1].descriptorSet = descriptorSet;
+			framesInFlight.Span[2].descriptorSet = descriptorSet;
+			*/
 
 			return framesInFlight;
 		}
@@ -335,12 +560,17 @@ namespace Engine
 			colorBlendAttatchment.DstAlphaBlendFactor = BlendFactor.One;
 			colorBlendAttatchment.AlphaBlendOp = BlendOp.Add;
 
+			PushConstantRange pushConstant = new();
+			pushConstant.Offset = 0;
+			pushConstant.Size = (uint)sizeof(PushConstant);
+			pushConstant.StageFlags = ShaderStageFlags.VertexBit;
+
 			PipelineLayoutCreateInfo pipelineLayoutCreateInfo = new();
 			pipelineLayoutCreateInfo.SType = StructureType.PipelineLayoutCreateInfo;
 			pipelineLayoutCreateInfo.SetLayoutCount = 1;
 			pipelineLayoutCreateInfo.PSetLayouts = &descriptorSetLayout;
-			pipelineLayoutCreateInfo.PushConstantRangeCount = 0;
-			pipelineLayoutCreateInfo.PPushConstantRanges = null;
+			pipelineLayoutCreateInfo.PushConstantRangeCount = 1;
+			pipelineLayoutCreateInfo.PPushConstantRanges = &pushConstant;
 
 			var result = context.vk.CreatePipelineLayout(context.device, pipelineLayoutCreateInfo, null, out PipelineLayout pipelineLayout);
 			if (result != Result.Success)
@@ -471,7 +701,7 @@ namespace Engine
 			rasterizationStateCreateInfo.RasterizerDiscardEnable = false;
 			rasterizationStateCreateInfo.PolygonMode = PolygonMode.Fill;
 			rasterizationStateCreateInfo.LineWidth = 1.0f;
-			rasterizationStateCreateInfo.CullMode = CullModeFlags.BackBit;
+			rasterizationStateCreateInfo.CullMode = CullModeFlags.None;
 			rasterizationStateCreateInfo.FrontFace = FrontFace.CounterClockwise;
 			rasterizationStateCreateInfo.DepthBiasEnable = false;
 			rasterizationStateCreateInfo.DepthBiasConstantFactor = 0;

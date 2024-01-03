@@ -4,6 +4,7 @@ using Silk.NET.Vulkan.Extensions.KHR;
 using Image = Silk.NET.Vulkan.Image;
 using Semaphore = Silk.NET.Vulkan.Semaphore;
 using Buffer = Silk.NET.Vulkan.Buffer;
+using System.Text;
 
 namespace Engine
 {
@@ -13,7 +14,7 @@ namespace Engine
 		{
 			ImageCreateInfo createInfo = new();
 			createInfo.SType = StructureType.ImageCreateInfo;
-			createInfo.ImageType = ImageType.ImageType2D;
+			createInfo.ImageType = ImageType.Type2D;
 			createInfo.Extent.Width = extent.Width;
 			createInfo.Extent.Height = extent.Height;
 			createInfo.Extent.Depth = 1;
@@ -40,7 +41,7 @@ namespace Engine
 			createInfo.SType = StructureType.ImageViewCreateInfo;
 			createInfo.Image = image;
 
-			createInfo.ViewType = ImageViewType.ImageViewType2D;
+			createInfo.ViewType = ImageViewType.Type2D;
 			createInfo.Format = format;
 
 			createInfo.Components.R = ComponentSwizzle.Identity;
@@ -617,6 +618,104 @@ namespace Engine
 			khrSurface.GetPhysicalDeviceSurfacePresentModes(physicalDevice, surface, &presentModeCount, buff);
 
 			return buff.Slice(0, (int)presentModeCount);
+		}
+
+		public static unsafe void PrintExtensions(VkContext context)
+		{
+			uint instanceExtensionCount = 0;
+			context.vk.EnumerateInstanceExtensionProperties((byte*)null, &instanceExtensionCount, null);
+
+			Span<ExtensionProperties> extensionProps = stackalloc ExtensionProperties[(int)instanceExtensionCount];
+			context.vk.EnumerateInstanceExtensionProperties((byte*)null, &instanceExtensionCount, extensionProps);
+
+			Console.WriteLine("Instance extensions:");
+			foreach (var item in extensionProps)
+			{
+				Console.WriteLine($"\t{Encoding.UTF8.GetString(item.ExtensionName, 256)}");
+			}
+
+			Console.WriteLine();
+
+			uint deviceExtensionCount = 0;
+			context.vk.EnumerateDeviceExtensionProperties(context.physicalDevice, (byte*)null, &deviceExtensionCount, null);
+
+			Span<ExtensionProperties> deviceProps = stackalloc ExtensionProperties[(int)deviceExtensionCount];
+			context.vk.EnumerateDeviceExtensionProperties(context.physicalDevice, (byte*)null, &deviceExtensionCount, deviceProps);
+
+			Console.WriteLine("Device extensions:");
+			foreach (var item in deviceProps)
+			{
+				Console.WriteLine($"\t{Encoding.UTF8.GetString(item.ExtensionName, 256)}");
+			}
+		}
+
+		public static unsafe void PrintSurfaceCapabilities(VkContext context, SurfaceKHR surface)
+		{
+			context.vk.TryGetInstanceExtension(context.instance, out KhrSurface khrSurface);
+
+			khrSurface.GetPhysicalDeviceSurfaceCapabilities(context.physicalDevice, surface, out SurfaceCapabilitiesKHR capabilities);
+			Console.WriteLine($"Extent: {capabilities.CurrentExtent.Width}, {capabilities.CurrentExtent.Height}");
+			Console.WriteLine($"Image Count: {capabilities.MinImageCount}-{capabilities.MaxImageCount}");
+
+			Span<SurfaceFormatKHR> surfaceFormats = stackalloc SurfaceFormatKHR[16];
+			surfaceFormats = VulkanHelper.GetSurfaceFormats(surfaceFormats, khrSurface, context.physicalDevice, surface);
+
+			Span<PresentModeKHR> presentModees = stackalloc PresentModeKHR[16];
+			presentModees = VulkanHelper.GetSurfacePresentModes(presentModees, khrSurface, context.physicalDevice, surface);
+
+			Console.WriteLine("Surface formats:");
+			foreach (var item in surfaceFormats)
+			{
+				Console.WriteLine($"\tFormat: {item.Format}, ColorSpace: {item.ColorSpace}");
+			}
+
+			Console.WriteLine("Present modes:");
+			foreach (var item in presentModees)
+			{
+				Console.WriteLine($"\t{item}");
+			}
+		}
+
+		public static unsafe void PrintQueueFamilies(VkContext context)
+		{
+			Span<QueueFamilyProperties> qFamilies = stackalloc QueueFamilyProperties[16];
+			qFamilies = VulkanHelper.GetQueueFamilies(context, qFamilies, context.physicalDevice);
+
+			Console.WriteLine("Queue families:");
+			foreach (var family in qFamilies)
+			{
+				Console.WriteLine($"\tCount: {family.QueueCount}, Flags: {family.QueueFlags}");
+			}
+		}
+
+		public static unsafe void PrintValidationLayers(VkContext context)
+		{
+			uint layerCount = 0;
+			context.vk.EnumerateInstanceLayerProperties(ref layerCount, null);
+
+			Span<LayerProperties> layerProperties = stackalloc LayerProperties[(int)layerCount];
+			context.vk.EnumerateInstanceLayerProperties(ref layerCount, ref layerProperties[0]);
+
+			Console.WriteLine("Validation Layers:");
+			foreach (var layer in layerProperties)
+			{
+				var layerName = Encoding.UTF8.GetString(layer.LayerName, 256).Trim().Replace("\0", "");
+
+				Console.WriteLine($"\t{layerName}");
+			}
+		}
+
+		public static void PrintMemoryTypes(VkContext context)
+		{
+			context.vk.GetPhysicalDeviceMemoryProperties(context.physicalDevice, out PhysicalDeviceMemoryProperties memoryProperties);
+			Console.WriteLine("Memory Types:");
+			foreach (var layer in memoryProperties.MemoryTypes.AsSpan())
+			{
+				if (layer.PropertyFlags == MemoryPropertyFlags.None)
+					continue;
+
+				Console.WriteLine($"\t{layer.HeapIndex}: {layer.PropertyFlags}");
+			}
 		}
 	}
 }

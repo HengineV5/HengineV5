@@ -51,6 +51,24 @@ namespace Test
 		}
 	}
 
+	[ResourceManager]
+	public partial class MeshResourceManager : IResourceManager<Mesh, MeshBuffer>
+	{
+		public MeshResourceManager(TestClass4 context)
+		{
+		}
+
+		public ref Graphics.MeshBuffer Get(uint id)
+		{
+			return ref meshBuffers.Span[(int)id];
+		}
+
+		public uint Store(in Graphics.Mesh mesh)
+		{
+			// Very cool implementation
+		}
+	}
+
 	public static class GlfwSetup
 	{
 		public static GL OpenGLSetup()
@@ -129,6 +147,10 @@ namespace Test
 				x.Setup(GlfwSetup.OpenGLSetup);
 				x.Setup(NewClass0.Setup);
 				x.Setup(NewClass.Setup2);
+			})
+			.Resource(x =>
+			{
+				x.ResourceManager<MeshResourceManager>();
 			})
 			.Layout(x =>
 			{

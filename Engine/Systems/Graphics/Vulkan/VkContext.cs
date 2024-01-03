@@ -4,13 +4,66 @@ using Silk.NET.SDL;
 using Silk.NET.Vulkan;
 using Silk.NET.Vulkan.Extensions.KHR;
 using Silk.NET.Windowing;
+using System.Buffers;
 using System.Runtime.InteropServices;
+using Image = Silk.NET.Vulkan.Image;
 
 namespace Engine
 {
-	public class VulkanConfig
+	public class VkRenderContext
 	{
-		public string[] validationLayers;
+		VkContext context;
+
+		public SurfaceKHR surface;
+		public CommandPool commandPool;
+
+		public RenderPipeline renderPipeline;
+
+		public VkRenderContext(VkContext context)
+        {
+			this.context = context;
+        }
+
+		public void Setup()
+		{
+			uint graphicsQueueFamily = VulkanHelper.GetGraphicsQueueFamily(context);
+			Queue graphicsQueue = VulkanHelper.GetQueue(context, graphicsQueueFamily);
+
+			surface = CreateSurface(context);
+			commandPool = VulkanHelper.CreateCommandPool(context, graphicsQueueFamily);
+
+			using var img = SixLabors.ImageSharp.Image.Load<Rgba32>("Images/image_2.png");
+			int imageSize = img.Width * img.Height * img.PixelType.BitsPerPixel / 8;
+
+			Image texture = VulkanHelper.CreateImage(context, new((uint)img.Width, (uint)img.Height), Format.R8G8B8A8Srgb, ImageTiling.Optimal, ImageUsageFlags.TransferDstBit | ImageUsageFlags.SampledBit);
+			DeviceMemory textureMemory = VulkanHelper.CreateMemory(context, texture, MemoryPropertyFlags.DeviceLocalBit);
+			ImageView textureImageView = VulkanHelper.CreateImageView(context, texture, Format.R8G8B8A8Srgb, ImageAspectFlags.ColorBit);
+
+			using var buff = MemoryPool<byte>.Shared.Rent(imageSize);
+			img.CopyPixelDataTo(buff.Memory.Span);
+
+			Silk.NET.Vulkan.Buffer stagingBuffer = VulkanHelper.CreateBuffer<byte>(context, BufferUsageFlags.TransferSrcBit, (uint)imageSize);
+			DeviceMemory stagingBufferMemory = VulkanHelper.CreateBufferMemory(context, stagingBuffer, MemoryPropertyFlags.HostVisibleBit | MemoryPropertyFlags.HostCoherentBit);
+
+			VulkanHelper.MapBufferMemory(context, stagingBuffer, stagingBufferMemory, buff.Memory.Span);
+
+			VulkanHelper.TransitionImageLayout(context, commandPool, graphicsQueue, texture, Format.R8G8B8A8Srgb, ImageLayout.Undefined, ImageLayout.TransferDstOptimal);
+			VulkanHelper.CopyBuffer(context, commandPool, graphicsQueue, stagingBuffer, texture, (uint)img.Width, (uint)img.Height);
+			VulkanHelper.TransitionImageLayout(context, commandPool, graphicsQueue, texture, Format.R8G8B8A8Srgb, ImageLayout.TransferDstOptimal, ImageLayout.ShaderReadOnlyOptimal);
+
+			unsafe
+			{
+				context.vk.DestroyBuffer(context.device, stagingBuffer, null);
+				context.vk.FreeMemory(context.device, stagingBufferMemory, null);
+			}
+
+			renderPipeline = RenderPipeline.Create(context, surface, textureImageView, commandPool);
+		}
+
+		static unsafe SurfaceKHR CreateSurface(VkContext context)
+		{
+			return context.window.VkSurface.Create<AllocationCallbacks>(context.instance.ToHandle(), null).ToSurface();
+		}
 	}
 
 	public class VkContext
@@ -18,6 +71,7 @@ namespace Engine
 		static string[] DEVICE_EXTENSIONS =
 		[
 			KhrSwapchain.ExtensionName,
+			KhrPushDescriptor.ExtensionName,
 		];
 
 		public Vk vk;
@@ -166,17 +220,6 @@ namespace Engine
 			}
 
 			return buff.Slice(0, (int)qFamilyCount);
-		}
-	}
-
-	public static class VulkanSetup
-	{
-		public static VkContext ContextSetup(Vk vk, IWindow window, EngineConfig engineConfig, VulkanConfig vulkanConfig)
-		{
-			VkContext vkContext = new VkContext(vk, window);
-			vkContext.Setup(engineConfig, vulkanConfig);
-
-            return vkContext;
 		}
 	}
 }

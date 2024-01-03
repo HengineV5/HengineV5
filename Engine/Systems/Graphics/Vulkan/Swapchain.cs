@@ -1,4 +1,5 @@
-﻿using Silk.NET.Vulkan;
+﻿using Silk.NET.OpenAL;
+using Silk.NET.Vulkan;
 using Silk.NET.Vulkan.Extensions.KHR;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -23,7 +24,11 @@ namespace Engine
 		uint presentQueueFamily;
 		Queue presentQueue;
 
-		public Swapchain(SurfaceFormatKHR format, PresentModeKHR presentMode, uint imageCount, SurfaceTransformFlagsKHR transform, Extent2D extent, SwapchainKHR swapchain, uint graphicsQueueFamily, Queue graphicsQueue, uint presentQueueFamily, Queue presentQueue)
+		Image depthImage;
+		ImageView depthImageView;
+		DeviceMemory depthImageMemory;
+
+		public Swapchain(SurfaceFormatKHR format, PresentModeKHR presentMode, uint imageCount, SurfaceTransformFlagsKHR transform, Extent2D extent, SwapchainKHR swapchain, uint graphicsQueueFamily, Queue graphicsQueue, uint presentQueueFamily, Queue presentQueue, Image depthImage, ImageView depthImageView, DeviceMemory depthImageMemory)
 		{
 			this.format = format;
 			this.presentMode = presentMode;
@@ -35,6 +40,19 @@ namespace Engine
 			this.graphicsQueue = graphicsQueue;
 			this.presentQueueFamily = presentQueueFamily;
 			this.presentQueue = presentQueue;
+			this.depthImage = depthImage;
+			this.depthImageView = depthImageView;
+			this.depthImageMemory = depthImageMemory;
+		}
+
+		public void Dispose(VkContext context)
+		{
+			context.vk.DestroyImageView(context.device, depthImageView, null);
+			context.vk.DestroyImage(context.device, depthImage, null);
+			context.vk.FreeMemory(context.device, depthImageMemory, null);
+
+			context.vk.TryGetDeviceExtension(context.instance, context.device, out KhrSwapchain khrSwapChain);
+			khrSwapChain.DestroySwapchain(context.device, swapchain, null);
 		}
 
 		public Span<ImageView> GetImages(VkContext context, Span<ImageView> buff)
@@ -46,23 +64,25 @@ namespace Engine
 			return buff.Slice(0, (int)imageCount);
 		}
 
-		public uint AcquireNextImageIndex(VkContext context, Semaphore semaphore)
+		public Result AcquireNextImageIndex(VkContext context, Semaphore semaphore, out uint imageIndex)
 		{
 			context.vk.TryGetDeviceExtension(context.instance, context.device, out KhrSwapchain khrSwapChain);
 
+			/*
 			uint imageIndex = 0;
 			var aquireResult = khrSwapChain.AcquireNextImage(context.device, swapchain, ulong.MaxValue, semaphore, default, ref imageIndex);
-			if (aquireResult == Result.ErrorOutOfDateKhr /*|| framebufferResized*/)
+			if (aquireResult == Result.ErrorOutOfDateKhr || framebufferResized)
 			{
 				throw new Exception();
-				/*
 				framebufferResized = false;
 				recreateSwapChain();
 				return;
-				*/
 			}
 
 			return imageIndex; ;
+			*/
+			imageIndex = 0;
+			return khrSwapChain.AcquireNextImage(context.device, swapchain, ulong.MaxValue, semaphore, default, ref imageIndex);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -78,18 +98,18 @@ namespace Engine
 		public Queue GetGraphicsQueue() => graphicsQueue;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public uint GetGraphicsQueueFamily() => graphicsQueueFamily;
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Queue GetPresentQueue() => presentQueue;
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public uint GetPresentQueueFamily() => presentQueueFamily;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public SwapchainKHR GetSwapchain() => swapchain;
 
-		public static Swapchain Create(VkContext context, SurfaceKHR surface)
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public ImageView GetDepthImage() => depthImageView;
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Format GetDepthFormat(VkContext context) => VulkanHelper.FindSupportedFormat(context, [Format.D32Sfloat, Format.D32SfloatS8Uint, Format.D24UnormS8Uint], ImageTiling.Optimal, FormatFeatureFlags.DepthStencilAttachmentBit);
+
+		public static Swapchain Create(VkContext context, SurfaceKHR surface, CommandPool commandPool)
 		{
 			var format = ChooseSwapSurfaceFormat(context, surface);
 			var presentMode = ChooseSwapPresentMode(context, surface);
@@ -105,7 +125,13 @@ namespace Engine
 			Queue graphicsQueue = VulkanHelper.GetQueue(context, graphicsQueueFamily);
 			Queue presentQueue = VulkanHelper.GetQueue(context, presentQueueFamily);
 
-			return new(format, presentMode, imageCount, transform, extent, swapchain, graphicsQueueFamily, graphicsQueue, presentQueueFamily, presentQueue);
+			Image depthImage = VulkanHelper.CreateImage(context, extent, GetDepthFormat(context), ImageTiling.Optimal, ImageUsageFlags.DepthStencilAttachmentBit);
+			DeviceMemory depthImageMemory = VulkanHelper.CreateMemory(context, depthImage, MemoryPropertyFlags.DeviceLocalBit);
+			ImageView depthImageView = VulkanHelper.CreateImageView(context, depthImage, GetDepthFormat(context), ImageAspectFlags.DepthBit);
+
+			VulkanHelper.TransitionImageLayout(context, commandPool, graphicsQueue, depthImage, GetDepthFormat(context), ImageLayout.Undefined, ImageLayout.DepthStencilAttachmentOptimal);
+
+			return new(format, presentMode, imageCount, transform, extent, swapchain, graphicsQueueFamily, graphicsQueue, presentQueueFamily, presentQueue, depthImage, depthImageView, depthImageMemory);
 		}
 
 		static unsafe SwapchainKHR CreateSwapChain(VkContext context, SurfaceKHR surface, Extent2D extent, uint graphicsQ, uint presentQ, SurfaceFormatKHR format, PresentModeKHR presentMode, uint imageCount, SurfaceTransformFlagsKHR transform)

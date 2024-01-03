@@ -5,8 +5,26 @@ using System.IO;
 
 namespace Engine.Graphics
 {
+	public partial struct ETexture
+	{
+		public string name;
+
+		public Image<Rgba32> data;
+
+		public static ETexture LoadImage(string name, string filePath)
+		{
+			return new ETexture()
+			{
+				name = name,
+				data = Image.Load<Rgba32>("Images/image_2.png")
+			};
+		}
+	}
+
 	public partial struct Mesh
 	{
+		public string name;
+
 		public uint[] indicies;
 		public Vertex[] verticies;
 
@@ -60,10 +78,11 @@ namespace Engine.Graphics
 			};
 		}
 
-		public static Mesh LoadOBJ(string filePath)
+		public static Mesh LoadOBJ(string name, string filePath)
 		{
 			Mesh mesh = new Mesh()
 			{
+				name = name,
 				indicies = new uint[1024 * 16],
 				verticies = new Vertex[1024 * 16]
 			};
