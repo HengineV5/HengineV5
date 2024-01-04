@@ -76,9 +76,18 @@ namespace Engine
 	{
 		IInputHandler inputHandler;
 
+		Vector2 prevPos;
+		Vector2 cameraRotation = new Vector2(-MathF.PI / 2f, 0);
+
 		public MoveSystem(IInputHandler inputHandler)
 		{
 			this.inputHandler = inputHandler;
+		}
+
+		public void Init()
+		{
+			inputHandler.HideCursor();
+			prevPos = inputHandler.GetMousePosition();
 		}
 
 		public void PreRun()
@@ -103,14 +112,8 @@ namespace Engine
 		[SystemUpdate]
 		public void Update(Camera.Ref camera, Position.Ref position, Rotation.Ref rotation)
 		{
-			if (inputHandler.IsKeyDown(Key.ShiftLeft))
-			{
-				rotation.Set(UpdateRotation(rotation));
-			}
-			else
-			{
-				position.Set(UpdatePosition(position, rotation));
-			}
+			position.Set(UpdatePosition(position, rotation));
+			rotation.Set(UpdateRotation(rotation));
 
 			if (inputHandler.IsKeyDown(Key.Escape))
 			{
@@ -130,7 +133,7 @@ namespace Engine
             Vector3 camForward = -Multiply(Quaternion.Inverse(camQ), Vector3.UnitZ);
 			Vector3 camRight = Vector3.Cross(camForward, Vector3.UnitY);
 
-			Vector3 delta = new Vector3();
+            Vector3 delta = new Vector3();
 			if (inputHandler.IsKeyDown(Key.W))
 				delta += camForward * 0.1f;
 
@@ -154,19 +157,30 @@ namespace Engine
 
 		Quaternion UpdateRotation(Rotation.Ref rotation)
 		{
-			Vector3 delta = new Vector3();
-			/*
+			Vector2 newPos = inputHandler.GetMousePosition();
+			Vector2 mouseDelta = newPos - prevPos;
+			prevPos = newPos;
+
+			//Console.WriteLine(mouseDelta);
+			mouseDelta.Y *= -1;
+			mouseDelta *= 0.001f;
+			cameraRotation += mouseDelta;
+
+			Vector3 cameraDir = new Vector3();
+			cameraDir.X = MathF.Cos(cameraRotation.X) * MathF.Cos(cameraRotation.Y);
+			cameraDir.Y = MathF.Sin(cameraRotation.Y);
+			cameraDir.Z = MathF.Sin(cameraRotation.X) * MathF.Cos(cameraRotation.Y);
+
+            /*
+            Vector3 delta = new Vector3(mouseDelta.X * 0.001f, mouseDelta.Y * 0.001f, 0);
 			if (inputHandler.IsKeyDown(Key.W))
 				delta.Z -= 0.05f;
-			*/
 
 			if (inputHandler.IsKeyDown(Key.A))
 				delta.X -= 0.05f;
 
-			/*
 			if (inputHandler.IsKeyDown(Key.S))
 				delta.Z += 0.05f;
-			*/
 
 			if (inputHandler.IsKeyDown(Key.D))
 				delta.X += 0.05f;
@@ -176,9 +190,11 @@ namespace Engine
 
 			if (inputHandler.IsKeyDown(Key.E))
 				delta.Y -= 0.05f;
+			*/
 
-			var q = new Quaternion(rotation.x, rotation.y, rotation.z, rotation.w);
-			return Quaternion.Multiply(q, Quaternion.CreateFromYawPitchRoll(delta.X, delta.Y, delta.Z));
+            var q = new Quaternion(rotation.x, rotation.y, rotation.z, rotation.w);
+			//return Quaternion.Multiply(q, Quaternion.CreateFromYawPitchRoll(delta.X, delta.Y, delta.Z));
+			return Quaternion.CreateFromRotationMatrix(Matrix4x4.CreateLookAt(Vector3.Zero, cameraDir, Vector3.UnitY));
 		}
 	}
 }

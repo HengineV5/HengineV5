@@ -1,5 +1,6 @@
 ﻿using Silk.NET.SDL;
 using Silk.NET.Vulkan;
+using Silk.NET.Vulkan.Extensions.KHR;
 using Silk.NET.Windowing;
 
 namespace Engine
@@ -16,7 +17,7 @@ namespace Engine
 			VkContext vkContext = new VkContext(vk, window);
 			vkContext.Setup(engineConfig, vulkanConfig);
 
-            return vkContext;
+			return vkContext;
 		}
 
 		public static (VkContext, VkRenderContext) RenderSetup(Vk vk, IWindow window, EngineConfig engineConfig, VulkanConfig vulkanConfig)

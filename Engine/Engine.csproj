@@ -6,6 +6,7 @@
     <Nullable>enable</Nullable>
     <Features>InterceptorsPreview</Features>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+	<IsAotCompatible>true</IsAotCompatible>
   
 	<InterceptorsPreviewNamespaces>Engine</InterceptorsPreviewNamespaces>
   </PropertyGroup>
@@ -13,7 +14,7 @@
   <ItemGroup>
     <PackageReference Include="EnCS" Version="0.0.28" />
     <PackageReference Include="Engine.Generator" Version="0.0.23" />
-    <PackageReference Include="Silk.NET" Version="2.18.0" />
+    <PackageReference Include="Silk.NET" Version="2.20.0" />
     <PackageReference Include="SixLabors.ImageSharp" Version="3.0.2" />
   </ItemGroup>
 

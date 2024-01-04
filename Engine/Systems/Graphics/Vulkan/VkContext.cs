@@ -1,4 +1,5 @@
 ﻿using Silk.NET.Core;
+using Silk.NET.Core.Contexts;
 using Silk.NET.Core.Native;
 using Silk.NET.SDL;
 using Silk.NET.Vulkan;
@@ -71,6 +72,7 @@ namespace Engine
 		static string[] DEVICE_EXTENSIONS =
 		[
 			KhrSwapchain.ExtensionName,
+			//KhrSurface.ExtensionName,
 			KhrPushDescriptor.ExtensionName,
 		];
 
@@ -80,6 +82,9 @@ namespace Engine
 		public Instance instance;
 		public PhysicalDevice physicalDevice;
 		public Device device;
+
+		public KhrSurface surface;
+		public KhrSwapchain swapchain;
 
 		public VkContext(Vk vk, IWindow window)
 		{
@@ -93,6 +98,13 @@ namespace Engine
 			physicalDevice = PickPhysicalDevice(vk, instance);
 			var graphicsQueueFamily = GetGraphicsQueueFamily(vk, physicalDevice);
 			device = CreateLogicalDevice(vk, physicalDevice, graphicsQueueFamily, vulkanConfig.validationLayers, DEVICE_EXTENSIONS);
+
+            vk.GetPhysicalDeviceProperties(physicalDevice, out PhysicalDeviceProperties properties);
+            Console.WriteLine(properties.Limits.MinUniformBufferOffsetAlignment);
+
+            // Do not use TryGetInstanceExtension or TryGetDeviceExtensions since they use reflection.
+            surface = new KhrSurface(new LamdaNativeContext((string x) => (nint)vk.GetInstanceProcAddr(instance, x)));
+			swapchain = new KhrSwapchain(new LamdaNativeContext((string x) => (nint)vk.GetDeviceProcAddr(device, x)));
 		}
 
 		static unsafe Instance CreateInstance(Vk vk, IWindow window, string[] validationLayers, EngineConfig engineConfig)
@@ -113,6 +125,16 @@ namespace Engine
 			createInfo.EnabledExtensionCount = count;
 			createInfo.PpEnabledExtensionNames = glfwExtensions;
 
+			/*
+			string[] strArr = new string[count];
+			SilkMarshal.CopyPtrToStringArray((nint)glfwExtensions, strArr);
+            Console.WriteLine("Instance Extensions:");
+            for (int i = 0; i < count; i++)
+			{
+				Console.WriteLine($"\t{strArr[i]}");
+            }
+			*/
+
 			if (validationLayers.Length > 0)
 			{
 				createInfo.EnabledLayerCount = (uint)validationLayers.Length;
@@ -125,7 +147,7 @@ namespace Engine
 
 			var result = vk.CreateInstance(createInfo, null, out Instance instance);
 			if (result != Result.Success)
-				throw new Exception("Failed to create vkInstance");
+				throw new Exception($"Failed to create vkInstance, {result}");
 
 			Marshal.FreeHGlobal((IntPtr)appInfo.PApplicationName);
 			Marshal.FreeHGlobal((IntPtr)appInfo.PEngineName);
@@ -174,7 +196,7 @@ namespace Engine
 
 			var result = vk.CreateDevice(physicalDevice, createInfo, null, out Device device);
 			if (result != Result.Success)
-				throw new Exception("Failed to create vkDevice");
+				throw new Exception($"Failed to create vkDevice, {result}");
 
 			return device;
 		}

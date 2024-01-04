@@ -16,7 +16,7 @@ namespace Engine.Graphics
 			return new ETexture()
 			{
 				name = name,
-				data = Image.Load<Rgba32>("Images/image_2.png")
+				data = Image.Load<Rgba32>(filePath)
 			};
 		}
 	}

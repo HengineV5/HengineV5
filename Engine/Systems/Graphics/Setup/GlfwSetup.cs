@@ -32,6 +32,9 @@ namespace Engine
 			GL gl = GL.GetApi(window);
 
 			gl.Enable(EnableCap.DepthTest);
+			gl.Enable(EnableCap.CullFace);
+			gl.Enable(EnableCap.FramebufferSrgb);
+
 			gl.ClearColor(System.Drawing.Color.CornflowerBlue);
 
 			return gl;
@@ -66,6 +69,12 @@ namespace Engine
 		bool IsKeyDown(MouseButton key);
 
 		Vector2 GetMousePosition();
+
+		void SetCursorPosition(Vector2 pos);
+
+		void HideCursor();
+
+		void ShowCursor();
 	}
 
 	public class GlfwInputHandler : IInputHandler
@@ -102,6 +111,21 @@ namespace Engine
 		public Vector2 GetMousePosition()
 		{
 			return mouse.Position;
+		}
+
+		public void SetCursorPosition(Vector2 pos)
+		{
+			mouse.Position = pos;
+		}
+
+		public void HideCursor()
+		{
+			mouse.Cursor.CursorMode = CursorMode.Disabled;
+		}
+
+		public void ShowCursor()
+		{
+			mouse.Cursor.CursorMode = CursorMode.Normal;
 		}
 	}
 }

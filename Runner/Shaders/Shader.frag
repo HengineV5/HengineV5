@@ -22,8 +22,6 @@ layout(location = 2) in vec3 v_pos;
 layout(location = 0) out vec4 color;
 
 uniform vec4 u_Color = vec4(1);
-uniform vec4 u_LightColor;
-uniform vec3 u_LightPos;
 
 uniform vec3 u_ViewPos;
 

@@ -51,8 +51,7 @@ namespace Engine
 			context.vk.DestroyImage(context.device, depthImage, null);
 			context.vk.FreeMemory(context.device, depthImageMemory, null);
 
-			context.vk.TryGetDeviceExtension(context.instance, context.device, out KhrSwapchain khrSwapChain);
-			khrSwapChain.DestroySwapchain(context.device, swapchain, null);
+			context.swapchain.DestroySwapchain(context.device, swapchain, null);
 		}
 
 		public Span<ImageView> GetImages(VkContext context, Span<ImageView> buff)
@@ -66,8 +65,6 @@ namespace Engine
 
 		public Result AcquireNextImageIndex(VkContext context, Semaphore semaphore, out uint imageIndex)
 		{
-			context.vk.TryGetDeviceExtension(context.instance, context.device, out KhrSwapchain khrSwapChain);
-
 			/*
 			uint imageIndex = 0;
 			var aquireResult = khrSwapChain.AcquireNextImage(context.device, swapchain, ulong.MaxValue, semaphore, default, ref imageIndex);
@@ -82,7 +79,7 @@ namespace Engine
 			return imageIndex; ;
 			*/
 			imageIndex = 0;
-			return khrSwapChain.AcquireNextImage(context.device, swapchain, ulong.MaxValue, semaphore, default, ref imageIndex);
+			return context.swapchain.AcquireNextImage(context.device, swapchain, ulong.MaxValue, semaphore, default, ref imageIndex);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -136,8 +133,6 @@ namespace Engine
 
 		static unsafe SwapchainKHR CreateSwapChain(VkContext context, SurfaceKHR surface, Extent2D extent, uint graphicsQ, uint presentQ, SurfaceFormatKHR format, PresentModeKHR presentMode, uint imageCount, SurfaceTransformFlagsKHR transform)
 		{
-			context.vk.TryGetDeviceExtension(context.instance, context.device, out KhrSwapchain khrSwapChain);
-
 			SwapchainCreateInfoKHR createInfo = new();
 			createInfo.SType = StructureType.SwapchainCreateInfoKhr;
 			createInfo.Surface = surface;
@@ -168,7 +163,7 @@ namespace Engine
 			createInfo.Clipped = true;
 			createInfo.OldSwapchain = default;
 
-			var result = khrSwapChain.CreateSwapchain(context.device, createInfo, null, out SwapchainKHR swapchain);
+			var result = context.swapchain.CreateSwapchain(context.device, createInfo, null, out SwapchainKHR swapchain);
 			if (result != Result.Success)
 				throw new Exception("Failed to create khrSwapchain");
 
@@ -177,10 +172,8 @@ namespace Engine
 
 		static unsafe SurfaceFormatKHR ChooseSwapSurfaceFormat(VkContext context, SurfaceKHR surface)
 		{
-			context.vk.TryGetInstanceExtension(context.instance, out KhrSurface khrSurface);
-
 			Span<SurfaceFormatKHR> surfaceFormats = stackalloc SurfaceFormatKHR[16];
-			surfaceFormats = VulkanHelper.GetSurfaceFormats(surfaceFormats, khrSurface, context.physicalDevice, surface);
+			surfaceFormats = VulkanHelper.GetSurfaceFormats(surfaceFormats, context.surface, context.physicalDevice, surface);
 
 			foreach (var format in surfaceFormats)
 			{
@@ -194,10 +187,8 @@ namespace Engine
 
 		static unsafe PresentModeKHR ChooseSwapPresentMode(VkContext context, SurfaceKHR surface)
 		{
-			context.vk.TryGetInstanceExtension(context.instance, out KhrSurface khrSurface);
-
 			Span<PresentModeKHR> presentModees = stackalloc PresentModeKHR[16];
-			presentModees = VulkanHelper.GetSurfacePresentModes(presentModees, khrSurface, context.physicalDevice, surface);
+			presentModees = VulkanHelper.GetSurfacePresentModes(presentModees, context.surface, context.physicalDevice, surface);
 
 			foreach (var mode in presentModees)
 			{
@@ -210,8 +201,7 @@ namespace Engine
 
 		static Extent2D ChooseSwapExtent(VkContext context, SurfaceKHR surface)
 		{
-			context.vk.TryGetInstanceExtension(context.instance, out KhrSurface khrSurface);
-			khrSurface.GetPhysicalDeviceSurfaceCapabilities(context.physicalDevice, surface, out SurfaceCapabilitiesKHR capabilities);
+			context.surface.GetPhysicalDeviceSurfaceCapabilities(context.physicalDevice, surface, out SurfaceCapabilitiesKHR capabilities);
 
 			if (capabilities.CurrentExtent.Width != uint.MaxValue)
 				return capabilities.CurrentExtent;
@@ -232,8 +222,7 @@ namespace Engine
 
 		static uint ChooseImageCount(VkContext context, SurfaceKHR surface)
 		{
-			context.vk.TryGetInstanceExtension(context.instance, out KhrSurface khrSurface);
-			khrSurface.GetPhysicalDeviceSurfaceCapabilities(context.physicalDevice, surface, out SurfaceCapabilitiesKHR capabilities);
+			context.surface.GetPhysicalDeviceSurfaceCapabilities(context.physicalDevice, surface, out SurfaceCapabilitiesKHR capabilities);
 
 			if (capabilities.MaxImageCount == 0)
 				return capabilities.MinImageCount + 2;
@@ -243,21 +232,18 @@ namespace Engine
 
 		static SurfaceTransformFlagsKHR ChooseSwapSurfaceTransform(VkContext context, SurfaceKHR surface)
 		{
-			context.vk.TryGetInstanceExtension(context.instance, out KhrSurface khrSurface);
-			khrSurface.GetPhysicalDeviceSurfaceCapabilities(context.physicalDevice, surface, out SurfaceCapabilitiesKHR capabilities);
+			context.surface.GetPhysicalDeviceSurfaceCapabilities(context.physicalDevice, surface, out SurfaceCapabilitiesKHR capabilities);
 
 			return capabilities.SupportedTransforms;
 		}
 
 		static unsafe Span<Image> GetSwapChainImages(VkContext context, Span<Image> buff, SwapchainKHR swapchain)
 		{
-			context.vk.TryGetDeviceExtension(context.instance, context.device, out KhrSwapchain khrSwapChain);
-
 			uint imageCount = 0;
-			khrSwapChain.GetSwapchainImages(context.device, swapchain, ref imageCount, null);
+			context.swapchain.GetSwapchainImages(context.device, swapchain, ref imageCount, null);
 
 			//Memory<Image> images = new Silk.NET.Vulkan.Image[imageCount];
-			khrSwapChain.GetSwapchainImages(context.device, swapchain, &imageCount, buff);
+			context.swapchain.GetSwapchainImages(context.device, swapchain, &imageCount, buff);
 
 			return buff.Slice(0, (int)imageCount);
 		}

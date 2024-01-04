@@ -20,10 +20,10 @@ namespace Engine
 			public Semaphore renderFinished;
 			public Fence inFlight;
 
-			public DescriptorSet descriptorSet;
-			//public FixedArray8<DescriptorSet> descriptorSets;
+			public FixedArray8<DescriptorSet> descriptorSets;
+			//public FixedArray8<MappedMemory<VulkanShaderInput>> uboMemories;
+			public FixedArray8<VulkanShaderInput> uboMemories;
 			public CommandBuffer commandBuffer;
-			public MappedMemory<UniformBufferObject> uboMemory;
 		}
 
 		struct PushConstant
@@ -138,16 +138,6 @@ namespace Engine
 
 		public void RecreateSwapchain(VkContext context, SurfaceKHR surface, CommandPool commandPool)
 		{
-			/*
-			 Vector2D<int> framebufferSize = window!.FramebufferSize;
-
-			while (framebufferSize.X == 0 || framebufferSize.Y == 0)
-			{
-				framebufferSize = window.FramebufferSize;
-				window.DoEvents();
-			}
-			 */
-
 			context.vk.DeviceWaitIdle(context.device);
 
 			swapchain.Dispose(context);
@@ -192,47 +182,42 @@ namespace Engine
 			BeginRenderCommand(context, frame.commandBuffer, framebuffer, clearColor, renderArea);
 			RenderSetViewportAndScissor(context, frame.commandBuffer, renderArea);
 
-			context.vk.CmdBindDescriptorSets(frame.commandBuffer, PipelineBindPoint.Graphics, pipelineLayout, 0, 1, frame.descriptorSet, 0, null);
-
 			return aquireResult;
 		}
 
-		public unsafe void Render(VkContext context, ref UniformBufferObject ubo, Buffer vertexBuffer, Buffer indexBuffer, uint indicies, ImageView texture)
+		public unsafe void UpdateFrameDescriptorSet(VkContext context, ImageView texture, int idx)
+		{
+            ref FrameData frame = ref framesInFlight.Span[currentFrame];
+
+			DescriptorImageInfo imageInfo = new();
+			imageInfo.ImageLayout = ImageLayout.ReadOnlyOptimal;
+			imageInfo.ImageView = texture;
+			imageInfo.Sampler = sampler;
+
+			WriteDescriptorSet imageDescriptorWrite = new();
+			imageDescriptorWrite.SType = StructureType.WriteDescriptorSet;
+			imageDescriptorWrite.DstSet = frame.descriptorSets[idx];
+			imageDescriptorWrite.DstBinding = 1;
+			imageDescriptorWrite.DstArrayElement = 0;
+			imageDescriptorWrite.DescriptorType = DescriptorType.CombinedImageSampler;
+			imageDescriptorWrite.DescriptorCount = 1;
+			imageDescriptorWrite.PImageInfo = &imageInfo;
+			context.vk.UpdateDescriptorSets(context.device, [imageDescriptorWrite], 0, null);
+		}
+
+		public unsafe void Render(VkContext context, ref UniformBufferObject ubo, in Material material, in Light light, Buffer vertexBuffer, Buffer indexBuffer, uint indicies, int idx)
 		{
 			ref FrameData frame = ref framesInFlight.Span[currentFrame];
-			frame.uboMemory.Value = ubo;
+			frame.uboMemories[idx].ubo.Value = ubo;
+			frame.uboMemories[idx].material.Value = material;
+			frame.uboMemories[idx].light.Value = light;
 
-			/*
-			{
-				DescriptorImageInfo imageInfo = new();
-				imageInfo.ImageLayout = ImageLayout.ReadOnlyOptimal;
-				imageInfo.ImageView = texture;
-				imageInfo.Sampler = sampler;
-
-				WriteDescriptorSet imageDescriptorWrite = new();
-				imageDescriptorWrite.SType = StructureType.WriteDescriptorSet;
-				imageDescriptorWrite.DstSet = frame.descriptorSet;
-				imageDescriptorWrite.DstBinding = 1;
-				imageDescriptorWrite.DstArrayElement = 0;
-				imageDescriptorWrite.DescriptorType = DescriptorType.CombinedImageSampler;
-				imageDescriptorWrite.DescriptorCount = 1;
-				imageDescriptorWrite.PImageInfo = &imageInfo;
-
-				context.vk.UpdateDescriptorSets(context.device, [imageDescriptorWrite], 0, null);
-			}
-			*/
-
-			var pc = new PushConstant()
-			{
-				model = ubo.scale * ubo.rotation * ubo.translation
-			};
+			context.vk.CmdBindDescriptorSets(frame.commandBuffer, PipelineBindPoint.Graphics, pipelineLayout, 0, 1, frame.descriptorSets[idx], 0, null);
 
 			context.vk.CmdBindPipeline(frame.commandBuffer, PipelineBindPoint.Graphics, pipeline);
 
 			context.vk.CmdBindVertexBuffers(frame.commandBuffer, 0, [vertexBuffer], [0]);
 			context.vk.CmdBindIndexBuffer(frame.commandBuffer, indexBuffer, 0, IndexType.Uint16);
-
-			context.vk.CmdPushConstants(frame.commandBuffer, pipelineLayout, ShaderStageFlags.VertexBit, 0, (uint)sizeof(PushConstant), ref pc);
 
 			context.vk.CmdDrawIndexed(frame.commandBuffer, indicies, 1, 0, 0, 0);
 		}
@@ -341,110 +326,96 @@ namespace Engine
 				framesInFlight.Span[i].inFlight = VulkanHelper.CreateFence(context, FenceCreateFlags.SignaledBit);
 				framesInFlight.Span[i].commandBuffer = VulkanHelper.CreateCommandBuffer(context, commandPool);
 
-				Buffer uniformBuffer = VulkanHelper.CreateBuffer<UniformBufferObject>(context, BufferUsageFlags.UniformBufferBit, 1);
-				DeviceMemory uniformBuffersMemory = VulkanHelper.CreateBufferMemory(context, uniformBuffer, MemoryPropertyFlags.HostVisibleBit | MemoryPropertyFlags.HostCoherentBit);
+				for (int a = 0; a < 8; a++)
+				{
+					Buffer uniformBuffer = VulkanHelper.CreateBuffer(context, BufferUsageFlags.UniformBufferBit, 448);
+					DeviceMemory uniformBuffersMemory = VulkanHelper.CreateBufferMemory(context, uniformBuffer, MemoryPropertyFlags.HostVisibleBit | MemoryPropertyFlags.HostCoherentBit);
 
-				void* dataPtr;
-				context.vk.MapMemory(context.device, uniformBuffersMemory, 0, (ulong)sizeof(UniformBufferObject), 0, &dataPtr);
-				framesInFlight.Span[i].uboMemory = new((UniformBufferObject*)dataPtr);
+					/*
+					void* dataPtr;
+					context.vk.MapMemory(context.device, uniformBuffersMemory, 0, (ulong)sizeof(VulkanShaderInput), 0, &dataPtr);
+					framesInFlight.Span[i].uboMemories[a] = new((VulkanShaderInput*)dataPtr);
+					*/
 
-				DescriptorSetAllocateInfo allocInfo = new();
-				allocInfo.SType = StructureType.DescriptorSetAllocateInfo;
-				allocInfo.DescriptorPool = descriptorPool;
-				allocInfo.DescriptorSetCount = 1;
-				allocInfo.PSetLayouts = &layout;
+					framesInFlight.Span[i].uboMemories[a] = new VulkanShaderInput();
 
-				var result = context.vk.AllocateDescriptorSets(context.device, allocInfo, out DescriptorSet descriptorSet);
-				if (result != Result.Success)
-					throw new Exception("Failed to allocate vkDescriptorSets");
+					void* dataPtr;
+					context.vk.MapMemory(context.device, uniformBuffersMemory, 0, 448, 0, &dataPtr);
+					framesInFlight.Span[i].uboMemories[a].ubo = new((UniformBufferObject*)dataPtr);
+					framesInFlight.Span[i].uboMemories[a].material = new((Material*)((byte*)dataPtr + 64 * 5));
+					framesInFlight.Span[i].uboMemories[a].light = new((Light*)((byte*)dataPtr + 64 * 6));
 
-				DescriptorBufferInfo bufferInfo = new();
-				bufferInfo.Buffer = uniformBuffer;
-				bufferInfo.Offset = 0;
-				bufferInfo.Range = (ulong)sizeof(UniformBufferObject);
+					/*
+					void* uboDataPtr;
+					context.vk.MapMemory(context.device, uniformBuffersMemory, 0, (ulong)sizeof(UniformBufferObject), 0, &uboDataPtr);
+					framesInFlight.Span[i].uboMemories[a].ubo = new((UniformBufferObject*)uboDataPtr);
 
-				DescriptorImageInfo imageInfo = new();
-				imageInfo.ImageLayout = ImageLayout.ReadOnlyOptimal;
-				imageInfo.ImageView = image;
-				imageInfo.Sampler = sampler;
+					void* materialDataPtr;
+					context.vk.MapMemory(context.device, uniformBuffersMemory, 320, (ulong)sizeof(Material), 0, &materialDataPtr);
+					framesInFlight.Span[i].uboMemories[a].material = new((Material*)materialDataPtr);
 
-				WriteDescriptorSet bufferDescriptorWrite = new();
-				bufferDescriptorWrite.SType = StructureType.WriteDescriptorSet;
-				bufferDescriptorWrite.DstSet = descriptorSet;
-				bufferDescriptorWrite.DstBinding = 0;
-				bufferDescriptorWrite.DstArrayElement = 0;
-				bufferDescriptorWrite.DescriptorType = DescriptorType.UniformBuffer;
-				bufferDescriptorWrite.DescriptorCount = 1;
-				bufferDescriptorWrite.PBufferInfo = &bufferInfo;
+					void* lightDataPtr;
+					context.vk.MapMemory(context.device, uniformBuffersMemory, 384, (ulong)sizeof(Light), 0, &lightDataPtr);
+					framesInFlight.Span[i].uboMemories[a].light = new((Light*)lightDataPtr);
+					*/
 
-				WriteDescriptorSet imageDescriptorWrite = new();
-				imageDescriptorWrite.SType = StructureType.WriteDescriptorSet;
-				imageDescriptorWrite.DstSet = descriptorSet;
-				imageDescriptorWrite.DstBinding = 1;
-				imageDescriptorWrite.DstArrayElement = 0;
-				imageDescriptorWrite.DescriptorType = DescriptorType.CombinedImageSampler;
-				imageDescriptorWrite.DescriptorCount = 1;
-				imageDescriptorWrite.PImageInfo = &imageInfo;
+					DescriptorSetAllocateInfo allocInfo = new();
+					allocInfo.SType = StructureType.DescriptorSetAllocateInfo;
+					allocInfo.DescriptorPool = descriptorPool;
+					allocInfo.DescriptorSetCount = 1;
+					allocInfo.PSetLayouts = &layout;
 
-				context.vk.UpdateDescriptorSets(context.device, [bufferDescriptorWrite, imageDescriptorWrite], 0, null);
+					var result = context.vk.AllocateDescriptorSets(context.device, allocInfo, out DescriptorSet descriptorSet);
+					if (result != Result.Success)
+						throw new Exception("Failed to allocate vkDescriptorSets");
 
-				framesInFlight.Span[i].descriptorSet = descriptorSet;
+					DescriptorBufferInfo bufferUboInfo = new();
+					bufferUboInfo.Buffer = uniformBuffer;
+					bufferUboInfo.Offset = 0;
+					bufferUboInfo.Range = (ulong)sizeof(UniformBufferObject);
+
+					DescriptorBufferInfo bufferMaterialInfo = new();
+					bufferMaterialInfo.Buffer = uniformBuffer;
+					bufferMaterialInfo.Offset = (ulong)sizeof(UniformBufferObject);
+					bufferMaterialInfo.Range = (ulong)sizeof(Material);
+
+					DescriptorBufferInfo lightMaterialInfo = new();
+					lightMaterialInfo.Buffer = uniformBuffer;
+					lightMaterialInfo.Offset = (ulong)sizeof(UniformBufferObject) + (ulong)sizeof(Material) + 16;
+					lightMaterialInfo.Range = (ulong)sizeof(Light);
+
+					WriteDescriptorSet uboBufferDescriptorWrite = new();
+					uboBufferDescriptorWrite.SType = StructureType.WriteDescriptorSet;
+					uboBufferDescriptorWrite.DstSet = descriptorSet;
+					uboBufferDescriptorWrite.DstBinding = 0;
+					uboBufferDescriptorWrite.DstArrayElement = 0;
+					uboBufferDescriptorWrite.DescriptorType = DescriptorType.UniformBuffer;
+					uboBufferDescriptorWrite.DescriptorCount = 1;
+					uboBufferDescriptorWrite.PBufferInfo = &bufferUboInfo;
+
+					WriteDescriptorSet materialBufferDescriptorWrite = new();
+					materialBufferDescriptorWrite.SType = StructureType.WriteDescriptorSet;
+					materialBufferDescriptorWrite.DstSet = descriptorSet;
+					materialBufferDescriptorWrite.DstBinding = 2;
+					materialBufferDescriptorWrite.DstArrayElement = 0;
+					materialBufferDescriptorWrite.DescriptorType = DescriptorType.UniformBuffer;
+					materialBufferDescriptorWrite.DescriptorCount = 1;
+					materialBufferDescriptorWrite.PBufferInfo = &bufferMaterialInfo;
+
+					WriteDescriptorSet lightBufferDescriptorWrite = new();
+					lightBufferDescriptorWrite.SType = StructureType.WriteDescriptorSet;
+					lightBufferDescriptorWrite.DstSet = descriptorSet;
+					lightBufferDescriptorWrite.DstBinding = 3;
+					lightBufferDescriptorWrite.DstArrayElement = 0;
+					lightBufferDescriptorWrite.DescriptorType = DescriptorType.UniformBuffer;
+					lightBufferDescriptorWrite.DescriptorCount = 1;
+					lightBufferDescriptorWrite.PBufferInfo = &lightMaterialInfo;
+
+					context.vk.UpdateDescriptorSets(context.device, [uboBufferDescriptorWrite, materialBufferDescriptorWrite, lightBufferDescriptorWrite], 0, null);
+
+					framesInFlight.Span[i].descriptorSets[a] = descriptorSet;
+				}
 			}
-
-			/*
-			Buffer uniformBuffer = VulkanHelper.CreateBuffer<UniformBufferObject>(context, BufferUsageFlags.UniformBufferBit, 1);
-			DeviceMemory uniformBuffersMemory = VulkanHelper.CreateBufferMemory(context, uniformBuffer, MemoryPropertyFlags.HostVisibleBit | MemoryPropertyFlags.HostCoherentBit);
-
-			void* dataPtr;
-			context.vk.MapMemory(context.device, uniformBuffersMemory, 0, (ulong)sizeof(UniformBufferObject), 0, &dataPtr);
-			framesInFlight.Span[0].uboMemory = new((UniformBufferObject*)dataPtr);
-			framesInFlight.Span[1].uboMemory = new((UniformBufferObject*)dataPtr);
-			framesInFlight.Span[2].uboMemory = new((UniformBufferObject*)dataPtr);
-
-			DescriptorSetAllocateInfo allocInfo = new();
-			allocInfo.SType = StructureType.DescriptorSetAllocateInfo;
-			allocInfo.DescriptorPool = descriptorPool;
-			allocInfo.DescriptorSetCount = 1;
-			allocInfo.PSetLayouts = &layout;
-
-			var result = context.vk.AllocateDescriptorSets(context.device, allocInfo, out DescriptorSet descriptorSet);
-			if (result != Result.Success)
-				throw new Exception("Failed to allocate vkDescriptorSets");
-
-			DescriptorBufferInfo bufferInfo = new();
-			bufferInfo.Buffer = uniformBuffer;
-			bufferInfo.Offset = 0;
-			bufferInfo.Range = (ulong)sizeof(UniformBufferObject);
-
-			DescriptorImageInfo imageInfo = new();
-			imageInfo.ImageLayout = ImageLayout.ReadOnlyOptimal;
-			imageInfo.ImageView = image;
-			imageInfo.Sampler = sampler;
-
-			WriteDescriptorSet bufferDescriptorWrite = new();
-			bufferDescriptorWrite.SType = StructureType.WriteDescriptorSet;
-			bufferDescriptorWrite.DstSet = descriptorSet;
-			bufferDescriptorWrite.DstBinding = 0;
-			bufferDescriptorWrite.DstArrayElement = 0;
-			bufferDescriptorWrite.DescriptorType = DescriptorType.UniformBuffer;
-			bufferDescriptorWrite.DescriptorCount = 1;
-			bufferDescriptorWrite.PBufferInfo = &bufferInfo;
-
-			WriteDescriptorSet imageDescriptorWrite = new();
-			imageDescriptorWrite.SType = StructureType.WriteDescriptorSet;
-			imageDescriptorWrite.DstSet = descriptorSet;
-			imageDescriptorWrite.DstBinding = 1;
-			imageDescriptorWrite.DstArrayElement = 0;
-			imageDescriptorWrite.DescriptorType = DescriptorType.CombinedImageSampler;
-			imageDescriptorWrite.DescriptorCount = 1;
-			imageDescriptorWrite.PImageInfo = &imageInfo;
-
-			context.vk.UpdateDescriptorSets(context.device, [bufferDescriptorWrite, imageDescriptorWrite], 0, null);
-
-			framesInFlight.Span[0].descriptorSet = descriptorSet;
-			framesInFlight.Span[1].descriptorSet = descriptorSet;
-			framesInFlight.Span[2].descriptorSet = descriptorSet;
-			*/
 
 			return framesInFlight;
 		}
@@ -531,13 +502,29 @@ namespace Engine
 			samplerBinding.StageFlags = ShaderStageFlags.FragmentBit;
 			samplerBinding.PImmutableSamplers = null;
 
+			DescriptorSetLayoutBinding materialBinding = new();
+			materialBinding.Binding = 2;
+			materialBinding.DescriptorType = DescriptorType.UniformBuffer;
+			materialBinding.DescriptorCount = 1;
+			materialBinding.StageFlags = ShaderStageFlags.FragmentBit;
+			materialBinding.PImmutableSamplers = null;
+
+			DescriptorSetLayoutBinding lightBinding = new();
+			lightBinding.Binding = 3;
+			lightBinding.DescriptorType = DescriptorType.UniformBuffer;
+			lightBinding.DescriptorCount = 1;
+			lightBinding.StageFlags = ShaderStageFlags.FragmentBit;
+			lightBinding.PImmutableSamplers = null;
+
 			DescriptorSetLayoutCreateInfo createInfo = new();
 			createInfo.SType = StructureType.DescriptorSetLayoutCreateInfo;
-			createInfo.BindingCount = 2;
+			createInfo.BindingCount = 4;
 
-			DescriptorSetLayoutBinding* bindingsPtr = stackalloc DescriptorSetLayoutBinding[2];
+			DescriptorSetLayoutBinding* bindingsPtr = stackalloc DescriptorSetLayoutBinding[4];
 			bindingsPtr[0] = uniformBinding;
 			bindingsPtr[1] = samplerBinding;
+			bindingsPtr[2] = materialBinding;
+			bindingsPtr[3] = lightBinding;
 
 			createInfo.PBindings = bindingsPtr;
 
@@ -569,8 +556,8 @@ namespace Engine
 			pipelineLayoutCreateInfo.SType = StructureType.PipelineLayoutCreateInfo;
 			pipelineLayoutCreateInfo.SetLayoutCount = 1;
 			pipelineLayoutCreateInfo.PSetLayouts = &descriptorSetLayout;
-			pipelineLayoutCreateInfo.PushConstantRangeCount = 1;
-			pipelineLayoutCreateInfo.PPushConstantRanges = &pushConstant;
+			//pipelineLayoutCreateInfo.PushConstantRangeCount = 1;
+			//pipelineLayoutCreateInfo.PPushConstantRanges = &pushConstant;
 
 			var result = context.vk.CreatePipelineLayout(context.device, pipelineLayoutCreateInfo, null, out PipelineLayout pipelineLayout);
 			if (result != Result.Success)
@@ -701,7 +688,7 @@ namespace Engine
 			rasterizationStateCreateInfo.RasterizerDiscardEnable = false;
 			rasterizationStateCreateInfo.PolygonMode = PolygonMode.Fill;
 			rasterizationStateCreateInfo.LineWidth = 1.0f;
-			rasterizationStateCreateInfo.CullMode = CullModeFlags.None;
+			rasterizationStateCreateInfo.CullMode = CullModeFlags.BackBit;
 			rasterizationStateCreateInfo.FrontFace = FrontFace.CounterClockwise;
 			rasterizationStateCreateInfo.DepthBiasEnable = false;
 			rasterizationStateCreateInfo.DepthBiasConstantFactor = 0;

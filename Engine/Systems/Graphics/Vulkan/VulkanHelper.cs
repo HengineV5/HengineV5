@@ -193,9 +193,14 @@ namespace Engine
 
 		public static unsafe Buffer CreateBuffer<T>(VkContext context, BufferUsageFlags bufferUsage, uint dataCount) where T : unmanaged
 		{
+			return CreateBuffer(context, bufferUsage, (uint)sizeof(T) * dataCount);
+		}
+
+		public static unsafe Buffer CreateBuffer(VkContext context, BufferUsageFlags bufferUsage, uint size)
+		{
 			BufferCreateInfo createInfo = new();
 			createInfo.SType = StructureType.BufferCreateInfo;
-			createInfo.Size = (uint)sizeof(T) * dataCount;
+			createInfo.Size = size;
 			createInfo.Usage = bufferUsage;
 			createInfo.SharingMode = SharingMode.Exclusive;
 			createInfo.Flags = BufferCreateFlags.None;
@@ -414,9 +419,7 @@ namespace Engine
 			presentInfo.PImageIndices = &imageIndex;
 			presentInfo.PResults = null;
 
-			context.vk.TryGetDeviceExtension(context.instance, context.device, out KhrSwapchain khrSwapChain);
-
-			var presentResult = khrSwapChain.QueuePresent(queue, presentInfo);
+			var presentResult = context.swapchain.QueuePresent(queue, presentInfo);
 			if (presentResult == Result.ErrorOutOfDateKhr || presentResult == Result.SuboptimalKhr)
 			{
 				throw new Exception();
@@ -566,14 +569,12 @@ namespace Engine
 
 		public static unsafe uint GetPresentQueueFamily(VkContext context, SurfaceKHR surface)
 		{
-			context.vk.TryGetInstanceExtension(context.instance, out KhrSurface khrSurface);
-
 			Span<QueueFamilyProperties> qFamilies = stackalloc QueueFamilyProperties[16];
 			qFamilies = GetQueueFamilies(context, qFamilies, context.physicalDevice);
 
 			for (uint i = 0; i < qFamilies.Length; i++)
 			{
-				khrSurface.GetPhysicalDeviceSurfaceSupport(context.physicalDevice, i, surface, out Bool32 supported);
+				context.surface.GetPhysicalDeviceSurfaceSupport(context.physicalDevice, i, surface, out Bool32 supported);
 
 				if (supported.Value == 1)
 					return i;
@@ -651,17 +652,15 @@ namespace Engine
 
 		public static unsafe void PrintSurfaceCapabilities(VkContext context, SurfaceKHR surface)
 		{
-			context.vk.TryGetInstanceExtension(context.instance, out KhrSurface khrSurface);
-
-			khrSurface.GetPhysicalDeviceSurfaceCapabilities(context.physicalDevice, surface, out SurfaceCapabilitiesKHR capabilities);
+			context.surface.GetPhysicalDeviceSurfaceCapabilities(context.physicalDevice, surface, out SurfaceCapabilitiesKHR capabilities);
 			Console.WriteLine($"Extent: {capabilities.CurrentExtent.Width}, {capabilities.CurrentExtent.Height}");
 			Console.WriteLine($"Image Count: {capabilities.MinImageCount}-{capabilities.MaxImageCount}");
 
 			Span<SurfaceFormatKHR> surfaceFormats = stackalloc SurfaceFormatKHR[16];
-			surfaceFormats = VulkanHelper.GetSurfaceFormats(surfaceFormats, khrSurface, context.physicalDevice, surface);
+			surfaceFormats = VulkanHelper.GetSurfaceFormats(surfaceFormats, context.surface, context.physicalDevice, surface);
 
 			Span<PresentModeKHR> presentModees = stackalloc PresentModeKHR[16];
-			presentModees = VulkanHelper.GetSurfacePresentModes(presentModees, khrSurface, context.physicalDevice, surface);
+			presentModees = VulkanHelper.GetSurfacePresentModes(presentModees, context.surface, context.physicalDevice, surface);
 
 			Console.WriteLine("Surface formats:");
 			foreach (var item in surfaceFormats)
