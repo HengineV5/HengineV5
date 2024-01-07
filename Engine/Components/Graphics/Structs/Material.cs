@@ -3,19 +3,20 @@ using System.Runtime.InteropServices;
 
 namespace Engine.Graphics
 {
-	[StructLayout(LayoutKind.Explicit)]
+	// Phong
+	[StructLayout(LayoutKind.Sequential, Pack = 16)]
 	public struct Material
 	{
-		[FieldOffset(0)]
+		//[FieldOffset(0)]
 		public Vector3 Ambient;
 
-		[FieldOffset(16)]
+		//[FieldOffset(16)]
 		public Vector3 Diffuse;
 
-		[FieldOffset(32)]
+		//[FieldOffset(32)]
 		public Vector3 Specular;
 
-		[FieldOffset(44)]
+		//[FieldOffset(44)]
 		public float Shininess;
 
 		public static readonly Material Emerald = new Material
@@ -33,5 +34,13 @@ namespace Engine.Graphics
 			Specular = new Vector3(0.70f, 0.70f, 0.70f),
 			Shininess = 0.25f
 		};
+	}
+
+	[StructLayout(LayoutKind.Sequential, Pack = 16)]
+	public struct PbrMaterial
+	{
+		public Vector3 albedo;
+		public float metallic;
+		public float roughness;
 	}
 }

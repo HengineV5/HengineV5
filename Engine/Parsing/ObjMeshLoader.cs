@@ -102,6 +102,9 @@ namespace Engine.Parsing
 			List<(uint, uint, uint)> indicies = new List<(uint, uint, uint)>();
 			for (int i = 1; i < line.Length; i++)
 			{
+				if (line[i].Length == 0)
+					continue;
+
 				uint i1 = uint.Parse(line[i].Split('/')[0]);
 				uint i2 = uint.Parse(line[i].Split('/')[1]);
 				uint i3 = uint.Parse(line[i].Split('/')[2]);

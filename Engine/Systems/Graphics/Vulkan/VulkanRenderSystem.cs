@@ -1,4 +1,5 @@
-﻿using EnCS.Attributes;
+﻿using EnCS;
+using EnCS.Attributes;
 using Engine.Components;
 using Engine.Graphics;
 using Silk.NET.Core;
@@ -12,38 +13,116 @@ using SixLabors.ImageSharp;
 using System.Buffers;
 using System.Drawing;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 
 namespace Engine
 {
+	public class UniformBufferBuilder
+	{
+		int idx = 0;
+		Memory<DescriptorBufferInfo> bufferInfos = new DescriptorBufferInfo[128];
+		Memory<WriteDescriptorSet> descriptorWrites = new WriteDescriptorSet[128];
+
+		ulong offset = 0;
+		DescriptorSet descriptor;
+		Silk.NET.Vulkan.Buffer buffer;
+
+
+		public UniformBufferBuilder(DescriptorSet descriptor, Silk.NET.Vulkan.Buffer buffer)
+        {
+            this.descriptor = descriptor;
+			this.buffer = buffer;
+        }
+
+		public unsafe UniformBufferBuilder Variable<T>(uint binding, uint arrayElement = 0) where T : unmanaged
+		{
+			DescriptorBufferInfo bufferInfo = new();
+			bufferInfo.Buffer = buffer;
+			bufferInfo.Offset = offset;
+			bufferInfo.Range = (ulong)sizeof(T);
+
+			bufferInfos.Span[idx] = bufferInfo;
+
+			WriteDescriptorSet descriptorWrite = new();
+			descriptorWrite.SType = StructureType.WriteDescriptorSet;
+			descriptorWrite.DstSet = descriptor;
+			descriptorWrite.DstBinding = binding;
+			descriptorWrite.DstArrayElement = arrayElement;
+			descriptorWrite.DescriptorType = DescriptorType.UniformBuffer;
+			descriptorWrite.DescriptorCount = 1;
+			fixed(DescriptorBufferInfo* infoPtr = &bufferInfos.Span[idx])
+			{
+				descriptorWrite.PBufferInfo = infoPtr;
+			}
+
+			offset += 64 * ((ulong)sizeof(T) / 64 + 1);
+			descriptorWrites.Span[idx] = descriptorWrite;
+			idx++;
+
+			return this;
+		}
+
+		public UniformBufferBuilder Array<T>(uint binding, uint size) where T : unmanaged
+		{
+			for (uint i = 0; i < size; i++)
+			{
+				Variable<T>(binding, i);
+			}
+
+			return this;
+		}
+
+		public ulong GetSize()
+		{
+			return offset;
+		}
+
+		public ulong GetOffset(uint idx)
+		{
+			return bufferInfos.Span[(int)idx].Offset;
+		}
+
+		public unsafe MappedMemory<T> GetElement<T>(void* dataPtr, uint idx) where T : unmanaged
+		{
+			return new((T*)Unsafe.Add<byte>(dataPtr, (int)GetOffset(idx)));
+		}
+
+		public unsafe void UpdateDescriptorSet(VkContext context)
+		{
+			context.vk.UpdateDescriptorSets(context.device, descriptorWrites.Span.Slice(0, idx), 0, null);
+		}
+    }
+
+	[StructLayout(LayoutKind.Explicit)]
 	public struct UniformBufferObject
 	{
-		public Matrix4x4 translation;
-		public Matrix4x4 rotation;
-		public Matrix4x4 scale;
-		public Matrix4x4 view;
-		public Matrix4x4 proj;
-	}
-
-	/*
-	[StructLayout(LayoutKind.Explicit)]
-	public struct VulkanShaderInput
-	{
 		[FieldOffset(0)]
-		public UniformBufferObject ubo;
+		public Matrix4x4 translation;
+
+		[FieldOffset(64)]
+		public Matrix4x4 rotation;
+
+		[FieldOffset(128)]
+		public Matrix4x4 scale;
+
+		[FieldOffset(192)]
+		public Matrix4x4 view;
+
+		[FieldOffset(256)]
+		public Matrix4x4 proj;
+
 		[FieldOffset(320)]
-		public Material material;
-		[FieldOffset(384)]
-		public Light light;
+		public Vector3 cameraPos;
 	}
-	*/
 
 	public struct VulkanShaderInput
 	{
 		public MappedMemory<UniformBufferObject> ubo;
-		public MappedMemory<Material> material;
-		public MappedMemory<Light> light;
+		//public MappedMemory<Material> material;
+		public MappedMemory<PbrMaterial> material;
+		public FixedArray4<MappedMemory<Light>> lights;
 	}
 
 	public unsafe struct MappedMemory<T> where T : unmanaged
@@ -87,9 +166,18 @@ namespace Engine
 			Shininess = 2f
 		};
 
+		private static PbrMaterial defaultPbrMaterial = new PbrMaterial
+		{
+			albedo = new Vector3(1, 0, 0),
+			metallic = 0.7f,
+			roughness = 0f
+		};
+
+		private static FixedArray4<Light> defaultLights = new FixedArray4<Light>();
+
 		private static readonly Light defaultLight = new Light
 		{
-			Ambient = new Vector3(0.2f, 0.2f, 0.2f),
+			Ambient = new Vector3(1f, 1f, 1f),
 			Diffuse = new Vector3(0.5f, 0.5f, 0.5f),
 			Specular = new Vector3(1f, 1f, 1f)
 		};
@@ -100,22 +188,43 @@ namespace Engine
 
 		bool framebufferResized = false;
 
+		VkTextureBuffer albedoTextureBuffer;
+		VkTextureBuffer normalTextureBuffer;
+		VkTextureBuffer metallicTextureBuffer;
+		VkTextureBuffer roughnessTextureBuffer;
+
 		public VulkanRenderSystem(VkContext context, VkRenderContext renderContext, IWindow window)
 		{
 			this.context = context;
 			this.renderContext = renderContext;
 			this.window = window;
+
+			defaultLights[0] = defaultLight;
+			defaultLights[1] = defaultLight;
+			defaultLights[2] = defaultLight;
+			defaultLights[3] = defaultLight;
+
+			defaultLights[0].Position = new Vector3(0, 3, -5);
+			defaultLights[1].Position = new Vector3(10, 0, -2);
+			defaultLights[2].Position = new Vector3(-10, 0, -2);
+			defaultLights[3].Position = new Vector3(0, 10, -2);
 		}
 
 		public void Init()
 		{
-			window.FramebufferResize += Window_Resize;
+			var textureAlbedo = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Iron/rustediron2_basecolor.png");
+			albedoTextureBuffer = VulkanTextureResourceManager.CreateTextureBuffer(context, textureAlbedo);
 
-			//VulkanHelper.PrintValidationLayers(context);
-			//VulkanHelper.PrintQueueFamilies(context);
-			//VulkanHelper.PrintExtensions(context);
-			//VulkanHelper.PrintSurfaceCapabilities(context, surface);
-			//VulkanHelper.PrintMemoryTypes(context);
+			var textureNormal = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Iron/rustediron2_metallic.png");
+			normalTextureBuffer = VulkanTextureResourceManager.CreateTextureBuffer(context, textureNormal);
+
+			var textureMetallic = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Iron/rustediron2_normal.png");
+			metallicTextureBuffer = VulkanTextureResourceManager.CreateTextureBuffer(context, textureMetallic);
+
+			var textureRoughness = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Iron/rustediron2_roughness.png");
+			roughnessTextureBuffer = VulkanTextureResourceManager.CreateTextureBuffer(context, textureRoughness);
+
+			window.FramebufferResize += Window_Resize;
 		}
 
 		private void Window_Resize(Vector2D<int> obj)
@@ -131,14 +240,6 @@ namespace Engine
 		public unsafe void PreRun()
 		{
             window.DoEvents();
-
-            /*
-            Console.WriteLine("Start");
-            Console.WriteLine($"1: {sizeof(UniformBufferObject)} - {0} - {0 / 64}");
-            Console.WriteLine($"2: {sizeof(Material) + 24} - {sizeof(UniformBufferObject)} - {sizeof(UniformBufferObject) / 64f}");
-            Console.WriteLine($"3: {sizeof(Light)} - {sizeof(UniformBufferObject) + sizeof(Material) + 24} - {(sizeof(UniformBufferObject) + sizeof(Material) + 24) / 64f}");
-            Console.WriteLine($"Total: {sizeof(UniformBufferObject) + sizeof(Material) + 24 + sizeof(Light)}");
-			*/
 
             Thread.Sleep(1);
 
@@ -161,6 +262,7 @@ namespace Engine
 		public void UpdateCamera(ref VulkanRenderContext context, Position.Ref position, Rotation.Ref rotation, Camera.Ref camera)
 		{
 			UpdateCameraUbo(ref context.ubo, camera, position, rotation);
+			context.ubo.cameraPos = new Vector3(position.x, position.y, position.z);
 			idx = 0;
 		}
 
@@ -180,7 +282,7 @@ namespace Engine
 		[SystemUpdate, SystemLayer(1)]
 		public void BufferUpdate(ref VulkanRenderContext context, Position.Ref position, Rotation.Ref rotation, Scale.Ref scale, ref VkMeshBuffer mesh, ref VkTextureBuffer textureBuffer)
 		{
-			renderContext.renderPipeline.UpdateFrameDescriptorSet(this.context, textureBuffer.textureImageView, idx);
+			renderContext.renderPipeline.UpdateFrameDescriptorSet(this.context, textureBuffer.textureImageView, idx, albedoTextureBuffer, normalTextureBuffer, metallicTextureBuffer, roughnessTextureBuffer);
 			idx++;
 		}
 
@@ -193,8 +295,10 @@ namespace Engine
 		[SystemUpdate, SystemLayer(1)]
 		public void RenderUpdate(ref VulkanRenderContext context, Position.Ref position, Rotation.Ref rotation, Scale.Ref scale, ref VkMeshBuffer mesh, ref VkTextureBuffer textureBuffer)
 		{
-			UpdateEntityUbo(ref context.ubo, position, rotation, scale);
-			renderContext.renderPipeline.Render(this.context, ref context.ubo, defaultMaterial, defaultLight, mesh.vertexBuffer, mesh.indexBuffer, mesh.indicies, idx);
+			defaultPbrMaterial.roughness = (1 - ((float)idx / 7));
+
+            UpdateEntityUbo(ref context.ubo, position, rotation, scale);
+			renderContext.renderPipeline.Render(this.context, ref context.ubo, defaultPbrMaterial, defaultLights, mesh.vertexBuffer, mesh.indexBuffer, mesh.indicies, idx);
 			idx++;
 		}
 

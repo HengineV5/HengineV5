@@ -46,7 +46,8 @@ namespace Engine.Graphics
 			return idx++;
 		}
 
-		static VkTextureBuffer CreateTextureBuffer(VkContext context, Graphics.ETexture texture)
+		// TODO: Tmp, make private
+		public static VkTextureBuffer CreateTextureBuffer(VkContext context, Graphics.ETexture texture)
 		{
 			// TODO: Move command pool to context, bad to create for each mesh creating call
 			uint graphicsQueueFamily = VulkanHelper.GetGraphicsQueueFamily(context);

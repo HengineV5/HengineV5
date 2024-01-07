@@ -152,6 +152,9 @@ namespace Engine
 			if (inputHandler.IsKeyDown(Key.E))
 				delta.Y -= 0.1f;
 
+			if (inputHandler.IsKeyDown(Key.ShiftLeft))
+				delta *= 2;
+
 			return delta + new Vector3(position.x, position.y, position.z);
 		}
 

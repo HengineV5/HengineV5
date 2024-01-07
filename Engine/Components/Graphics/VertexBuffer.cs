@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 
 namespace Engine.Components.Graphics
 {
-	[Component]
 	public partial struct VertexBuffer
 	{
 		public uint ID;

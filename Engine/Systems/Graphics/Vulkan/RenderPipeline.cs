@@ -35,7 +35,7 @@ namespace Engine
 
 		Swapchain swapchain;
 		RenderPass renderPass;
-		Sampler sampler;
+		FixedArray8<Sampler> samplers;
 		DescriptorSetLayout descriptorSetLayout;
 		PipelineLayout pipelineLayout;
 		Pipeline pipeline;
@@ -47,11 +47,11 @@ namespace Engine
 		int currentFrame;
 		uint imageIndex;
 
-		public RenderPipeline(Swapchain swapchain, RenderPass renderPass, Sampler sampler, DescriptorSetLayout descriptorSetLayout, PipelineLayout pipelineLayout, Pipeline pipeline, Memory<ImageView> swapchainImages, Memory<Framebuffer> frameBuffers, Memory<FrameData> framesInFlight) : this()
+		public RenderPipeline(Swapchain swapchain, RenderPass renderPass, FixedArray8<Sampler> sampler, DescriptorSetLayout descriptorSetLayout, PipelineLayout pipelineLayout, Pipeline pipeline, Memory<ImageView> swapchainImages, Memory<Framebuffer> frameBuffers, Memory<FrameData> framesInFlight) : this()
 		{
 			this.swapchain = swapchain;
 			this.renderPass = renderPass;
-			this.sampler = sampler;
+			this.samplers = sampler;
 			this.descriptorSetLayout = descriptorSetLayout;
 			this.pipelineLayout = pipelineLayout;
 			this.pipeline = pipeline;
@@ -182,39 +182,112 @@ namespace Engine
 			BeginRenderCommand(context, frame.commandBuffer, framebuffer, clearColor, renderArea);
 			RenderSetViewportAndScissor(context, frame.commandBuffer, renderArea);
 
+			context.vk.CmdBindPipeline(frame.commandBuffer, PipelineBindPoint.Graphics, pipeline);
+
 			return aquireResult;
 		}
 
-		public unsafe void UpdateFrameDescriptorSet(VkContext context, ImageView texture, int idx)
+		public unsafe void UpdateFrameDescriptorSet(VkContext context, ImageView texture, int idx, VkTextureBuffer albedo, VkTextureBuffer normal, VkTextureBuffer metallic, VkTextureBuffer roughness)
 		{
             ref FrameData frame = ref framesInFlight.Span[currentFrame];
 
-			DescriptorImageInfo imageInfo = new();
-			imageInfo.ImageLayout = ImageLayout.ReadOnlyOptimal;
-			imageInfo.ImageView = texture;
-			imageInfo.Sampler = sampler;
+			{
+				DescriptorImageInfo imageInfo = new();
+				imageInfo.ImageLayout = ImageLayout.ReadOnlyOptimal;
+				imageInfo.ImageView = texture;
+				imageInfo.Sampler = samplers[0];
 
-			WriteDescriptorSet imageDescriptorWrite = new();
-			imageDescriptorWrite.SType = StructureType.WriteDescriptorSet;
-			imageDescriptorWrite.DstSet = frame.descriptorSets[idx];
-			imageDescriptorWrite.DstBinding = 1;
-			imageDescriptorWrite.DstArrayElement = 0;
-			imageDescriptorWrite.DescriptorType = DescriptorType.CombinedImageSampler;
-			imageDescriptorWrite.DescriptorCount = 1;
-			imageDescriptorWrite.PImageInfo = &imageInfo;
-			context.vk.UpdateDescriptorSets(context.device, [imageDescriptorWrite], 0, null);
+				WriteDescriptorSet imageDescriptorWrite = new();
+				imageDescriptorWrite.SType = StructureType.WriteDescriptorSet;
+				imageDescriptorWrite.DstSet = frame.descriptorSets[idx];
+				imageDescriptorWrite.DstBinding = 1;
+				imageDescriptorWrite.DstArrayElement = 0;
+				imageDescriptorWrite.DescriptorType = DescriptorType.CombinedImageSampler;
+				imageDescriptorWrite.DescriptorCount = 1;
+				imageDescriptorWrite.PImageInfo = &imageInfo;
+				context.vk.UpdateDescriptorSets(context.device, [imageDescriptorWrite], 0, null);
+			}
+
+			{
+				DescriptorImageInfo imageInfo = new();
+				imageInfo.ImageLayout = ImageLayout.ReadOnlyOptimal;
+				imageInfo.ImageView = albedo.textureImageView;
+				imageInfo.Sampler = samplers[1];
+
+				WriteDescriptorSet imageDescriptorWrite = new();
+				imageDescriptorWrite.SType = StructureType.WriteDescriptorSet;
+				imageDescriptorWrite.DstSet = frame.descriptorSets[idx];
+				imageDescriptorWrite.DstBinding = 2;
+				imageDescriptorWrite.DstArrayElement = 0;
+				imageDescriptorWrite.DescriptorType = DescriptorType.CombinedImageSampler;
+				imageDescriptorWrite.DescriptorCount = 1;
+				imageDescriptorWrite.PImageInfo = &imageInfo;
+				context.vk.UpdateDescriptorSets(context.device, [imageDescriptorWrite], 0, null);
+			}
+
+			{
+				DescriptorImageInfo imageInfo = new();
+				imageInfo.ImageLayout = ImageLayout.ReadOnlyOptimal;
+				imageInfo.ImageView = normal.textureImageView;
+				imageInfo.Sampler = samplers[2];
+
+				WriteDescriptorSet imageDescriptorWrite = new();
+				imageDescriptorWrite.SType = StructureType.WriteDescriptorSet;
+				imageDescriptorWrite.DstSet = frame.descriptorSets[idx];
+				imageDescriptorWrite.DstBinding = 3;
+				imageDescriptorWrite.DstArrayElement = 0;
+				imageDescriptorWrite.DescriptorType = DescriptorType.CombinedImageSampler;
+				imageDescriptorWrite.DescriptorCount = 1;
+				imageDescriptorWrite.PImageInfo = &imageInfo;
+				context.vk.UpdateDescriptorSets(context.device, [imageDescriptorWrite], 0, null);
+			}
+
+			{
+				DescriptorImageInfo imageInfo = new();
+				imageInfo.ImageLayout = ImageLayout.ReadOnlyOptimal;
+				imageInfo.ImageView = metallic.textureImageView;
+				imageInfo.Sampler = samplers[3];
+
+				WriteDescriptorSet imageDescriptorWrite = new();
+				imageDescriptorWrite.SType = StructureType.WriteDescriptorSet;
+				imageDescriptorWrite.DstSet = frame.descriptorSets[idx];
+				imageDescriptorWrite.DstBinding = 4;
+				imageDescriptorWrite.DstArrayElement = 0;
+				imageDescriptorWrite.DescriptorType = DescriptorType.CombinedImageSampler;
+				imageDescriptorWrite.DescriptorCount = 1;
+				imageDescriptorWrite.PImageInfo = &imageInfo;
+				context.vk.UpdateDescriptorSets(context.device, [imageDescriptorWrite], 0, null);
+			}
+
+			{
+				DescriptorImageInfo imageInfo = new();
+				imageInfo.ImageLayout = ImageLayout.ReadOnlyOptimal;
+				imageInfo.ImageView = roughness.textureImageView;
+				imageInfo.Sampler = samplers[4];
+
+				WriteDescriptorSet imageDescriptorWrite = new();
+				imageDescriptorWrite.SType = StructureType.WriteDescriptorSet;
+				imageDescriptorWrite.DstSet = frame.descriptorSets[idx];
+				imageDescriptorWrite.DstBinding = 5;
+				imageDescriptorWrite.DstArrayElement = 0;
+				imageDescriptorWrite.DescriptorType = DescriptorType.CombinedImageSampler;
+				imageDescriptorWrite.DescriptorCount = 1;
+				imageDescriptorWrite.PImageInfo = &imageInfo;
+				context.vk.UpdateDescriptorSets(context.device, [imageDescriptorWrite], 0, null);
+			}
 		}
 
-		public unsafe void Render(VkContext context, ref UniformBufferObject ubo, in Material material, in Light light, Buffer vertexBuffer, Buffer indexBuffer, uint indicies, int idx)
+		public unsafe void Render(VkContext context, ref UniformBufferObject ubo, in PbrMaterial material, in FixedArray4<Light> lights, Buffer vertexBuffer, Buffer indexBuffer, uint indicies, int idx)
 		{
 			ref FrameData frame = ref framesInFlight.Span[currentFrame];
 			frame.uboMemories[idx].ubo.Value = ubo;
 			frame.uboMemories[idx].material.Value = material;
-			frame.uboMemories[idx].light.Value = light;
+			for (int i = 0; i < 4; i++)
+			{
+				frame.uboMemories[idx].lights[i].Value = lights[i];
+			}
 
 			context.vk.CmdBindDescriptorSets(frame.commandBuffer, PipelineBindPoint.Graphics, pipelineLayout, 0, 1, frame.descriptorSets[idx], 0, null);
-
-			context.vk.CmdBindPipeline(frame.commandBuffer, PipelineBindPoint.Graphics, pipeline);
 
 			context.vk.CmdBindVertexBuffers(frame.commandBuffer, 0, [vertexBuffer], [0]);
 			context.vk.CmdBindIndexBuffer(frame.commandBuffer, indexBuffer, 0, IndexType.Uint16);
@@ -295,7 +368,12 @@ namespace Engine
 
 			RenderPass renderPass = CreateRenderPass(context, swapchain, Swapchain.GetDepthFormat(context));
 
-			Sampler sampler = VulkanHelper.CreateSampler(context);
+			FixedArray8<Sampler> samplers = new FixedArray8<Sampler>();
+			for (int i = 0; i < 8; i++)
+			{
+				samplers[i] = VulkanHelper.CreateSampler(context);
+			}
+			//Sampler sampler = VulkanHelper.CreateSampler(context);
 
 			DescriptorSetLayout descriptorSetLayout = CreateDescriptorSetLayout(context);
 			PipelineLayout pipelineLayout = CreatePipelineLayout(context, descriptorSetLayout);
@@ -311,9 +389,9 @@ namespace Engine
 			}
 
 			DescriptorPool descriptorPool = VulkanHelper.CreateDescriptorPool(context, MAX_FRAMES_IN_FLIGHT * 8);
-			Memory<FrameData> framesInFlight = CreateFramesInFlight(context, descriptorPool, commandPool, descriptorSetLayout, sampler, image);
+			Memory<FrameData> framesInFlight = CreateFramesInFlight(context, descriptorPool, commandPool, descriptorSetLayout, samplers[0], image);
 
-			return new RenderPipeline(swapchain, renderPass, sampler, descriptorSetLayout, pipelineLayout, pipeline, swapchainImages, frameBuffers, framesInFlight);
+			return new RenderPipeline(swapchain, renderPass, samplers, descriptorSetLayout, pipelineLayout, pipeline, swapchainImages, frameBuffers, framesInFlight);
 		}
 
 		static unsafe Memory<FrameData> CreateFramesInFlight(VkContext context, DescriptorPool descriptorPool, CommandPool commandPool, DescriptorSetLayout layout, Sampler sampler, ImageView image)
@@ -328,36 +406,10 @@ namespace Engine
 
 				for (int a = 0; a < 8; a++)
 				{
-					Buffer uniformBuffer = VulkanHelper.CreateBuffer(context, BufferUsageFlags.UniformBufferBit, 448);
+					Buffer uniformBuffer = VulkanHelper.CreateBuffer(context, BufferUsageFlags.UniformBufferBit, 704);
 					DeviceMemory uniformBuffersMemory = VulkanHelper.CreateBufferMemory(context, uniformBuffer, MemoryPropertyFlags.HostVisibleBit | MemoryPropertyFlags.HostCoherentBit);
 
-					/*
-					void* dataPtr;
-					context.vk.MapMemory(context.device, uniformBuffersMemory, 0, (ulong)sizeof(VulkanShaderInput), 0, &dataPtr);
-					framesInFlight.Span[i].uboMemories[a] = new((VulkanShaderInput*)dataPtr);
-					*/
-
 					framesInFlight.Span[i].uboMemories[a] = new VulkanShaderInput();
-
-					void* dataPtr;
-					context.vk.MapMemory(context.device, uniformBuffersMemory, 0, 448, 0, &dataPtr);
-					framesInFlight.Span[i].uboMemories[a].ubo = new((UniformBufferObject*)dataPtr);
-					framesInFlight.Span[i].uboMemories[a].material = new((Material*)((byte*)dataPtr + 64 * 5));
-					framesInFlight.Span[i].uboMemories[a].light = new((Light*)((byte*)dataPtr + 64 * 6));
-
-					/*
-					void* uboDataPtr;
-					context.vk.MapMemory(context.device, uniformBuffersMemory, 0, (ulong)sizeof(UniformBufferObject), 0, &uboDataPtr);
-					framesInFlight.Span[i].uboMemories[a].ubo = new((UniformBufferObject*)uboDataPtr);
-
-					void* materialDataPtr;
-					context.vk.MapMemory(context.device, uniformBuffersMemory, 320, (ulong)sizeof(Material), 0, &materialDataPtr);
-					framesInFlight.Span[i].uboMemories[a].material = new((Material*)materialDataPtr);
-
-					void* lightDataPtr;
-					context.vk.MapMemory(context.device, uniformBuffersMemory, 384, (ulong)sizeof(Light), 0, &lightDataPtr);
-					framesInFlight.Span[i].uboMemories[a].light = new((Light*)lightDataPtr);
-					*/
 
 					DescriptorSetAllocateInfo allocInfo = new();
 					allocInfo.SType = StructureType.DescriptorSetAllocateInfo;
@@ -369,49 +421,24 @@ namespace Engine
 					if (result != Result.Success)
 						throw new Exception("Failed to allocate vkDescriptorSets");
 
-					DescriptorBufferInfo bufferUboInfo = new();
-					bufferUboInfo.Buffer = uniformBuffer;
-					bufferUboInfo.Offset = 0;
-					bufferUboInfo.Range = (ulong)sizeof(UniformBufferObject);
+					var uniformBufferBuilder = new UniformBufferBuilder(descriptorSet, uniformBuffer)
+						.Variable<UniformBufferObject>(0)
+						//.Variable<Material>(2)
+						.Variable<PbrMaterial>(6)
+						.Array<Light>(7, 4);
 
-					DescriptorBufferInfo bufferMaterialInfo = new();
-					bufferMaterialInfo.Buffer = uniformBuffer;
-					bufferMaterialInfo.Offset = (ulong)sizeof(UniformBufferObject);
-					bufferMaterialInfo.Range = (ulong)sizeof(Material);
+					void* dataPtr;
+					context.vk.MapMemory(context.device, uniformBuffersMemory, 0, 704, 0, &dataPtr);
 
-					DescriptorBufferInfo lightMaterialInfo = new();
-					lightMaterialInfo.Buffer = uniformBuffer;
-					lightMaterialInfo.Offset = (ulong)sizeof(UniformBufferObject) + (ulong)sizeof(Material) + 16;
-					lightMaterialInfo.Range = (ulong)sizeof(Light);
+					framesInFlight.Span[i].uboMemories[a].ubo = uniformBufferBuilder.GetElement<UniformBufferObject>(dataPtr, 0);
+					//framesInFlight.Span[i].uboMemories[a].material = uniformBufferBuilder.GetElement<Material>(dataPtr, 1);
+					framesInFlight.Span[i].uboMemories[a].material = uniformBufferBuilder.GetElement<PbrMaterial>(dataPtr, 1);
+					for (int b = 0; b < 4; b++)
+					{
+						framesInFlight.Span[i].uboMemories[a].lights[b] = uniformBufferBuilder.GetElement<Light>(dataPtr, 2 + (uint)b);
+					}
 
-					WriteDescriptorSet uboBufferDescriptorWrite = new();
-					uboBufferDescriptorWrite.SType = StructureType.WriteDescriptorSet;
-					uboBufferDescriptorWrite.DstSet = descriptorSet;
-					uboBufferDescriptorWrite.DstBinding = 0;
-					uboBufferDescriptorWrite.DstArrayElement = 0;
-					uboBufferDescriptorWrite.DescriptorType = DescriptorType.UniformBuffer;
-					uboBufferDescriptorWrite.DescriptorCount = 1;
-					uboBufferDescriptorWrite.PBufferInfo = &bufferUboInfo;
-
-					WriteDescriptorSet materialBufferDescriptorWrite = new();
-					materialBufferDescriptorWrite.SType = StructureType.WriteDescriptorSet;
-					materialBufferDescriptorWrite.DstSet = descriptorSet;
-					materialBufferDescriptorWrite.DstBinding = 2;
-					materialBufferDescriptorWrite.DstArrayElement = 0;
-					materialBufferDescriptorWrite.DescriptorType = DescriptorType.UniformBuffer;
-					materialBufferDescriptorWrite.DescriptorCount = 1;
-					materialBufferDescriptorWrite.PBufferInfo = &bufferMaterialInfo;
-
-					WriteDescriptorSet lightBufferDescriptorWrite = new();
-					lightBufferDescriptorWrite.SType = StructureType.WriteDescriptorSet;
-					lightBufferDescriptorWrite.DstSet = descriptorSet;
-					lightBufferDescriptorWrite.DstBinding = 3;
-					lightBufferDescriptorWrite.DstArrayElement = 0;
-					lightBufferDescriptorWrite.DescriptorType = DescriptorType.UniformBuffer;
-					lightBufferDescriptorWrite.DescriptorCount = 1;
-					lightBufferDescriptorWrite.PBufferInfo = &lightMaterialInfo;
-
-					context.vk.UpdateDescriptorSets(context.device, [uboBufferDescriptorWrite, materialBufferDescriptorWrite, lightBufferDescriptorWrite], 0, null);
+					uniformBufferBuilder.UpdateDescriptorSet(context);
 
 					framesInFlight.Span[i].descriptorSets[a] = descriptorSet;
 				}
@@ -495,36 +522,68 @@ namespace Engine
 			uniformBinding.StageFlags = ShaderStageFlags.VertexBit;
 			uniformBinding.PImmutableSamplers = null;
 
-			DescriptorSetLayoutBinding samplerBinding = new();
-			samplerBinding.Binding = 1;
-			samplerBinding.DescriptorType = DescriptorType.CombinedImageSampler;
-			samplerBinding.DescriptorCount = 1;
-			samplerBinding.StageFlags = ShaderStageFlags.FragmentBit;
-			samplerBinding.PImmutableSamplers = null;
+			DescriptorSetLayoutBinding albedoSamplerBinding = new();
+			albedoSamplerBinding.Binding = 1;
+			albedoSamplerBinding.DescriptorType = DescriptorType.CombinedImageSampler;
+			albedoSamplerBinding.DescriptorCount = 1;
+			albedoSamplerBinding.StageFlags = ShaderStageFlags.FragmentBit;
+			albedoSamplerBinding.PImmutableSamplers = null;
+
+			DescriptorSetLayoutBinding normalSamplerBinding = new();
+			normalSamplerBinding.Binding = 2;
+			normalSamplerBinding.DescriptorType = DescriptorType.CombinedImageSampler;
+			normalSamplerBinding.DescriptorCount = 1;
+			normalSamplerBinding.StageFlags = ShaderStageFlags.FragmentBit;
+			normalSamplerBinding.PImmutableSamplers = null;
+
+			DescriptorSetLayoutBinding metallicSamplerBinding = new();
+			metallicSamplerBinding.Binding = 3;
+			metallicSamplerBinding.DescriptorType = DescriptorType.CombinedImageSampler;
+			metallicSamplerBinding.DescriptorCount = 1;
+			metallicSamplerBinding.StageFlags = ShaderStageFlags.FragmentBit;
+			metallicSamplerBinding.PImmutableSamplers = null;
+
+			DescriptorSetLayoutBinding roughnessSamplerBinding = new();
+			roughnessSamplerBinding.Binding = 4;
+			roughnessSamplerBinding.DescriptorType = DescriptorType.CombinedImageSampler;
+			roughnessSamplerBinding.DescriptorCount = 1;
+			roughnessSamplerBinding.StageFlags = ShaderStageFlags.FragmentBit;
+			roughnessSamplerBinding.PImmutableSamplers = null;
+
+			DescriptorSetLayoutBinding aoSamplerBinding = new();
+			aoSamplerBinding.Binding = 5;
+			aoSamplerBinding.DescriptorType = DescriptorType.CombinedImageSampler;
+			aoSamplerBinding.DescriptorCount = 1;
+			aoSamplerBinding.StageFlags = ShaderStageFlags.FragmentBit;
+			aoSamplerBinding.PImmutableSamplers = null;
 
 			DescriptorSetLayoutBinding materialBinding = new();
-			materialBinding.Binding = 2;
+			materialBinding.Binding = 6;
 			materialBinding.DescriptorType = DescriptorType.UniformBuffer;
 			materialBinding.DescriptorCount = 1;
 			materialBinding.StageFlags = ShaderStageFlags.FragmentBit;
 			materialBinding.PImmutableSamplers = null;
 
 			DescriptorSetLayoutBinding lightBinding = new();
-			lightBinding.Binding = 3;
+			lightBinding.Binding = 7;
 			lightBinding.DescriptorType = DescriptorType.UniformBuffer;
-			lightBinding.DescriptorCount = 1;
+			lightBinding.DescriptorCount = 4;
 			lightBinding.StageFlags = ShaderStageFlags.FragmentBit;
 			lightBinding.PImmutableSamplers = null;
 
 			DescriptorSetLayoutCreateInfo createInfo = new();
 			createInfo.SType = StructureType.DescriptorSetLayoutCreateInfo;
-			createInfo.BindingCount = 4;
+			createInfo.BindingCount = 8;
 
-			DescriptorSetLayoutBinding* bindingsPtr = stackalloc DescriptorSetLayoutBinding[4];
+			DescriptorSetLayoutBinding* bindingsPtr = stackalloc DescriptorSetLayoutBinding[8];
 			bindingsPtr[0] = uniformBinding;
-			bindingsPtr[1] = samplerBinding;
-			bindingsPtr[2] = materialBinding;
-			bindingsPtr[3] = lightBinding;
+			bindingsPtr[1] = albedoSamplerBinding;
+			bindingsPtr[2] = normalSamplerBinding;
+			bindingsPtr[3] = metallicSamplerBinding;
+			bindingsPtr[4] = roughnessSamplerBinding;
+			bindingsPtr[5] = aoSamplerBinding;
+			bindingsPtr[6] = materialBinding;
+			bindingsPtr[7] = lightBinding;
 
 			createInfo.PBindings = bindingsPtr;
 
@@ -617,7 +676,8 @@ namespace Engine
 
 		static unsafe Pipeline CreateGraphicsPipeline(VkContext context, Extent2D swapchainExtent, PipelineLayout pipelineLayout, RenderPass renderPass)
 		{
-			var shader = Shader.FromFiles("Shaders/VulkanVert.spv", "Shaders/VulkanFrag.spv");
+			//var shader = Shader.FromFiles("Shaders/VulkanVert.spv", "Shaders/VulkanFrag.spv");
+			var shader = Shader.FromFiles("Shaders/Pbr/PbrVert.spv", "Shaders/Pbr/PbrFrag.spv");
 
 			var vertShader = CreateShaderModule(context.vk, shader.Vertex, context.device);
 			var fragShader = CreateShaderModule(context.vk, shader.Fragment, context.device);
@@ -688,7 +748,7 @@ namespace Engine
 			rasterizationStateCreateInfo.RasterizerDiscardEnable = false;
 			rasterizationStateCreateInfo.PolygonMode = PolygonMode.Fill;
 			rasterizationStateCreateInfo.LineWidth = 1.0f;
-			rasterizationStateCreateInfo.CullMode = CullModeFlags.BackBit;
+			rasterizationStateCreateInfo.CullMode = CullModeFlags.None;
 			rasterizationStateCreateInfo.FrontFace = FrontFace.CounterClockwise;
 			rasterizationStateCreateInfo.DepthBiasEnable = false;
 			rasterizationStateCreateInfo.DepthBiasConstantFactor = 0;

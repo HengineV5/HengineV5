@@ -1,8 +1,10 @@
 ﻿using Engine;
+using Engine.Components;
 using Engine.Components.Graphics;
 using Engine.Graphics;
 using Silk.NET.Maths;
 using Silk.NET.Windowing;
+using System.Net;
 using System.Numerics;
 using static Engine.HengineEcs;
 
@@ -35,6 +37,21 @@ namespace Runner
 			entRef.ETexture.Set(texture);
 		}
 
+		static void Create(Main world, Vector3 pos, Mesh mesh, ETexture texture, int idx)
+		{
+			var objRef = world.Create(new NEntity());
+			NEntity.Ref entRef = world.Get(objRef);
+			entRef.Position.Set(pos);
+			entRef.Scale.Set(Vector3.One);
+			entRef.Rotation.Set(Quaternion.Identity);
+			entRef.Mesh.Set(mesh);
+			entRef.ETexture.Set(texture);
+			entRef.Networked.Set(new Networked()
+			{
+				idx = idx
+			});
+		}
+
 		static void CreateCamera(Main world, Camera camera, Vector3 position)
 		{
 			var objRef = world.Create(new Cam());
@@ -42,6 +59,20 @@ namespace Runner
 			entRef.Camera.Set(camera);
 			entRef.Position.Set(position);
 			entRef.Rotation.Set(Quaternion.Identity);
+			entRef.Networked.Set(new Networked());
+		}
+
+		static void CreateCamera(HengineServerEcs.Main world, Camera camera, Vector3 position, int idx = 0)
+		{
+			var objRef = world.Create(new HengineServerEcs.Cam());
+			HengineServerEcs.Cam.Ref entRef = world.Get(objRef);
+			entRef.Camera.Set(camera);
+			entRef.Position.Set(position);
+			entRef.Rotation.Set(Quaternion.Identity);
+			entRef.Networked.Set(new Networked()
+			{
+				idx = idx
+			});
 		}
 
 		static void Main(string[] args)
@@ -52,21 +83,45 @@ namespace Runner
 				appVersion = new Version(0, 0, 1),
 
 				engineName = "Hengine",
-				engineVersion = new Version(5, 0, 0)
+				engineVersion = new Version(5, 0, 0),
+
+				idx = 0
 			};
 
+			if (args.Length > 0 && args[0] == "server")
+			{
+				Server(engineConfig);
+			}
+			else
+			{
+				if (args.Length > 1)
+					engineConfig.idx = int.Parse(args[1]);
+
+				Client(engineConfig);
+			}
+		}
+
+		static void Client(EngineConfig engineConfig)
+		{
 			var vulkanConfig = new VulkanConfig()
 			{
 				validationLayers = ["VK_LAYER_KHRONOS_validation"]
 			};
 
+			var networkConfig = new NetworkConfig()
+			{
+				ipAddress = IPAddress.Parse("127.0.0.1"),
+				port = 45567
+			};
+
 			Hengine engine = new Hengine();
-			engine.Initialize(engineConfig, vulkanConfig);
+			engine.Initialize(engineConfig, vulkanConfig, networkConfig);
 
 			var ecs = engine.GetEcs();
 			Main mainWorld = ecs.GetMain();
 
 			var meshBall = Mesh.LoadOBJ("Ball", "Models/Ball.obj");
+			var meshSphere = Mesh.LoadOBJ("Sphere", "Models/SphereSmooth.obj");
 			var meshBox = Mesh.LoadOBJ("Box", "Models/Box.obj");
 
 			var texture = ETexture.LoadImage("Haakon", "Images/image_2.png");
@@ -83,21 +138,50 @@ namespace Runner
 
 			CreateCamera(mainWorld, camera, Vector3.Zero);
 
-			Create(mainWorld, new(3, 0, -5), meshBox, texture);
-			Create(mainWorld, new(0, 0, -5), meshBall, texture);
-			Create(mainWorld, new(-3, 0, -5), meshBall, texture2);
+			/*
+			Create(mainWorld, new(3, 0, -5), meshBox, texture, 1);
+			Create(mainWorld, new(0, 0, -5), meshBall, texture, 0);
+			Create(mainWorld, new(-3, 0, -5), meshSphere, texture2, 11);
+			*/
+
+			for (int i = 0; i < 7; i++)
+			{
+				Create(mainWorld, new(-6.05f + i * 2.1f, 0, -5), meshSphere, texture, 1);
+			}
+
+			//Create(mainWorld, new(0, 0, -5), meshBall, texture, 0);
 
 			engine.Start();
 			engine.argIWindow.Dispose();
 		}
 
-		static IWindow CreateWindow()
+		static void Server(EngineConfig engineConfig)
 		{
-			var options = WindowOptions.Default;
-			options.Size = new Vector2D<int>(800, 600);
-			options.Title = "Hengine v5";
+			var networkConfig = new NetworkConfig()
+			{
+				ipAddress = IPAddress.Parse("127.0.0.1"),
+				port = 45567
+			};
 
-			return Window.Create(options);
+			HengineServer server = new HengineServer();
+			server.Initialize(engineConfig, networkConfig);
+
+			var ecs = server.GetEcs();
+			HengineServerEcs.Main mainWorld = ecs.GetMain();
+
+			Camera camera = new Camera
+			{
+				width = 800,
+				height = 600,
+				fov = 1.22173f, // 70 degrees
+				zNear = 0.1f,
+				zFar = 1000
+			};
+
+			CreateCamera(mainWorld, camera, Vector3.Zero, 0);
+			CreateCamera(mainWorld, camera, Vector3.Zero, 1);
+
+			server.Start();
 		}
 	}
 }

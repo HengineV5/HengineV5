@@ -19,6 +19,8 @@ namespace Engine
 
 		public string engineName;
 		public Version engineVersion;
+
+		public int idx;
 	}
 
 	[System]
@@ -53,7 +55,8 @@ namespace Engine
 				.ArchType(x =>
 				{
 					x.ArchType<Position, Rotation, Scale, Mesh, ETexture>("Entity");
-					x.ArchType<Position, Rotation, Camera>("Cam");
+					x.ArchType<Position, Rotation, Scale, Mesh, ETexture, Networked>("NEntity");
+					x.ArchType<Position, Rotation, Camera, Networked>("Cam");
 				})
 				.System(x =>
 				{
@@ -62,10 +65,12 @@ namespace Engine
 					x.System<OpenGLRenderSystem>();
 					x.System<VulkanRenderSystem>();
 					x.System<MoveSystem>();
+					//x.System<ClientSendSystem>();
+					//x.System<ClientReceiveSystem>();
 				})
 				.World(x =>
 				{
-					x.World<HengineEcs.Entity, HengineEcs.Cam>("Main");
+					x.World<HengineEcs.Entity, HengineEcs.NEntity, HengineEcs.Cam>("Main");
 				})
 				.Resource(x =>
 				{
@@ -85,6 +90,7 @@ namespace Engine
 				{
 					x.WithConfig<EngineConfig>();
 					x.WithConfig<VulkanConfig>();
+					x.WithConfig<NetworkConfig>();
 
 					//x.Setup(GlfwSetup.OpenGLWindowSetup);
 					x.Setup(GlfwSetup.VulkanWindowSetup);
@@ -96,6 +102,8 @@ namespace Engine
 
 					x.Setup(GlfwSetup.VulkanSetup);
 					x.Setup(VulkanSetup.RenderSetup);
+
+					//x.Setup(NetworkSetup.ClientSetup);
 				})
 				.Resource(x =>
 				{
@@ -117,6 +125,8 @@ namespace Engine
 					{
 						//x.Sequential<RotateSystem>();
 						x.Sequential<MoveSystem>();
+						//x.Sequential<ClientSendSystem>();
+						//x.Sequential<ClientReceiveSystem>();
 					});
 
 					x.World("Main", x =>
@@ -128,7 +138,6 @@ namespace Engine
 		}
 	}
 
-	/*
 	public partial class HengineServerEcs
 	{
 
@@ -147,21 +156,18 @@ namespace Engine
 			new EcsBuilder()
 				.ArchType(x =>
 				{
-					x.ArchType<Position, Rotation, Scale, ShaderProgram, VertexArrayObject>("Entity");
-					x.ArchType<Position, Rotation, Scale, Mesh, Texture>("Entity2");
-					x.ArchType<Position, Rotation, Camera>("Cam");
+					x.ArchType<Position, Rotation, Camera, Networked>("Cam");
 				})
 				.System(x =>
 				{
+					x.System<ServerSystem>();
 				})
 				.World(x =>
 				{
-					x.World<HengineEcs.Entity, HengineEcs.Entity2, HengineEcs.Cam>("Main");
+					x.World<HengineServerEcs.Cam>("Main");
 				})
 				.Resource(x =>
 				{
-					x.ResourceManager<MeshResourceManager>();
-					x.ResourceManager<TextureResourceManager>();
 				})
 				.Build<HengineServerEcs>();
 		}
@@ -172,18 +178,25 @@ namespace Engine
 				.Config(x =>
 				{
 					x.WithConfig<EngineConfig>();
+					x.WithConfig<NetworkConfig>();
+
+					x.Setup(NetworkSetup.ServerSetup);
 				})
 				.Resource(x =>
 				{
 				})
 				.Layout(x =>
 				{
+					x.Pipeline("Server", x =>
+					{
+						x.Sequential<ServerSystem>();
+					});
+
 					x.World("Main", x =>
 					{
 					});
 				})
-				.Build<HengineServer, HengineEcs>();
+				.Build<HengineServer, HengineServerEcs>();
 		}
 	}
-	*/
 }
