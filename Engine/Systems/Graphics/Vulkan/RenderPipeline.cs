@@ -20,9 +20,8 @@ namespace Engine
 			public Semaphore renderFinished;
 			public Fence inFlight;
 
-			public FixedArray8<DescriptorSet> descriptorSets;
-			//public FixedArray8<MappedMemory<VulkanShaderInput>> uboMemories;
-			public FixedArray8<VulkanShaderInput> uboMemories;
+			public FixedArray16<DescriptorSet> descriptorSets;
+			public FixedArray16<VulkanShaderInput> uboMemories;
 			public CommandBuffer commandBuffer;
 		}
 
@@ -35,6 +34,7 @@ namespace Engine
 
 		Swapchain swapchain;
 		RenderPass renderPass;
+		RenderPass meshRenderPass;
 		FixedArray8<Sampler> samplers;
 		DescriptorSetLayout descriptorSetLayout;
 		PipelineLayout pipelineLayout;
@@ -47,10 +47,11 @@ namespace Engine
 		int currentFrame;
 		uint imageIndex;
 
-		public RenderPipeline(Swapchain swapchain, RenderPass renderPass, FixedArray8<Sampler> sampler, DescriptorSetLayout descriptorSetLayout, PipelineLayout pipelineLayout, Pipeline pipeline, Memory<ImageView> swapchainImages, Memory<Framebuffer> frameBuffers, Memory<FrameData> framesInFlight) : this()
+		public RenderPipeline(Swapchain swapchain, RenderPass renderPass, RenderPass meshRenderPass, FixedArray8<Sampler> sampler, DescriptorSetLayout descriptorSetLayout, PipelineLayout pipelineLayout, Pipeline pipeline, Memory<ImageView> swapchainImages, Memory<Framebuffer> frameBuffers, Memory<FrameData> framesInFlight) : this()
 		{
 			this.swapchain = swapchain;
 			this.renderPass = renderPass;
+			this.meshRenderPass = meshRenderPass;
 			this.samplers = sampler;
 			this.descriptorSetLayout = descriptorSetLayout;
 			this.pipelineLayout = pipelineLayout;
@@ -179,102 +180,137 @@ namespace Engine
 			var renderArea = new Rect2D(new(), swapchain.GetExtent());
 
 			Framebuffer framebuffer = frameBuffers.Span[(int)imageIndex];
-			BeginRenderCommand(context, frame.commandBuffer, framebuffer, clearColor, renderArea);
+			BeginRenderCommand(context, frame.commandBuffer, renderPass, framebuffer, clearColor, renderArea);
 			RenderSetViewportAndScissor(context, frame.commandBuffer, renderArea);
 
 			context.vk.CmdBindPipeline(frame.commandBuffer, PipelineBindPoint.Graphics, pipeline);
 
+			FinishRender(context, frame.commandBuffer);
+			var result = context.vk.ResetFences(context.device, [frame.inFlight]);
+
+			VulkanHelper.QueueSubmitCommands(context, swapchain.GetGraphicsQueue(), frame.commandBuffer, frame.imageAvailable, frame.inFlight, PipelineStageFlags.ColorAttachmentOutputBit);
+
+			/*
+			*/
+
 			return aquireResult;
+		}
+
+		public unsafe void BeginRenderPass(VkContext context)
+		{
+			ref FrameData frame = ref framesInFlight.Span[currentFrame];
+
+			VulkanHelper.WaitForFence(context, frame.inFlight);
+			context.vk.ResetCommandBuffer(frame.commandBuffer, CommandBufferResetFlags.ReleaseResourcesBit);
+
+			System.Drawing.Color color = System.Drawing.Color.CornflowerBlue;
+			ClearColorValue clearColor = new() { Float32_0 = color.R / 255f, Float32_1 = color.G / 255f, Float32_2 = color.B / 255f, Float32_3 = color.A / 255f };
+
+			var renderArea = new Rect2D(new(), swapchain.GetExtent());
+
+			Framebuffer framebuffer = frameBuffers.Span[(int)imageIndex];
+			BeginRenderCommand(context, frame.commandBuffer, meshRenderPass, framebuffer, clearColor, renderArea);
+			RenderSetViewportAndScissor(context, frame.commandBuffer, renderArea);
+
+			context.vk.CmdBindPipeline(frame.commandBuffer, PipelineBindPoint.Graphics, pipeline);
+			/*
+			*/
 		}
 
 		public unsafe void UpdateFrameDescriptorSet(VkContext context, ImageView texture, int idx, VkTextureBuffer albedo, VkTextureBuffer normal, VkTextureBuffer metallic, VkTextureBuffer roughness)
 		{
             ref FrameData frame = ref framesInFlight.Span[currentFrame];
 
+			Span<DescriptorImageInfo> infos = stackalloc DescriptorImageInfo[5];
+			Span<WriteDescriptorSet> descriptorWrites = stackalloc WriteDescriptorSet[5];
+
 			{
-				DescriptorImageInfo imageInfo = new();
+				//DescriptorImageInfo imageInfo = new();
+				ref DescriptorImageInfo imageInfo = ref infos[0];
 				imageInfo.ImageLayout = ImageLayout.ReadOnlyOptimal;
 				imageInfo.ImageView = texture;
 				imageInfo.Sampler = samplers[0];
 
-				WriteDescriptorSet imageDescriptorWrite = new();
+				ref WriteDescriptorSet imageDescriptorWrite = ref descriptorWrites[0];
 				imageDescriptorWrite.SType = StructureType.WriteDescriptorSet;
 				imageDescriptorWrite.DstSet = frame.descriptorSets[idx];
 				imageDescriptorWrite.DstBinding = 1;
 				imageDescriptorWrite.DstArrayElement = 0;
 				imageDescriptorWrite.DescriptorType = DescriptorType.CombinedImageSampler;
 				imageDescriptorWrite.DescriptorCount = 1;
-				imageDescriptorWrite.PImageInfo = &imageInfo;
-				context.vk.UpdateDescriptorSets(context.device, [imageDescriptorWrite], 0, null);
+				imageDescriptorWrite.PImageInfo = (DescriptorImageInfo*)Unsafe.AsPointer(ref imageInfo);
+				//context.vk.UpdateDescriptorSets(context.device, [imageDescriptorWrite], 0, null);
 			}
 
 			{
-				DescriptorImageInfo imageInfo = new();
+				ref DescriptorImageInfo imageInfo = ref infos[1];
 				imageInfo.ImageLayout = ImageLayout.ReadOnlyOptimal;
 				imageInfo.ImageView = albedo.textureImageView;
 				imageInfo.Sampler = samplers[1];
 
-				WriteDescriptorSet imageDescriptorWrite = new();
+				ref WriteDescriptorSet imageDescriptorWrite = ref descriptorWrites[1];
 				imageDescriptorWrite.SType = StructureType.WriteDescriptorSet;
 				imageDescriptorWrite.DstSet = frame.descriptorSets[idx];
 				imageDescriptorWrite.DstBinding = 2;
 				imageDescriptorWrite.DstArrayElement = 0;
 				imageDescriptorWrite.DescriptorType = DescriptorType.CombinedImageSampler;
 				imageDescriptorWrite.DescriptorCount = 1;
-				imageDescriptorWrite.PImageInfo = &imageInfo;
-				context.vk.UpdateDescriptorSets(context.device, [imageDescriptorWrite], 0, null);
+				imageDescriptorWrite.PImageInfo = (DescriptorImageInfo*)Unsafe.AsPointer(ref imageInfo);
+				//context.vk.UpdateDescriptorSets(context.device, [imageDescriptorWrite], 0, null);
 			}
 
 			{
-				DescriptorImageInfo imageInfo = new();
+				ref DescriptorImageInfo imageInfo = ref infos[2];
 				imageInfo.ImageLayout = ImageLayout.ReadOnlyOptimal;
 				imageInfo.ImageView = normal.textureImageView;
 				imageInfo.Sampler = samplers[2];
 
-				WriteDescriptorSet imageDescriptorWrite = new();
+				ref WriteDescriptorSet imageDescriptorWrite = ref descriptorWrites[2];
 				imageDescriptorWrite.SType = StructureType.WriteDescriptorSet;
 				imageDescriptorWrite.DstSet = frame.descriptorSets[idx];
 				imageDescriptorWrite.DstBinding = 3;
 				imageDescriptorWrite.DstArrayElement = 0;
 				imageDescriptorWrite.DescriptorType = DescriptorType.CombinedImageSampler;
 				imageDescriptorWrite.DescriptorCount = 1;
-				imageDescriptorWrite.PImageInfo = &imageInfo;
-				context.vk.UpdateDescriptorSets(context.device, [imageDescriptorWrite], 0, null);
+				imageDescriptorWrite.PImageInfo = (DescriptorImageInfo*)Unsafe.AsPointer(ref imageInfo);
+				//context.vk.UpdateDescriptorSets(context.device, [imageDescriptorWrite], 0, null);
 			}
 
 			{
-				DescriptorImageInfo imageInfo = new();
+				ref DescriptorImageInfo imageInfo = ref infos[3];
 				imageInfo.ImageLayout = ImageLayout.ReadOnlyOptimal;
 				imageInfo.ImageView = metallic.textureImageView;
 				imageInfo.Sampler = samplers[3];
 
-				WriteDescriptorSet imageDescriptorWrite = new();
+				ref WriteDescriptorSet imageDescriptorWrite = ref descriptorWrites[3];
 				imageDescriptorWrite.SType = StructureType.WriteDescriptorSet;
 				imageDescriptorWrite.DstSet = frame.descriptorSets[idx];
 				imageDescriptorWrite.DstBinding = 4;
 				imageDescriptorWrite.DstArrayElement = 0;
 				imageDescriptorWrite.DescriptorType = DescriptorType.CombinedImageSampler;
 				imageDescriptorWrite.DescriptorCount = 1;
-				imageDescriptorWrite.PImageInfo = &imageInfo;
-				context.vk.UpdateDescriptorSets(context.device, [imageDescriptorWrite], 0, null);
+				imageDescriptorWrite.PImageInfo = (DescriptorImageInfo*)Unsafe.AsPointer(ref imageInfo);
+				//context.vk.UpdateDescriptorSets(context.device, [imageDescriptorWrite], 0, null);
 			}
 
 			{
-				DescriptorImageInfo imageInfo = new();
+				ref DescriptorImageInfo imageInfo = ref infos[4];
 				imageInfo.ImageLayout = ImageLayout.ReadOnlyOptimal;
 				imageInfo.ImageView = roughness.textureImageView;
 				imageInfo.Sampler = samplers[4];
 
-				WriteDescriptorSet imageDescriptorWrite = new();
+				ref WriteDescriptorSet imageDescriptorWrite = ref descriptorWrites[4];
 				imageDescriptorWrite.SType = StructureType.WriteDescriptorSet;
 				imageDescriptorWrite.DstSet = frame.descriptorSets[idx];
 				imageDescriptorWrite.DstBinding = 5;
 				imageDescriptorWrite.DstArrayElement = 0;
 				imageDescriptorWrite.DescriptorType = DescriptorType.CombinedImageSampler;
 				imageDescriptorWrite.DescriptorCount = 1;
-				imageDescriptorWrite.PImageInfo = &imageInfo;
-				context.vk.UpdateDescriptorSets(context.device, [imageDescriptorWrite], 0, null);
+				imageDescriptorWrite.PImageInfo = (DescriptorImageInfo*)Unsafe.AsPointer(ref imageInfo);
+				//context.vk.UpdateDescriptorSets(context.device, [imageDescriptorWrite], 0, null);
 			}
+
+			context.vk.UpdateDescriptorSets(context.device, descriptorWrites, 0, null);
 		}
 
 		public unsafe void Render(VkContext context, ref UniformBufferObject ubo, in PbrMaterial material, in FixedArray4<Light> lights, Buffer vertexBuffer, Buffer indexBuffer, uint indicies, int idx)
@@ -295,7 +331,7 @@ namespace Engine
 			context.vk.CmdDrawIndexed(frame.commandBuffer, indicies, 1, 0, 0, 0);
 		}
 
-		public void EndRender(VkContext context)
+		public void EndRenderPass(VkContext context)
 		{
             ref FrameData frame = ref framesInFlight.Span[currentFrame];
 
@@ -303,17 +339,32 @@ namespace Engine
 			var result = context.vk.ResetFences(context.device, [frame.inFlight]);
 
             VulkanHelper.QueueSubmitCommands(context, swapchain.GetGraphicsQueue(), frame.commandBuffer, frame.imageAvailable, frame.inFlight, PipelineStageFlags.ColorAttachmentOutputBit);
+			//VulkanHelper.WaitForSemaphore(context, frame.imageAvailable);
+			/*
 			VulkanHelper.QueuePresent(context, swapchain.GetPresentQueue(), swapchain.GetSwapchain(), imageIndex, frame.imageAvailable);
 
 			// TODO: Improve
 			currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+			*/
 		}
 
-		unsafe void BeginRenderCommand(VkContext context, CommandBuffer commandBuffer, Framebuffer framebuffer, ClearColorValue clearColor, Rect2D renderArea)
+		public void PresentRender(VkContext context)
+		{
+			ref FrameData frame = ref framesInFlight.Span[currentFrame];
+
+			VulkanHelper.QueuePresent(context, swapchain.GetPresentQueue(), swapchain.GetSwapchain(), imageIndex, frame.imageAvailable);
+
+			// TODO: Improve
+			currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+			/*
+			*/
+		}
+
+		unsafe void BeginRenderCommand(VkContext context, CommandBuffer commandBuffer, RenderPass renderPass, Framebuffer framebuffer, ClearColorValue clearColor, Rect2D renderArea)
 		{
 			CommandBufferBeginInfo beginInfo = new();
 			beginInfo.SType = StructureType.CommandBufferBeginInfo;
-			beginInfo.Flags = 0;
+			beginInfo.Flags = CommandBufferUsageFlags.None;
 			beginInfo.PInheritanceInfo = null;
 
 			context.vk.BeginCommandBuffer(commandBuffer, beginInfo);
@@ -367,6 +418,7 @@ namespace Engine
 			Swapchain swapchain = Swapchain.Create(context, surface, commandPool);
 
 			RenderPass renderPass = CreateRenderPass(context, swapchain, Swapchain.GetDepthFormat(context));
+			RenderPass meshRenderPass = CreateMeshRenderPass(context, swapchain, Swapchain.GetDepthFormat(context));
 
 			FixedArray8<Sampler> samplers = new FixedArray8<Sampler>();
 			for (int i = 0; i < 8; i++)
@@ -388,10 +440,10 @@ namespace Engine
 				frameBuffers.Span[i] = VulkanHelper.CreateFrameBuffer(context, [swapchainImages.Span[i], swapchain.GetDepthImage()], renderPass, swapchain.GetExtent());
 			}
 
-			DescriptorPool descriptorPool = VulkanHelper.CreateDescriptorPool(context, MAX_FRAMES_IN_FLIGHT * 8);
+			DescriptorPool descriptorPool = VulkanHelper.CreateDescriptorPool(context, MAX_FRAMES_IN_FLIGHT * 16);
 			Memory<FrameData> framesInFlight = CreateFramesInFlight(context, descriptorPool, commandPool, descriptorSetLayout, samplers[0], image);
 
-			return new RenderPipeline(swapchain, renderPass, samplers, descriptorSetLayout, pipelineLayout, pipeline, swapchainImages, frameBuffers, framesInFlight);
+			return new RenderPipeline(swapchain, renderPass, meshRenderPass, samplers, descriptorSetLayout, pipelineLayout, pipeline, swapchainImages, frameBuffers, framesInFlight);
 		}
 
 		static unsafe Memory<FrameData> CreateFramesInFlight(VkContext context, DescriptorPool descriptorPool, CommandPool commandPool, DescriptorSetLayout layout, Sampler sampler, ImageView image)
@@ -404,7 +456,7 @@ namespace Engine
 				framesInFlight.Span[i].inFlight = VulkanHelper.CreateFence(context, FenceCreateFlags.SignaledBit);
 				framesInFlight.Span[i].commandBuffer = VulkanHelper.CreateCommandBuffer(context, commandPool);
 
-				for (int a = 0; a < 8; a++)
+				for (int a = 0; a < 16; a++)
 				{
 					Buffer uniformBuffer = VulkanHelper.CreateBuffer(context, BufferUsageFlags.UniformBufferBit, 704);
 					DeviceMemory uniformBuffersMemory = VulkanHelper.CreateBufferMemory(context, uniformBuffer, MemoryPropertyFlags.HostVisibleBit | MemoryPropertyFlags.HostCoherentBit);
@@ -465,10 +517,76 @@ namespace Engine
 			depthAttatchment.Format = depthFormat;
 			depthAttatchment.Samples = SampleCountFlags.Count1Bit;
 			depthAttatchment.LoadOp = AttachmentLoadOp.Clear;
-			depthAttatchment.StoreOp = AttachmentStoreOp.DontCare;
+			depthAttatchment.StoreOp = AttachmentStoreOp.None;
 			depthAttatchment.StencilLoadOp = AttachmentLoadOp.DontCare;
 			depthAttatchment.StencilStoreOp = AttachmentStoreOp.DontCare;
 			depthAttatchment.InitialLayout = ImageLayout.Undefined;
+			depthAttatchment.FinalLayout = ImageLayout.DepthStencilAttachmentOptimal;
+
+			AttachmentReference colorAttachmentRef = new();
+			colorAttachmentRef.Attachment = 0;
+			colorAttachmentRef.Layout = ImageLayout.ColorAttachmentOptimal;
+
+			AttachmentReference depthAttachmentRef = new();
+			depthAttachmentRef.Attachment = 1;
+			depthAttachmentRef.Layout = ImageLayout.DepthStencilAttachmentOptimal;
+
+			SubpassDescription subpass = new();
+			subpass.PipelineBindPoint = PipelineBindPoint.Graphics;
+			subpass.ColorAttachmentCount = 1;
+			subpass.PColorAttachments = &colorAttachmentRef;
+			subpass.PDepthStencilAttachment = &depthAttachmentRef;
+
+			SubpassDependency dependency = new();
+			dependency.SrcSubpass = Vk.SubpassExternal;
+			dependency.DstSubpass = 0;
+			dependency.SrcStageMask = PipelineStageFlags.ColorAttachmentOutputBit | PipelineStageFlags.EarlyFragmentTestsBit;
+			dependency.SrcAccessMask = 0;
+			dependency.DstStageMask = PipelineStageFlags.ColorAttachmentOutputBit | PipelineStageFlags.EarlyFragmentTestsBit;
+			dependency.DstAccessMask = AccessFlags.ColorAttachmentWriteBit | AccessFlags.DepthStencilAttachmentWriteBit;
+
+			AttachmentDescription* attachments = stackalloc AttachmentDescription[2];
+			attachments[0] = colorAttachment;
+			attachments[1] = depthAttatchment;
+
+			RenderPassCreateInfo createInfo = new();
+			createInfo.SType = StructureType.RenderPassCreateInfo;
+			createInfo.AttachmentCount = 2;
+			createInfo.PAttachments = attachments;
+			createInfo.SubpassCount = 1;
+			createInfo.PSubpasses = &subpass;
+			createInfo.DependencyCount = 1;
+			createInfo.PDependencies = &dependency;
+
+			var result = context.vk.CreateRenderPass(context.device, createInfo, null, out RenderPass renderPass);
+			if (result != Result.Success)
+				throw new Exception("Failed to create vkRenderPass");
+
+			return renderPass;
+		}
+
+		static unsafe RenderPass CreateMeshRenderPass(VkContext context, Swapchain swapchain, Format depthFormat)
+		{
+			var surfaceFormat = swapchain.GetSurfaceFormat();
+
+			AttachmentDescription colorAttachment = new();
+			colorAttachment.Format = surfaceFormat.Format;
+			colorAttachment.Samples = SampleCountFlags.Count1Bit;
+			colorAttachment.LoadOp = AttachmentLoadOp.Load;
+			colorAttachment.StoreOp = AttachmentStoreOp.Store;
+			colorAttachment.StencilLoadOp = AttachmentLoadOp.DontCare;
+			colorAttachment.StencilStoreOp = AttachmentStoreOp.DontCare;
+			colorAttachment.InitialLayout = ImageLayout.PresentSrcKhr;
+			colorAttachment.FinalLayout = ImageLayout.PresentSrcKhr;
+
+			AttachmentDescription depthAttatchment = new();
+			depthAttatchment.Format = depthFormat;
+			depthAttatchment.Samples = SampleCountFlags.Count1Bit;
+			depthAttatchment.LoadOp = AttachmentLoadOp.Load;
+			depthAttatchment.StoreOp = AttachmentStoreOp.Store;
+			depthAttatchment.StencilLoadOp = AttachmentLoadOp.DontCare;
+			depthAttatchment.StencilStoreOp = AttachmentStoreOp.DontCare;
+			depthAttatchment.InitialLayout = ImageLayout.DepthStencilAttachmentOptimal;
 			depthAttatchment.FinalLayout = ImageLayout.DepthStencilAttachmentOptimal;
 
 			AttachmentReference colorAttachmentRef = new();
@@ -748,7 +866,7 @@ namespace Engine
 			rasterizationStateCreateInfo.RasterizerDiscardEnable = false;
 			rasterizationStateCreateInfo.PolygonMode = PolygonMode.Fill;
 			rasterizationStateCreateInfo.LineWidth = 1.0f;
-			rasterizationStateCreateInfo.CullMode = CullModeFlags.None;
+			rasterizationStateCreateInfo.CullMode = CullModeFlags.BackBit;
 			rasterizationStateCreateInfo.FrontFace = FrontFace.CounterClockwise;
 			rasterizationStateCreateInfo.DepthBiasEnable = false;
 			rasterizationStateCreateInfo.DepthBiasConstantFactor = 0;

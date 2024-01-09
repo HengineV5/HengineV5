@@ -384,6 +384,17 @@ namespace Engine
 			context.vk.WaitForFences(context.device, [fence], true, timeout);
 		}
 
+		public static unsafe void WaitForSemaphore(VkContext context, Semaphore semaphore, ulong timeout = ulong.MaxValue)
+		{
+			SemaphoreWaitInfo waitInfo = new SemaphoreWaitInfo();
+			waitInfo.SType = StructureType.SemaphoreWaitInfo;
+			waitInfo.Flags = SemaphoreWaitFlags.AnyBit;
+			waitInfo.SemaphoreCount = 1;
+			waitInfo.PSemaphores = &semaphore;
+
+			context.vk.WaitSemaphores(context.device, waitInfo, timeout);
+		}
+
 		public unsafe static void QueueSubmitCommands(VkContext context, Queue queue, CommandBuffer command, Semaphore semaphore, Fence fence, PipelineStageFlags stageFlags)
 		{
 			SubmitInfo submitInfo = new();

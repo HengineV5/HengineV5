@@ -24,7 +24,6 @@ namespace Runner
 			ball.ShaderProgram.Set(shader);
 			ball.VertexArrayObject.Set(vao);
 		}
-		*/
 
 		static void Create(Main world, Vector3 pos, Mesh mesh, ETexture texture)
 		{
@@ -36,6 +35,7 @@ namespace Runner
 			entRef.Mesh.Set(mesh);
 			entRef.ETexture.Set(texture);
 		}
+		*/
 
 		static void Create(Main world, Vector3 pos, Mesh mesh, ETexture texture, int idx)
 		{
@@ -142,11 +142,18 @@ namespace Runner
 			Create(mainWorld, new(3, 0, -5), meshBox, texture, 1);
 			Create(mainWorld, new(0, 0, -5), meshBall, texture, 0);
 			Create(mainWorld, new(-3, 0, -5), meshSphere, texture2, 11);
+
 			*/
 
-			for (int i = 0; i < 7; i++)
+			float midX = 32f / 2f;
+			float midY = 4f / 2f;
+
+			for (int y = 0; y < 32; y++)
 			{
-				Create(mainWorld, new(-6.05f + i * 2.1f, 0, -5), meshSphere, texture, 1);
+				for (int x = 0; x < 32; x++)
+				{
+					Create(mainWorld, new(-midX + x * 2.1f, -midY + y * 2.1f, -5), meshSphere, texture, 1);
+				}
 			}
 
 			//Create(mainWorld, new(0, 0, -5), meshBall, texture, 0);

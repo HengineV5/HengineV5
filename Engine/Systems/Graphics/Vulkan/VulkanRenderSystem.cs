@@ -169,7 +169,7 @@ namespace Engine
 		private static PbrMaterial defaultPbrMaterial = new PbrMaterial
 		{
 			albedo = new Vector3(1, 0, 0),
-			metallic = 0.7f,
+			metallic = 0.95f,
 			roughness = 0f
 		};
 
@@ -212,16 +212,20 @@ namespace Engine
 
 		public void Init()
 		{
-			var textureAlbedo = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Iron/rustediron2_basecolor.png");
+			var textureAlbedo = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Gold/gold-scuffed_basecolor-boosted.png");
+			//var textureAlbedo = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Iron/rustediron2_basecolor.png");
 			albedoTextureBuffer = VulkanTextureResourceManager.CreateTextureBuffer(context, textureAlbedo);
 
-			var textureNormal = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Iron/rustediron2_metallic.png");
+			var textureNormal = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Gold/gold-scuffed_normal.png");
+			//var textureNormal = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Iron/rustediron2_normal.png");
 			normalTextureBuffer = VulkanTextureResourceManager.CreateTextureBuffer(context, textureNormal);
 
-			var textureMetallic = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Iron/rustediron2_normal.png");
+			var textureMetallic = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Gold/gold-scuffed_metallic.png");
+			//var textureMetallic = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Iron/rustediron2_metallic.png");
 			metallicTextureBuffer = VulkanTextureResourceManager.CreateTextureBuffer(context, textureMetallic);
 
-			var textureRoughness = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Iron/rustediron2_roughness.png");
+			var textureRoughness = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Gold/gold-scuffed_roughness.png");
+			//var textureRoughness = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Iron/rustediron2_roughness.png");
 			roughnessTextureBuffer = VulkanTextureResourceManager.CreateTextureBuffer(context, textureRoughness);
 
 			window.FramebufferResize += Window_Resize;
@@ -263,12 +267,12 @@ namespace Engine
 		{
 			UpdateCameraUbo(ref context.ubo, camera, position, rotation);
 			context.ubo.cameraPos = new Vector3(position.x, position.y, position.z);
-			idx = 0;
 		}
 
-		int idx;
+		int bufferIdx;
+		int renderIdx;
 
-		[SystemPreLoop, SystemLayer(1)]
+		[SystemPreLoop, SystemLayer(0)]
 		public void PreRender()
 		{
 			var result = renderContext.renderPipeline.StartRender(context);
@@ -279,33 +283,51 @@ namespace Engine
 			}
 		}
 
-		[SystemUpdate, SystemLayer(1)]
+		[SystemPreLoop, SystemLayer(1, 2)]
+		public void PreRenderPass()
+		{
+			renderContext.renderPipeline.BeginRenderPass(context);
+
+			bufferIdx = 0;
+			renderIdx = 0;
+		}
+
+		[SystemUpdate, SystemLayer(1, 2)]
 		public void BufferUpdate(ref VulkanRenderContext context, Position.Ref position, Rotation.Ref rotation, Scale.Ref scale, ref VkMeshBuffer mesh, ref VkTextureBuffer textureBuffer)
 		{
-			renderContext.renderPipeline.UpdateFrameDescriptorSet(this.context, textureBuffer.textureImageView, idx, albedoTextureBuffer, normalTextureBuffer, metallicTextureBuffer, roughnessTextureBuffer);
-			idx++;
+			renderContext.renderPipeline.UpdateFrameDescriptorSet(this.context, textureBuffer.textureImageView, bufferIdx, albedoTextureBuffer, normalTextureBuffer, metallicTextureBuffer, roughnessTextureBuffer);
+			bufferIdx++;
 		}
 
-		[SystemUpdate, SystemLayer(1)]
+		/*
+		[SystemUpdate, SystemLayer(1, 2)]
 		public void IdxReset(ref VulkanRenderContext context, Position.Ref position, Rotation.Ref rotation, Scale.Ref scale, ref VkMeshBuffer mesh, ref VkTextureBuffer textureBuffer)
 		{
-			idx = 0;
+			//bufferIdx = 0;
 		}
+		*/
 
-		[SystemUpdate, SystemLayer(1)]
+		[SystemUpdate, SystemLayer(1, 2)]
 		public void RenderUpdate(ref VulkanRenderContext context, Position.Ref position, Rotation.Ref rotation, Scale.Ref scale, ref VkMeshBuffer mesh, ref VkTextureBuffer textureBuffer)
 		{
-			defaultPbrMaterial.roughness = (1 - ((float)idx / 7));
+			defaultPbrMaterial.roughness = (1 - ((float)renderIdx / 7));
 
             UpdateEntityUbo(ref context.ubo, position, rotation, scale);
-			renderContext.renderPipeline.Render(this.context, ref context.ubo, defaultPbrMaterial, defaultLights, mesh.vertexBuffer, mesh.indexBuffer, mesh.indicies, idx);
-			idx++;
+			renderContext.renderPipeline.Render(this.context, ref context.ubo, defaultPbrMaterial, defaultLights, mesh.vertexBuffer, mesh.indexBuffer, mesh.indicies, renderIdx);
+			renderIdx++;
 		}
 
-		[SystemPostLoop, SystemLayer(1)]
+		[SystemPostLoop, SystemLayer(1, 2)]
+		public void PostRenderPass()
+		{
+			renderContext.renderPipeline.EndRenderPass(context);
+		}
+
+
+		[SystemPostLoop, SystemLayer(0)]
 		public void PostRender()
 		{
-			renderContext.renderPipeline.EndRender(context);
+			renderContext.renderPipeline.PresentRender(context);
 		}
 
 		public void PostRun()

@@ -54,7 +54,7 @@ namespace Engine
 			new EcsBuilder()
 				.ArchType(x =>
 				{
-					x.ArchType<Position, Rotation, Scale, Mesh, ETexture>("Entity");
+					//x.ArchType<Position, Rotation, Scale, Mesh, ETexture>("Entity");
 					x.ArchType<Position, Rotation, Scale, Mesh, ETexture, Networked>("NEntity");
 					x.ArchType<Position, Rotation, Camera, Networked>("Cam");
 				})
@@ -70,7 +70,7 @@ namespace Engine
 				})
 				.World(x =>
 				{
-					x.World<HengineEcs.Entity, HengineEcs.NEntity, HengineEcs.Cam>("Main");
+					x.World<HengineEcs.NEntity, HengineEcs.Cam>("Main");
 				})
 				.Resource(x =>
 				{

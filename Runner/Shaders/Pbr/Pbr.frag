@@ -98,16 +98,15 @@ void main() {
 		/*
 		vec3 albedo = u_Material.albedo;
 		float metallic = u_Material.metallic;
-		float roughness = u_Material.roughness;
+		//float roughness = u_Material.roughness;
 		*/
 
 		vec3 albedo = texture(u_AlbedoMap, v_texCoord).rgb;
 		albedo = vec3(pow(albedo.x, 2.2), pow(albedo.y, 2.2), pow(albedo.z, 2.2));
 
 		float metallic = texture(u_MetallicMap, v_texCoord).r;
-		//metallic *= 1;
 		float roughness = texture(u_RoughnessMap, v_texCoord).r;
-		//roughness *= 8;
+		roughness *= 8;
 		/*
 		*/
 		
