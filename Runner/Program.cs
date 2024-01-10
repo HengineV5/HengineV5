@@ -120,9 +120,9 @@ namespace Runner
 			var ecs = engine.GetEcs();
 			Main mainWorld = ecs.GetMain();
 
-			var meshBall = Mesh.LoadOBJ("Ball", "Models/Ball.obj");
+			//var meshBall = Mesh.LoadOBJ("Ball", "Models/Ball.obj");
 			var meshSphere = Mesh.LoadOBJ("Sphere", "Models/SphereSmooth.obj");
-			var meshBox = Mesh.LoadOBJ("Box", "Models/Box.obj");
+			//var meshBox = Mesh.LoadOBJ("Box", "Models/Box.obj");
 
 			var texture = ETexture.LoadImage("Haakon", "Images/image_2.png");
 			var texture2 = ETexture.LoadImage("Statue", "Images/image.png");
@@ -142,17 +142,16 @@ namespace Runner
 			Create(mainWorld, new(3, 0, -5), meshBox, texture, 1);
 			Create(mainWorld, new(0, 0, -5), meshBall, texture, 0);
 			Create(mainWorld, new(-3, 0, -5), meshSphere, texture2, 11);
-
 			*/
 
-			float midX = 32f / 2f;
+			float midX = 4 / 2f;
 			float midY = 4f / 2f;
 
-			for (int y = 0; y < 32; y++)
+			for (int y = 0; y < 4; y++)
 			{
-				for (int x = 0; x < 32; x++)
+				for (int x = 0; x < 4; x++)
 				{
-					Create(mainWorld, new(-midX + x * 2.1f, -midY + y * 2.1f, -5), meshSphere, texture, 1);
+					Create(mainWorld, new(-midX + x * 2.1f, -midY + y * 2.1f, -5), meshSphere, texture, 0);
 				}
 			}
 

@@ -33,12 +33,13 @@ namespace Engine
 		const int MAX_FRAMES_IN_FLIGHT = 3;
 
 		Swapchain swapchain;
-		RenderPass renderPass;
+		RenderPass skyboxRenderPass;
 		RenderPass meshRenderPass;
 		FixedArray8<Sampler> samplers;
 		DescriptorSetLayout descriptorSetLayout;
 		PipelineLayout pipelineLayout;
-		Pipeline pipeline;
+		Pipeline skyboxPipeline;
+		Pipeline meshPipeline;
 
 		Memory<ImageView> swapchainImages;
 		Memory<Framebuffer> frameBuffers;
@@ -47,15 +48,16 @@ namespace Engine
 		int currentFrame;
 		uint imageIndex;
 
-		public RenderPipeline(Swapchain swapchain, RenderPass renderPass, RenderPass meshRenderPass, FixedArray8<Sampler> sampler, DescriptorSetLayout descriptorSetLayout, PipelineLayout pipelineLayout, Pipeline pipeline, Memory<ImageView> swapchainImages, Memory<Framebuffer> frameBuffers, Memory<FrameData> framesInFlight) : this()
+		public RenderPipeline(Swapchain swapchain, RenderPass renderPass, RenderPass meshRenderPass, FixedArray8<Sampler> sampler, DescriptorSetLayout descriptorSetLayout, PipelineLayout pipelineLayout, Pipeline meshPipeline, Pipeline skyboxPipeline, Memory<ImageView> swapchainImages, Memory<Framebuffer> frameBuffers, Memory<FrameData> framesInFlight) : this()
 		{
 			this.swapchain = swapchain;
-			this.renderPass = renderPass;
+			this.skyboxRenderPass = renderPass;
 			this.meshRenderPass = meshRenderPass;
 			this.samplers = sampler;
 			this.descriptorSetLayout = descriptorSetLayout;
 			this.pipelineLayout = pipelineLayout;
-			this.pipeline = pipeline;
+			this.meshPipeline = meshPipeline;
+			this.skyboxPipeline = skyboxPipeline;
 			this.swapchainImages = swapchainImages;
 			this.frameBuffers = frameBuffers;
 			this.framesInFlight = framesInFlight;
@@ -132,9 +134,9 @@ namespace Engine
 				context.vk.FreeCommandBuffers(context.device, commandPool, [frame.commandBuffer]);
 			}
 
-			context.vk.DestroyPipeline(context.device, pipeline, null);
+			context.vk.DestroyPipeline(context.device, meshPipeline, null);
 			context.vk.DestroyPipelineLayout(context.device, pipelineLayout, null);
-			context.vk.DestroyRenderPass(context.device, renderPass, null);
+			context.vk.DestroyRenderPass(context.device, skyboxRenderPass, null);
 		}
 
 		public void RecreateSwapchain(VkContext context, SurfaceKHR surface, CommandPool commandPool)
@@ -145,14 +147,19 @@ namespace Engine
 			DisposeSwapchain(context, commandPool);
 
 			swapchain = Swapchain.Create(context, surface, commandPool);
-			renderPass = CreateRenderPass(context, swapchain, Swapchain.GetDepthFormat(context));
+			skyboxRenderPass = CreateSkyboxRenderPass(context, swapchain, Swapchain.GetDepthFormat(context));
 			pipelineLayout = CreatePipelineLayout(context, descriptorSetLayout);
-			pipeline = CreateGraphicsPipeline(context, swapchain.GetExtent(), pipelineLayout, renderPass);
 
-			swapchain.GetImages(context, swapchainImages.Span);
+            var pbrShader = Shader.FromFiles("Shaders/Pbr/PbrVert.spv", "Shaders/Pbr/PbrFrag.spv");
+            meshPipeline = CreateGraphicsPipeline(context, swapchain.GetExtent(), pipelineLayout, skyboxRenderPass, pbrShader);
+
+            var shaderSkybox = Shader.FromFiles("Shaders/Pbr/SkyboxVert.spv", "Shaders/Pbr/SkyboxFrag.spv");
+            skyboxPipeline = CreateGraphicsPipeline(context, swapchain.GetExtent(), pipelineLayout, skyboxRenderPass, shaderSkybox);
+
+            swapchain.GetImages(context, swapchainImages.Span);
 			for (int i = 0; i < frameBuffers.Span.Length; i++)
 			{
-				frameBuffers.Span[i] = VulkanHelper.CreateFrameBuffer(context, [swapchainImages.Span[i], swapchain.GetDepthImage()], renderPass, swapchain.GetExtent());
+				frameBuffers.Span[i] = VulkanHelper.CreateFrameBuffer(context, [swapchainImages.Span[i], swapchain.GetDepthImage()], skyboxRenderPass, swapchain.GetExtent());
 			}
 
 			for (int i = 0; i < framesInFlight.Span.Length; i++)
@@ -161,7 +168,7 @@ namespace Engine
 			}
 		}
 
-		public unsafe Result StartRender(VkContext context)
+		public unsafe Result StartRender(VkContext context, ref UniformBufferObject ubo, ImageView skybox, Buffer vertexBuffer, Buffer indexBuffer, uint indicies)
 		{
 			ref FrameData frame = ref framesInFlight.Span[currentFrame];
 			VulkanHelper.WaitForFence(context, frame.inFlight);
@@ -180,21 +187,51 @@ namespace Engine
 			var renderArea = new Rect2D(new(), swapchain.GetExtent());
 
 			Framebuffer framebuffer = frameBuffers.Span[(int)imageIndex];
-			BeginRenderCommand(context, frame.commandBuffer, renderPass, framebuffer, clearColor, renderArea);
+			BeginRenderCommand(context, frame.commandBuffer, skyboxRenderPass, framebuffer, clearColor, renderArea);
 			RenderSetViewportAndScissor(context, frame.commandBuffer, renderArea);
 
-			context.vk.CmdBindPipeline(frame.commandBuffer, PipelineBindPoint.Graphics, pipeline);
+			context.vk.CmdBindPipeline(frame.commandBuffer, PipelineBindPoint.Graphics, skyboxPipeline);
 
-			FinishRender(context, frame.commandBuffer);
-			var result = context.vk.ResetFences(context.device, [frame.inFlight]);
+            DescriptorImageInfo imageInfo = new();
+            imageInfo.ImageLayout = ImageLayout.ReadOnlyOptimal;
+            imageInfo.ImageView = skybox;
+            imageInfo.Sampler = samplers[0];
 
-			VulkanHelper.QueueSubmitCommands(context, swapchain.GetGraphicsQueue(), frame.commandBuffer, frame.imageAvailable, frame.inFlight, PipelineStageFlags.ColorAttachmentOutputBit);
+            WriteDescriptorSet imageDescriptorWrite = new();
+            imageDescriptorWrite.SType = StructureType.WriteDescriptorSet;
+            imageDescriptorWrite.DstSet = frame.descriptorSets[15];
+            imageDescriptorWrite.DstBinding = 1;
+            imageDescriptorWrite.DstArrayElement = 0;
+            imageDescriptorWrite.DescriptorType = DescriptorType.CombinedImageSampler;
+            imageDescriptorWrite.DescriptorCount = 1;
+            imageDescriptorWrite.PImageInfo = (DescriptorImageInfo*)Unsafe.AsPointer(ref imageInfo);
 
+            context.vk.UpdateDescriptorSets(context.device, [imageDescriptorWrite], 0, null);
+
+            frame.uboMemories[15].ubo.Value = ubo;
+
+            context.vk.CmdBindDescriptorSets(frame.commandBuffer, PipelineBindPoint.Graphics, pipelineLayout, 0, 1, frame.descriptorSets[15], 0, null);
+
+            context.vk.CmdBindVertexBuffers(frame.commandBuffer, 0, [vertexBuffer], [0]);
+            context.vk.CmdBindIndexBuffer(frame.commandBuffer, indexBuffer, 0, IndexType.Uint16);
+
+            context.vk.CmdDrawIndexed(frame.commandBuffer, indicies, 1, 0, 0, 0);
 			/*
 			*/
 
-			return aquireResult;
+            FinishRender(context, frame.commandBuffer);
+			var result = context.vk.ResetFences(context.device, [frame.inFlight]);
+
+			VulkanHelper.QueueSubmitCommands(context, swapchain.GetGraphicsQueue(), frame.commandBuffer, frame.imageAvailable, frame.inFlight, PipelineStageFlags.ColorAttachmentOutputBit);
+            //VulkanHelper.QueuePresent(context, swapchain.GetPresentQueue(), swapchain.GetSwapchain(), imageIndex, frame.imageAvailable);
+
+            return aquireResult;
 		}
+
+		unsafe void RenderSkybox(VkContext context)
+		{
+            
+        }
 
 		public unsafe void BeginRenderPass(VkContext context)
 		{
@@ -212,9 +249,7 @@ namespace Engine
 			BeginRenderCommand(context, frame.commandBuffer, meshRenderPass, framebuffer, clearColor, renderArea);
 			RenderSetViewportAndScissor(context, frame.commandBuffer, renderArea);
 
-			context.vk.CmdBindPipeline(frame.commandBuffer, PipelineBindPoint.Graphics, pipeline);
-			/*
-			*/
+			context.vk.CmdBindPipeline(frame.commandBuffer, PipelineBindPoint.Graphics, meshPipeline);
 		}
 
 		public unsafe void UpdateFrameDescriptorSet(VkContext context, ImageView texture, int idx, VkTextureBuffer albedo, VkTextureBuffer normal, VkTextureBuffer metallic, VkTextureBuffer roughness)
@@ -413,11 +448,11 @@ namespace Engine
 				throw new Exception("Failed to end vkCommandBuffer");
 		}
 
-		public static RenderPipeline Create(VkContext context, SurfaceKHR surface, ImageView image, CommandPool commandPool)
+		public static RenderPipeline Create(VkContext context, SurfaceKHR surface, CommandPool commandPool)
 		{
 			Swapchain swapchain = Swapchain.Create(context, surface, commandPool);
 
-			RenderPass renderPass = CreateRenderPass(context, swapchain, Swapchain.GetDepthFormat(context));
+			RenderPass renderPass = CreateSkyboxRenderPass(context, swapchain, Swapchain.GetDepthFormat(context));
 			RenderPass meshRenderPass = CreateMeshRenderPass(context, swapchain, Swapchain.GetDepthFormat(context));
 
 			FixedArray8<Sampler> samplers = new FixedArray8<Sampler>();
@@ -429,7 +464,11 @@ namespace Engine
 
 			DescriptorSetLayout descriptorSetLayout = CreateDescriptorSetLayout(context);
 			PipelineLayout pipelineLayout = CreatePipelineLayout(context, descriptorSetLayout);
-			Pipeline pipeline = CreateGraphicsPipeline(context, swapchain.GetExtent(), pipelineLayout, renderPass);
+            var pbrShader = Shader.FromFiles("Shaders/Pbr/PbrVert.spv", "Shaders/Pbr/PbrFrag.spv");
+            Pipeline meshPipeline = CreateGraphicsPipeline(context, swapchain.GetExtent(), pipelineLayout, renderPass, pbrShader);
+
+            var shaderSkybox = Shader.FromFiles("Shaders/Pbr/SkyboxVert.spv", "Shaders/Pbr/SkyboxFrag.spv");
+            Pipeline skyboxPipeline = CreateGraphicsPipeline(context, swapchain.GetExtent(), pipelineLayout, renderPass, shaderSkybox);
 
 			Memory<ImageView> swapchainImages = new ImageView[swapchain.GetImageCount()];
 			swapchain.GetImages(context, swapchainImages.Span);
@@ -441,12 +480,12 @@ namespace Engine
 			}
 
 			DescriptorPool descriptorPool = VulkanHelper.CreateDescriptorPool(context, MAX_FRAMES_IN_FLIGHT * 16);
-			Memory<FrameData> framesInFlight = CreateFramesInFlight(context, descriptorPool, commandPool, descriptorSetLayout, samplers[0], image);
+			Memory<FrameData> framesInFlight = CreateFramesInFlight(context, descriptorPool, commandPool, descriptorSetLayout);
 
-			return new RenderPipeline(swapchain, renderPass, meshRenderPass, samplers, descriptorSetLayout, pipelineLayout, pipeline, swapchainImages, frameBuffers, framesInFlight);
+			return new RenderPipeline(swapchain, renderPass, meshRenderPass, samplers, descriptorSetLayout, pipelineLayout, meshPipeline, skyboxPipeline, swapchainImages, frameBuffers, framesInFlight);
 		}
 
-		static unsafe Memory<FrameData> CreateFramesInFlight(VkContext context, DescriptorPool descriptorPool, CommandPool commandPool, DescriptorSetLayout layout, Sampler sampler, ImageView image)
+		static unsafe Memory<FrameData> CreateFramesInFlight(VkContext context, DescriptorPool descriptorPool, CommandPool commandPool, DescriptorSetLayout layout)
 		{
 			Memory<FrameData> framesInFlight = new FrameData[MAX_FRAMES_IN_FLIGHT];
 			for (int i = 0; i < framesInFlight.Length; i++)
@@ -469,7 +508,7 @@ namespace Engine
 					allocInfo.DescriptorSetCount = 1;
 					allocInfo.PSetLayouts = &layout;
 
-					var result = context.vk.AllocateDescriptorSets(context.device, allocInfo, out DescriptorSet descriptorSet);
+                    var result = context.vk.AllocateDescriptorSets(context.device, allocInfo, out DescriptorSet descriptorSet);
 					if (result != Result.Success)
 						throw new Exception("Failed to allocate vkDescriptorSets");
 
@@ -499,7 +538,7 @@ namespace Engine
 			return framesInFlight;
 		}
 
-		static unsafe RenderPass CreateRenderPass(VkContext context, Swapchain swapchain, Format depthFormat)
+		static unsafe RenderPass CreateSkyboxRenderPass(VkContext context, Swapchain swapchain, Format depthFormat)
 		{
 			var surfaceFormat = swapchain.GetSurfaceFormat();
 
@@ -582,7 +621,7 @@ namespace Engine
 			AttachmentDescription depthAttatchment = new();
 			depthAttatchment.Format = depthFormat;
 			depthAttatchment.Samples = SampleCountFlags.Count1Bit;
-			depthAttatchment.LoadOp = AttachmentLoadOp.Load;
+			depthAttatchment.LoadOp = AttachmentLoadOp.Clear;
 			depthAttatchment.StoreOp = AttachmentStoreOp.Store;
 			depthAttatchment.StencilLoadOp = AttachmentLoadOp.DontCare;
 			depthAttatchment.StencilStoreOp = AttachmentStoreOp.DontCare;
@@ -792,10 +831,10 @@ namespace Engine
 			return description;
 		}
 
-		static unsafe Pipeline CreateGraphicsPipeline(VkContext context, Extent2D swapchainExtent, PipelineLayout pipelineLayout, RenderPass renderPass)
+		static unsafe Pipeline CreateGraphicsPipeline(VkContext context, Extent2D swapchainExtent, PipelineLayout pipelineLayout, RenderPass renderPass, Shader shader)
 		{
 			//var shader = Shader.FromFiles("Shaders/VulkanVert.spv", "Shaders/VulkanFrag.spv");
-			var shader = Shader.FromFiles("Shaders/Pbr/PbrVert.spv", "Shaders/Pbr/PbrFrag.spv");
+			//var shader = Shader.FromFiles("Shaders/Pbr/PbrVert.spv", "Shaders/Pbr/PbrFrag.spv");
 
 			var vertShader = CreateShaderModule(context.vk, shader.Vertex, context.device);
 			var fragShader = CreateShaderModule(context.vk, shader.Fragment, context.device);
@@ -866,7 +905,7 @@ namespace Engine
 			rasterizationStateCreateInfo.RasterizerDiscardEnable = false;
 			rasterizationStateCreateInfo.PolygonMode = PolygonMode.Fill;
 			rasterizationStateCreateInfo.LineWidth = 1.0f;
-			rasterizationStateCreateInfo.CullMode = CullModeFlags.BackBit;
+			rasterizationStateCreateInfo.CullMode = CullModeFlags.None;
 			rasterizationStateCreateInfo.FrontFace = FrontFace.CounterClockwise;
 			rasterizationStateCreateInfo.DepthBiasEnable = false;
 			rasterizationStateCreateInfo.DepthBiasConstantFactor = 0;

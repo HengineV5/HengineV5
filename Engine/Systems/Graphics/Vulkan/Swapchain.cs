@@ -59,25 +59,12 @@ namespace Engine
 			Span<Image> images = stackalloc Image[(int)imageCount];
 			images = GetSwapChainImages(context, images, swapchain);
 
-			VulkanHelper.CreateImageViews(context, buff, images, format.Format, ImageAspectFlags.ColorBit);
+			VulkanHelper.CreateImageViews(context, buff, images, ImageViewType.Type2D, format.Format, ImageAspectFlags.ColorBit);
 			return buff.Slice(0, (int)imageCount);
 		}
 
 		public Result AcquireNextImageIndex(VkContext context, Semaphore semaphore, out uint imageIndex)
 		{
-			/*
-			uint imageIndex = 0;
-			var aquireResult = khrSwapChain.AcquireNextImage(context.device, swapchain, ulong.MaxValue, semaphore, default, ref imageIndex);
-			if (aquireResult == Result.ErrorOutOfDateKhr || framebufferResized)
-			{
-				throw new Exception();
-				framebufferResized = false;
-				recreateSwapChain();
-				return;
-			}
-
-			return imageIndex; ;
-			*/
 			imageIndex = 0;
 			return context.swapchain.AcquireNextImage(context.device, swapchain, ulong.MaxValue, semaphore, default, ref imageIndex);
 		}
@@ -122,11 +109,11 @@ namespace Engine
 			Queue graphicsQueue = VulkanHelper.GetQueue(context, graphicsQueueFamily);
 			Queue presentQueue = VulkanHelper.GetQueue(context, presentQueueFamily);
 
-			Image depthImage = VulkanHelper.CreateImage(context, extent, GetDepthFormat(context), ImageTiling.Optimal, ImageUsageFlags.DepthStencilAttachmentBit);
+			Image depthImage = VulkanHelper.CreateImage(context, new Extent3D(extent.Width, extent.Height, 1), ImageType.Type2D, GetDepthFormat(context), ImageTiling.Optimal, ImageUsageFlags.DepthStencilAttachmentBit, ImageCreateFlags.None, 1);
 			DeviceMemory depthImageMemory = VulkanHelper.CreateMemory(context, depthImage, MemoryPropertyFlags.DeviceLocalBit);
-			ImageView depthImageView = VulkanHelper.CreateImageView(context, depthImage, GetDepthFormat(context), ImageAspectFlags.DepthBit);
+			ImageView depthImageView = VulkanHelper.CreateImageView(context, depthImage, ImageViewType.Type2D, GetDepthFormat(context), ImageAspectFlags.DepthBit);
 
-			VulkanHelper.TransitionImageLayout(context, commandPool, graphicsQueue, depthImage, GetDepthFormat(context), ImageLayout.Undefined, ImageLayout.DepthStencilAttachmentOptimal);
+			VulkanHelper.TransitionImageLayout(context, commandPool, graphicsQueue, depthImage, GetDepthFormat(context), ImageLayout.Undefined, ImageLayout.DepthStencilAttachmentOptimal, 1);
 
 			return new(format, presentMode, imageCount, transform, extent, swapchain, graphicsQueueFamily, graphicsQueue, presentQueueFamily, presentQueue, depthImage, depthImageView, depthImageMemory);
 		}
@@ -172,7 +159,7 @@ namespace Engine
 
 		static unsafe SurfaceFormatKHR ChooseSwapSurfaceFormat(VkContext context, SurfaceKHR surface)
 		{
-			Span<SurfaceFormatKHR> surfaceFormats = stackalloc SurfaceFormatKHR[16];
+			Span<SurfaceFormatKHR> surfaceFormats = stackalloc SurfaceFormatKHR[64];
 			surfaceFormats = VulkanHelper.GetSurfaceFormats(surfaceFormats, context.surface, context.physicalDevice, surface);
 
 			foreach (var format in surfaceFormats)
@@ -187,7 +174,7 @@ namespace Engine
 
 		static unsafe PresentModeKHR ChooseSwapPresentMode(VkContext context, SurfaceKHR surface)
 		{
-			Span<PresentModeKHR> presentModees = stackalloc PresentModeKHR[16];
+			Span<PresentModeKHR> presentModees = stackalloc PresentModeKHR[64];
 			presentModees = VulkanHelper.GetSurfacePresentModes(presentModees, context.surface, context.physicalDevice, surface);
 
 			foreach (var mode in presentModees)

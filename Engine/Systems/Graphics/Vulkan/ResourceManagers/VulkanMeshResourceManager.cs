@@ -50,7 +50,8 @@ namespace Engine.Graphics
 			return idx++;
 		}
 
-		static VkMeshBuffer CreateMeshBuffer(VkContext context, Graphics.Mesh mesh)
+		// TODO: Make private
+		public static VkMeshBuffer CreateMeshBuffer(VkContext context, Graphics.Mesh mesh)
 		{
 			// Convert mesh data to correct format
 			uint indiciesLength = (uint)mesh.indicies.Length;

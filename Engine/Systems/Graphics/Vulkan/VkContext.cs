@@ -28,37 +28,11 @@ namespace Engine
 		public void Setup()
 		{
 			uint graphicsQueueFamily = VulkanHelper.GetGraphicsQueueFamily(context);
-			Queue graphicsQueue = VulkanHelper.GetQueue(context, graphicsQueueFamily);
 
 			surface = CreateSurface(context);
 			commandPool = VulkanHelper.CreateCommandPool(context, graphicsQueueFamily);
 
-			using var img = SixLabors.ImageSharp.Image.Load<Rgba32>("Images/image_2.png");
-			int imageSize = img.Width * img.Height * img.PixelType.BitsPerPixel / 8;
-
-			Image texture = VulkanHelper.CreateImage(context, new((uint)img.Width, (uint)img.Height), Format.R8G8B8A8Srgb, ImageTiling.Optimal, ImageUsageFlags.TransferDstBit | ImageUsageFlags.SampledBit);
-			DeviceMemory textureMemory = VulkanHelper.CreateMemory(context, texture, MemoryPropertyFlags.DeviceLocalBit);
-			ImageView textureImageView = VulkanHelper.CreateImageView(context, texture, Format.R8G8B8A8Srgb, ImageAspectFlags.ColorBit);
-
-			using var buff = MemoryPool<byte>.Shared.Rent(imageSize);
-			img.CopyPixelDataTo(buff.Memory.Span);
-
-			Silk.NET.Vulkan.Buffer stagingBuffer = VulkanHelper.CreateBuffer<byte>(context, BufferUsageFlags.TransferSrcBit, (uint)imageSize);
-			DeviceMemory stagingBufferMemory = VulkanHelper.CreateBufferMemory(context, stagingBuffer, MemoryPropertyFlags.HostVisibleBit | MemoryPropertyFlags.HostCoherentBit);
-
-			VulkanHelper.MapBufferMemory(context, stagingBuffer, stagingBufferMemory, buff.Memory.Span);
-
-			VulkanHelper.TransitionImageLayout(context, commandPool, graphicsQueue, texture, Format.R8G8B8A8Srgb, ImageLayout.Undefined, ImageLayout.TransferDstOptimal);
-			VulkanHelper.CopyBuffer(context, commandPool, graphicsQueue, stagingBuffer, texture, (uint)img.Width, (uint)img.Height);
-			VulkanHelper.TransitionImageLayout(context, commandPool, graphicsQueue, texture, Format.R8G8B8A8Srgb, ImageLayout.TransferDstOptimal, ImageLayout.ShaderReadOnlyOptimal);
-
-			unsafe
-			{
-				context.vk.DestroyBuffer(context.device, stagingBuffer, null);
-				context.vk.FreeMemory(context.device, stagingBufferMemory, null);
-			}
-
-			renderPipeline = RenderPipeline.Create(context, surface, textureImageView, commandPool);
+			renderPipeline = RenderPipeline.Create(context, surface, commandPool);
 		}
 
 		static unsafe SurfaceKHR CreateSurface(VkContext context)

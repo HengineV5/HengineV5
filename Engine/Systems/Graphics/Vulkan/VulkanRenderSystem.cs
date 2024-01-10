@@ -188,6 +188,8 @@ namespace Engine
 
 		bool framebufferResized = false;
 
+		VkMeshBuffer skyboxBuffer;
+		VkTextureBuffer skyboxTextureBuffer;
 		VkTextureBuffer albedoTextureBuffer;
 		VkTextureBuffer normalTextureBuffer;
 		VkTextureBuffer metallicTextureBuffer;
@@ -212,7 +214,13 @@ namespace Engine
 
 		public void Init()
 		{
-			var textureAlbedo = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Gold/gold-scuffed_basecolor-boosted.png");
+			var skyboxMesh = Mesh.LoadOBJ("Skybox", "Models/Skybox.obj");
+			skyboxBuffer = VulkanMeshResourceManager.CreateMeshBuffer(context, skyboxMesh);
+
+			var textureCubemap = ETexture.LoadImage("Skybox", "Images/Skybox/skybox_new.png");
+			skyboxTextureBuffer = VulkanTextureResourceManager.CreateCubeTextureBuffer(context, textureCubemap);
+
+            var textureAlbedo = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Gold/gold-scuffed_basecolor-boosted.png");
 			//var textureAlbedo = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Iron/rustediron2_basecolor.png");
 			albedoTextureBuffer = VulkanTextureResourceManager.CreateTextureBuffer(context, textureAlbedo);
 
@@ -265,9 +273,18 @@ namespace Engine
 		[SystemUpdate, SystemLayer(0)]
 		public void UpdateCamera(ref VulkanRenderContext context, Position.Ref position, Rotation.Ref rotation, Camera.Ref camera)
 		{
-			UpdateCameraUbo(ref context.ubo, camera, position, rotation);
+			UpdateCameraUbo2(ref context.ubo, camera, position, rotation);
 			context.ubo.cameraPos = new Vector3(position.x, position.y, position.z);
-		}
+
+            var result = renderContext.renderPipeline.StartRender(this.context, ref context.ubo, skyboxTextureBuffer.textureImageView, skyboxBuffer.vertexBuffer, skyboxBuffer.indexBuffer, skyboxBuffer.indicies);
+            if (result == Result.ErrorOutOfDateKhr)
+            {
+                renderContext.renderPipeline.RecreateSwapchain(this.context, renderContext.surface, renderContext.commandPool);
+                renderContext.renderPipeline.StartRender(this.context, ref context.ubo, skyboxTextureBuffer.textureImageView, skyboxBuffer.vertexBuffer, skyboxBuffer.indexBuffer, skyboxBuffer.indicies);
+            }
+
+            UpdateCameraUbo(ref context.ubo, camera, position, rotation);
+        }
 
 		int bufferIdx;
 		int renderIdx;
@@ -275,12 +292,14 @@ namespace Engine
 		[SystemPreLoop, SystemLayer(0)]
 		public void PreRender()
 		{
+			/*
 			var result = renderContext.renderPipeline.StartRender(context);
 			if (result == Result.ErrorOutOfDateKhr)
 			{
 				renderContext.renderPipeline.RecreateSwapchain(context, renderContext.surface, renderContext.commandPool);
 				renderContext.renderPipeline.StartRender(context);
 			}
+			*/
 		}
 
 		[SystemPreLoop, SystemLayer(1, 2)]
@@ -295,17 +314,9 @@ namespace Engine
 		[SystemUpdate, SystemLayer(1, 2)]
 		public void BufferUpdate(ref VulkanRenderContext context, Position.Ref position, Rotation.Ref rotation, Scale.Ref scale, ref VkMeshBuffer mesh, ref VkTextureBuffer textureBuffer)
 		{
-			renderContext.renderPipeline.UpdateFrameDescriptorSet(this.context, textureBuffer.textureImageView, bufferIdx, albedoTextureBuffer, normalTextureBuffer, metallicTextureBuffer, roughnessTextureBuffer);
+			renderContext.renderPipeline.UpdateFrameDescriptorSet(this.context, skyboxTextureBuffer.textureImageView, bufferIdx, albedoTextureBuffer, normalTextureBuffer, metallicTextureBuffer, roughnessTextureBuffer);
 			bufferIdx++;
 		}
-
-		/*
-		[SystemUpdate, SystemLayer(1, 2)]
-		public void IdxReset(ref VulkanRenderContext context, Position.Ref position, Rotation.Ref rotation, Scale.Ref scale, ref VkMeshBuffer mesh, ref VkTextureBuffer textureBuffer)
-		{
-			//bufferIdx = 0;
-		}
-		*/
 
 		[SystemUpdate, SystemLayer(1, 2)]
 		public void RenderUpdate(ref VulkanRenderContext context, Position.Ref position, Rotation.Ref rotation, Scale.Ref scale, ref VkMeshBuffer mesh, ref VkTextureBuffer textureBuffer)
@@ -342,7 +353,15 @@ namespace Engine
 			ubo.proj.M22 *= -1; // Think this was some opengl comaptability stuff.
 		}
 
-		static void UpdateEntityUbo(ref UniformBufferObject ubo, Position.Ref position, Rotation.Ref rotation, Scale.Ref scale)
+        static void UpdateCameraUbo2(ref UniformBufferObject ubo, Camera.Ref camera, Position.Ref position, Rotation.Ref rotation)
+        {
+            ubo.view = Matrix4x4.CreateFromQuaternion(new Quaternion(rotation.x, rotation.y, rotation.z, rotation.w));
+            ubo.proj = Matrix4x4.CreatePerspectiveFieldOfView(camera.fov, camera.width / camera.height, camera.zNear, camera.zFar);
+
+            ubo.proj.M22 *= -1; // Think this was some opengl comaptability stuff.
+        }
+
+        static void UpdateEntityUbo(ref UniformBufferObject ubo, Position.Ref position, Rotation.Ref rotation, Scale.Ref scale)
 		{
 			ubo.translation = Matrix4x4.CreateTranslation(new Vector3(position.x, position.y, position.z));
 			ubo.rotation = Matrix4x4.CreateFromQuaternion(new Quaternion(rotation.x, rotation.y, rotation.z, rotation.w));

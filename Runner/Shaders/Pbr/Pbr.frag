@@ -2,7 +2,7 @@
 
 const float PI = 3.14159265359;
 
-layout(binding = 1) uniform sampler2D u_Texture;
+layout(binding = 1) uniform samplerCube u_Texture;
 layout(binding = 2) uniform sampler2D u_AlbedoMap;
 layout(binding = 3) uniform sampler2D u_NormalMap;
 layout(binding = 4) uniform sampler2D u_MetallicMap;
@@ -149,4 +149,8 @@ void main() {
 		result = pow(result, vec3(1.0/2.2)); 
 
 		color = vec4(result, 1.0);
+
+		//vec3 I1 = normalize(v_pos - v_ViewPos);
+		//vec3 R1 = reflect(I1, normalize(v_normal));
+		//color = vec4(texture(u_Texture, R1).rgb, 1.0);
 }

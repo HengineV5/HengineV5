@@ -10,23 +10,23 @@ namespace Engine
 {
 	public static class VulkanHelper
 	{
-		public static unsafe Image CreateImage(VkContext context, Extent2D extent, Format format, ImageTiling tiling, ImageUsageFlags usage)
+		public static unsafe Image CreateImage(VkContext context, Extent3D extent, ImageType type, Format format, ImageTiling tiling, ImageUsageFlags usage, ImageCreateFlags flags, uint arrayLayers)
 		{
 			ImageCreateInfo createInfo = new();
 			createInfo.SType = StructureType.ImageCreateInfo;
-			createInfo.ImageType = ImageType.Type2D;
+			createInfo.ImageType = type;
 			createInfo.Extent.Width = extent.Width;
 			createInfo.Extent.Height = extent.Height;
-			createInfo.Extent.Depth = 1;
+			createInfo.Extent.Depth = extent.Depth;
 			createInfo.MipLevels = 1;
-			createInfo.ArrayLayers = 1;
+			createInfo.ArrayLayers = arrayLayers;
 			createInfo.Format = format;
 			createInfo.Tiling = tiling;
 			createInfo.InitialLayout = ImageLayout.Undefined;
 			createInfo.Usage = usage;
 			createInfo.SharingMode = SharingMode.Exclusive;
 			createInfo.Samples = SampleCountFlags.Count1Bit;
-			createInfo.Flags = ImageCreateFlags.None;
+			createInfo.Flags = flags;
 
 			var result = context.vk.CreateImage(context.device, createInfo, null, out Image image);
 			if (result != Result.Success)
@@ -35,13 +35,13 @@ namespace Engine
 			return image;
 		}
 
-		public static unsafe ImageView CreateImageView(VkContext context, Image image, Format format, ImageAspectFlags aspectMask)
+		public static unsafe ImageView CreateImageView(VkContext context, Image image, ImageViewType type, Format format, ImageAspectFlags aspectMask)
 		{
 			ImageViewCreateInfo createInfo = new();
 			createInfo.SType = StructureType.ImageViewCreateInfo;
 			createInfo.Image = image;
 
-			createInfo.ViewType = ImageViewType.Type2D;
+			createInfo.ViewType = type;
 			createInfo.Format = format;
 
 			createInfo.Components.R = ComponentSwizzle.Identity;
@@ -53,7 +53,7 @@ namespace Engine
 			createInfo.SubresourceRange.BaseMipLevel = 0;
 			createInfo.SubresourceRange.LevelCount = 1;
 			createInfo.SubresourceRange.BaseArrayLayer = 0;
-			createInfo.SubresourceRange.LayerCount = 1;
+			createInfo.SubresourceRange.LayerCount = type == ImageViewType.TypeCube ? 6u : 1u;
 
 			var result = context.vk.CreateImageView(context.device, createInfo, null, out ImageView imageView);
 			if (result != Result.Success)
@@ -62,11 +62,11 @@ namespace Engine
 			return imageView;
 		}
 
-		public static unsafe void CreateImageViews(VkContext context, Span<ImageView> imageViews, Span<Image> images, Format format, ImageAspectFlags aspectMask)
+		public static unsafe void CreateImageViews(VkContext context, Span<ImageView> imageViews, Span<Image> images, ImageViewType type, Format format, ImageAspectFlags aspectMask)
 		{
 			for (int i = 0; i < imageViews.Length; i++)
 			{
-				imageViews[i] = CreateImageView(context, images[i], format, aspectMask);
+				imageViews[i] = CreateImageView(context, images[i], type, format, aspectMask);
 			}
 		}
 
@@ -252,15 +252,16 @@ namespace Engine
 			return bufferMemories;
 		}
 
+		// TODO: fix size
 		public static unsafe DescriptorPool CreateDescriptorPool(VkContext context, uint size)
 		{
 			DescriptorPoolSize uniformSize = new();
 			uniformSize.Type = DescriptorType.UniformBuffer;
-			uniformSize.DescriptorCount = size;
+			uniformSize.DescriptorCount = 12 * size;
 
 			DescriptorPoolSize samplerSize = new();
 			samplerSize.Type = DescriptorType.CombinedImageSampler;
-			samplerSize.DescriptorCount = size;
+			samplerSize.DescriptorCount = 12 * size;
 
 			DescriptorPoolSize* bindingsPtr = stackalloc DescriptorPoolSize[2];
 			bindingsPtr[0] = uniformSize;
@@ -341,10 +342,12 @@ namespace Engine
 		public static unsafe void MapBufferMemory<T>(VkContext context, Buffer buffer, DeviceMemory bufferMemory, Span<T> data) where T : unmanaged
 		{
 			context.vk.GetBufferMemoryRequirements(context.device, buffer, out MemoryRequirements memRequirements);
+			if (data.Length > (int)memRequirements.Size) // When renting memory from pool buffer might be bigger than requested
+				data = data.Slice(0, (int)memRequirements.Size);
 
 			void* dataPtr;
 			context.vk.MapMemory(context.device, bufferMemory, 0, memRequirements.Size, 0, &dataPtr);
-			data.CopyTo(new Span<T>(dataPtr, data.Length));
+			data.CopyTo(new Span<T>(dataPtr, (int)memRequirements.Size));
 			context.vk.UnmapMemory(context.device, bufferMemory);
 		}
 
@@ -480,7 +483,7 @@ namespace Engine
 			EndSingleShotCommands(context, commandBuffer, commandPool, queue);
 		}
 
-		public static unsafe void CopyBuffer(VkContext context, CommandPool commandPool, Queue queue, Silk.NET.Vulkan.Buffer srcBuffer, Silk.NET.Vulkan.Image dstImage, uint width, uint height)
+		public static unsafe void CopyBuffer(VkContext context, CommandPool commandPool, Queue queue, Buffer srcBuffer, Image dstImage, uint width, uint height, uint baseArrayLayer, uint layerCount)
 		{
 			CommandBuffer commandBuffer = BeginSingleShotCommands(context, commandPool);
 
@@ -491,7 +494,7 @@ namespace Engine
 
 			copyRegion.ImageSubresource.AspectMask = ImageAspectFlags.ColorBit;
 			copyRegion.ImageSubresource.MipLevel = 0;
-			copyRegion.ImageSubresource.BaseArrayLayer = 0;
+			copyRegion.ImageSubresource.BaseArrayLayer = baseArrayLayer;
 			copyRegion.ImageSubresource.LayerCount = 1;
 
 			copyRegion.ImageOffset = new(0, 0, 0);
@@ -502,7 +505,7 @@ namespace Engine
 			EndSingleShotCommands(context, commandBuffer, commandPool, queue);
 		}
 
-		public static unsafe void TransitionImageLayout(VkContext context, CommandPool commandPool, Queue queue, Silk.NET.Vulkan.Image image, Format format, ImageLayout oldLayout, ImageLayout newLayout)
+		public static unsafe void TransitionImageLayout(VkContext context, CommandPool commandPool, Queue queue, Image image, Format format, ImageLayout oldLayout, ImageLayout newLayout, uint layerCount)
 		{
 			CommandBuffer commandBuffer = BeginSingleShotCommands(context, commandPool);
 
@@ -517,7 +520,7 @@ namespace Engine
 			barrier.SubresourceRange.BaseMipLevel = 0;
 			barrier.SubresourceRange.LevelCount = 1;
 			barrier.SubresourceRange.BaseArrayLayer = 0;
-			barrier.SubresourceRange.LayerCount = 1;
+			barrier.SubresourceRange.LayerCount = layerCount;
 
 			if (newLayout == ImageLayout.DepthStencilAttachmentOptimal)
 			{
