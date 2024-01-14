@@ -2,6 +2,7 @@
 using Engine.Components;
 using Engine.Components.Graphics;
 using Engine.Graphics;
+using Engine.Parsing;
 using Silk.NET.Maths;
 using Silk.NET.Windowing;
 using System.Net;
@@ -77,6 +78,8 @@ namespace Runner
 
 		static void Main(string[] args)
 		{
+			ImageFormatSetup.HdrSetup();
+
 			var engineConfig = new EngineConfig()
 			{
 				appName = "Hengine v5",

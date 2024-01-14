@@ -9,6 +9,7 @@ using Silk.NET.OpenGL;
 using System.Drawing;
 using System.Runtime.InteropServices;
 using Engine.Graphics;
+using Engine.Parsing;
 
 namespace Engine
 {
@@ -91,6 +92,8 @@ namespace Engine
 					x.WithConfig<EngineConfig>();
 					x.WithConfig<VulkanConfig>();
 					x.WithConfig<NetworkConfig>();
+
+					//x.Setup(ImageFormatSetup.HdrSetup);
 
 					//x.Setup(GlfwSetup.OpenGLWindowSetup);
 					x.Setup(GlfwSetup.VulkanWindowSetup);

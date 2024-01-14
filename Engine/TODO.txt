@@ -1,1 +1,2 @@
 Add color to vertex struct
+Investiage openEXR, would be cool to support film grade stuff

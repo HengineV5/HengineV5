@@ -147,7 +147,8 @@ namespace Engine
 			DisposeSwapchain(context, commandPool);
 
 			swapchain = Swapchain.Create(context, surface, commandPool);
-			skyboxRenderPass = CreateSkyboxRenderPass(context, swapchain, Swapchain.GetDepthFormat(context));
+            meshRenderPass = CreateMeshRenderPass(context, swapchain, Swapchain.GetDepthFormat(context));
+            skyboxRenderPass = CreateSkyboxRenderPass(context, swapchain, Swapchain.GetDepthFormat(context));
 			pipelineLayout = CreatePipelineLayout(context, descriptorSetLayout);
 
             var pbrShader = Shader.FromFiles("Shaders/Pbr/PbrVert.spv", "Shaders/Pbr/PbrFrag.spv");
@@ -468,7 +469,7 @@ namespace Engine
             Pipeline meshPipeline = CreateGraphicsPipeline(context, swapchain.GetExtent(), pipelineLayout, renderPass, pbrShader);
 
             var shaderSkybox = Shader.FromFiles("Shaders/Pbr/SkyboxVert.spv", "Shaders/Pbr/SkyboxFrag.spv");
-            Pipeline skyboxPipeline = CreateGraphicsPipeline(context, swapchain.GetExtent(), pipelineLayout, renderPass, shaderSkybox);
+            Pipeline skyboxPipeline = CreateGraphicsPipeline(context, swapchain.GetExtent(), pipelineLayout, meshRenderPass, shaderSkybox);
 
 			Memory<ImageView> swapchainImages = new ImageView[swapchain.GetImageCount()];
 			swapchain.GetImages(context, swapchainImages.Span);

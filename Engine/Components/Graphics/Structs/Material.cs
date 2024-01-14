@@ -7,16 +7,9 @@ namespace Engine.Graphics
 	[StructLayout(LayoutKind.Sequential, Pack = 16)]
 	public struct Material
 	{
-		//[FieldOffset(0)]
 		public Vector3 Ambient;
-
-		//[FieldOffset(16)]
 		public Vector3 Diffuse;
-
-		//[FieldOffset(32)]
 		public Vector3 Specular;
-
-		//[FieldOffset(44)]
 		public float Shininess;
 
 		public static readonly Material Emerald = new Material
