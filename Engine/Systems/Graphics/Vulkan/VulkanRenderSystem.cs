@@ -190,6 +190,7 @@ namespace Engine
 
 		VkMeshBuffer skyboxBuffer;
 		VkTextureBuffer skyboxTextureBuffer;
+		VkTextureBuffer skyboxHdrTextureBuffer;
 		VkTextureBuffer albedoTextureBuffer;
 		VkTextureBuffer normalTextureBuffer;
 		VkTextureBuffer metallicTextureBuffer;
@@ -219,6 +220,9 @@ namespace Engine
 
 			var textureCubemap = ETexture.LoadImage("Skybox", "Images/Skybox/skybox_new.png");
 			skyboxTextureBuffer = VulkanTextureResourceManager.CreateCubeTextureBuffer(context, textureCubemap);
+
+			var textureSkyboxHdr = ETextureHdr.LoadImage("SkyboxHDR", "Images/Skybox/skybox_hdr.hdr");
+			skyboxHdrTextureBuffer = VulkanTextureResourceManager.CreateHdrTextureBuffer(context, textureSkyboxHdr);
 
             var textureAlbedo = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Gold/gold-scuffed_basecolor-boosted.png");
 			//var textureAlbedo = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Iron/rustediron2_basecolor.png");
@@ -314,7 +318,7 @@ namespace Engine
 		[SystemUpdate, SystemLayer(1, 2)]
 		public void BufferUpdate(ref VulkanRenderContext context, Position.Ref position, Rotation.Ref rotation, Scale.Ref scale, ref VkMeshBuffer mesh, ref VkTextureBuffer textureBuffer)
 		{
-			renderContext.renderPipeline.UpdateFrameDescriptorSet(this.context, skyboxTextureBuffer.textureImageView, bufferIdx, albedoTextureBuffer, normalTextureBuffer, metallicTextureBuffer, roughnessTextureBuffer);
+			renderContext.renderPipeline.UpdateFrameDescriptorSet(this.context, skyboxHdrTextureBuffer.textureImageView, bufferIdx, albedoTextureBuffer, normalTextureBuffer, metallicTextureBuffer, roughnessTextureBuffer, skyboxTextureBuffer);
 			bufferIdx++;
 		}
 

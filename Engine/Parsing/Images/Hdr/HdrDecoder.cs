@@ -96,7 +96,6 @@ namespace Engine.Parsing
                     for (int i = 0; i < width; i++)
                     {
                         float f = MathF.Exp(pRowSpan[i + width * 3] - (128 + 8));
-                        f *= 3;
                         float r = pRowSpan[i] * f;
                         float g = pRowSpan[i + width * 1] * f;
                         float b = pRowSpan[i + width * 2] * f;

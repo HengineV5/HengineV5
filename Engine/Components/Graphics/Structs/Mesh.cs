@@ -5,7 +5,7 @@ using System.IO;
 
 namespace Engine.Graphics
 {
-	public partial struct ETexture
+	public struct ETexture
 	{
 		public string name;
 
@@ -21,7 +21,23 @@ namespace Engine.Graphics
 		}
 	}
 
-	public partial struct Mesh
+	public struct ETextureHdr
+	{
+        public string name;
+
+        public Image<Rgba64> data;
+
+        public static ETextureHdr LoadImage(string name, string filePath)
+        {
+            return new ETextureHdr()
+            {
+                name = name,
+                data = Image.Load<Rgba64>(filePath)
+            };
+        }
+    }
+
+	public struct Mesh
 	{
 		public string name;
 

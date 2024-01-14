@@ -201,7 +201,7 @@ namespace Engine
             WriteDescriptorSet imageDescriptorWrite = new();
             imageDescriptorWrite.SType = StructureType.WriteDescriptorSet;
             imageDescriptorWrite.DstSet = frame.descriptorSets[15];
-            imageDescriptorWrite.DstBinding = 1;
+            imageDescriptorWrite.DstBinding = 6;
             imageDescriptorWrite.DstArrayElement = 0;
             imageDescriptorWrite.DescriptorType = DescriptorType.CombinedImageSampler;
             imageDescriptorWrite.DescriptorCount = 1;
@@ -253,15 +253,14 @@ namespace Engine
 			context.vk.CmdBindPipeline(frame.commandBuffer, PipelineBindPoint.Graphics, meshPipeline);
 		}
 
-		public unsafe void UpdateFrameDescriptorSet(VkContext context, ImageView texture, int idx, VkTextureBuffer albedo, VkTextureBuffer normal, VkTextureBuffer metallic, VkTextureBuffer roughness)
+		public unsafe void UpdateFrameDescriptorSet(VkContext context, ImageView texture, int idx, VkTextureBuffer albedo, VkTextureBuffer normal, VkTextureBuffer metallic, VkTextureBuffer roughness, VkTextureBuffer skybox)
 		{
             ref FrameData frame = ref framesInFlight.Span[currentFrame];
 
-			Span<DescriptorImageInfo> infos = stackalloc DescriptorImageInfo[5];
-			Span<WriteDescriptorSet> descriptorWrites = stackalloc WriteDescriptorSet[5];
+			Span<DescriptorImageInfo> infos = stackalloc DescriptorImageInfo[6];
+			Span<WriteDescriptorSet> descriptorWrites = stackalloc WriteDescriptorSet[6];
 
 			{
-				//DescriptorImageInfo imageInfo = new();
 				ref DescriptorImageInfo imageInfo = ref infos[0];
 				imageInfo.ImageLayout = ImageLayout.ReadOnlyOptimal;
 				imageInfo.ImageView = texture;
@@ -275,7 +274,6 @@ namespace Engine
 				imageDescriptorWrite.DescriptorType = DescriptorType.CombinedImageSampler;
 				imageDescriptorWrite.DescriptorCount = 1;
 				imageDescriptorWrite.PImageInfo = (DescriptorImageInfo*)Unsafe.AsPointer(ref imageInfo);
-				//context.vk.UpdateDescriptorSets(context.device, [imageDescriptorWrite], 0, null);
 			}
 
 			{
@@ -292,7 +290,6 @@ namespace Engine
 				imageDescriptorWrite.DescriptorType = DescriptorType.CombinedImageSampler;
 				imageDescriptorWrite.DescriptorCount = 1;
 				imageDescriptorWrite.PImageInfo = (DescriptorImageInfo*)Unsafe.AsPointer(ref imageInfo);
-				//context.vk.UpdateDescriptorSets(context.device, [imageDescriptorWrite], 0, null);
 			}
 
 			{
@@ -309,7 +306,6 @@ namespace Engine
 				imageDescriptorWrite.DescriptorType = DescriptorType.CombinedImageSampler;
 				imageDescriptorWrite.DescriptorCount = 1;
 				imageDescriptorWrite.PImageInfo = (DescriptorImageInfo*)Unsafe.AsPointer(ref imageInfo);
-				//context.vk.UpdateDescriptorSets(context.device, [imageDescriptorWrite], 0, null);
 			}
 
 			{
@@ -326,7 +322,6 @@ namespace Engine
 				imageDescriptorWrite.DescriptorType = DescriptorType.CombinedImageSampler;
 				imageDescriptorWrite.DescriptorCount = 1;
 				imageDescriptorWrite.PImageInfo = (DescriptorImageInfo*)Unsafe.AsPointer(ref imageInfo);
-				//context.vk.UpdateDescriptorSets(context.device, [imageDescriptorWrite], 0, null);
 			}
 
 			{
@@ -343,7 +338,22 @@ namespace Engine
 				imageDescriptorWrite.DescriptorType = DescriptorType.CombinedImageSampler;
 				imageDescriptorWrite.DescriptorCount = 1;
 				imageDescriptorWrite.PImageInfo = (DescriptorImageInfo*)Unsafe.AsPointer(ref imageInfo);
-				//context.vk.UpdateDescriptorSets(context.device, [imageDescriptorWrite], 0, null);
+			}
+
+			{
+				ref DescriptorImageInfo imageInfo = ref infos[5];
+				imageInfo.ImageLayout = ImageLayout.ReadOnlyOptimal;
+				imageInfo.ImageView = skybox.textureImageView;
+				imageInfo.Sampler = samplers[5];
+
+				ref WriteDescriptorSet imageDescriptorWrite = ref descriptorWrites[5];
+				imageDescriptorWrite.SType = StructureType.WriteDescriptorSet;
+				imageDescriptorWrite.DstSet = frame.descriptorSets[idx];
+				imageDescriptorWrite.DstBinding = 6;
+				imageDescriptorWrite.DstArrayElement = 0;
+				imageDescriptorWrite.DescriptorType = DescriptorType.CombinedImageSampler;
+				imageDescriptorWrite.DescriptorCount = 1;
+				imageDescriptorWrite.PImageInfo = (DescriptorImageInfo*)Unsafe.AsPointer(ref imageInfo);
 			}
 
 			context.vk.UpdateDescriptorSets(context.device, descriptorWrites, 0, null);
@@ -516,8 +526,8 @@ namespace Engine
 					var uniformBufferBuilder = new UniformBufferBuilder(descriptorSet, uniformBuffer)
 						.Variable<UniformBufferObject>(0)
 						//.Variable<Material>(2)
-						.Variable<PbrMaterial>(6)
-						.Array<Light>(7, 4);
+						.Variable<PbrMaterial>(7)
+						.Array<Light>(8, 4);
 
 					void* dataPtr;
 					context.vk.MapMemory(context.device, uniformBuffersMemory, 0, 704, 0, &dataPtr);
@@ -680,50 +690,66 @@ namespace Engine
 			uniformBinding.StageFlags = ShaderStageFlags.VertexBit;
 			uniformBinding.PImmutableSamplers = null;
 
-			DescriptorSetLayoutBinding albedoSamplerBinding = new();
-			albedoSamplerBinding.Binding = 1;
+            DescriptorSetLayoutBinding textureSamplerBinding = new();
+            textureSamplerBinding.Binding = 1;
+            textureSamplerBinding.DescriptorType = DescriptorType.CombinedImageSampler;
+            textureSamplerBinding.DescriptorCount = 1;
+            textureSamplerBinding.StageFlags = ShaderStageFlags.FragmentBit;
+            textureSamplerBinding.PImmutableSamplers = null;
+
+            DescriptorSetLayoutBinding albedoSamplerBinding = new();
+			albedoSamplerBinding.Binding = 2;
 			albedoSamplerBinding.DescriptorType = DescriptorType.CombinedImageSampler;
 			albedoSamplerBinding.DescriptorCount = 1;
 			albedoSamplerBinding.StageFlags = ShaderStageFlags.FragmentBit;
 			albedoSamplerBinding.PImmutableSamplers = null;
 
 			DescriptorSetLayoutBinding normalSamplerBinding = new();
-			normalSamplerBinding.Binding = 2;
+			normalSamplerBinding.Binding = 3;
 			normalSamplerBinding.DescriptorType = DescriptorType.CombinedImageSampler;
 			normalSamplerBinding.DescriptorCount = 1;
 			normalSamplerBinding.StageFlags = ShaderStageFlags.FragmentBit;
 			normalSamplerBinding.PImmutableSamplers = null;
 
 			DescriptorSetLayoutBinding metallicSamplerBinding = new();
-			metallicSamplerBinding.Binding = 3;
+			metallicSamplerBinding.Binding = 4;
 			metallicSamplerBinding.DescriptorType = DescriptorType.CombinedImageSampler;
 			metallicSamplerBinding.DescriptorCount = 1;
 			metallicSamplerBinding.StageFlags = ShaderStageFlags.FragmentBit;
 			metallicSamplerBinding.PImmutableSamplers = null;
 
 			DescriptorSetLayoutBinding roughnessSamplerBinding = new();
-			roughnessSamplerBinding.Binding = 4;
+			roughnessSamplerBinding.Binding = 5;
 			roughnessSamplerBinding.DescriptorType = DescriptorType.CombinedImageSampler;
 			roughnessSamplerBinding.DescriptorCount = 1;
 			roughnessSamplerBinding.StageFlags = ShaderStageFlags.FragmentBit;
 			roughnessSamplerBinding.PImmutableSamplers = null;
 
+            /*
 			DescriptorSetLayoutBinding aoSamplerBinding = new();
-			aoSamplerBinding.Binding = 5;
+			aoSamplerBinding.Binding = 6;
 			aoSamplerBinding.DescriptorType = DescriptorType.CombinedImageSampler;
 			aoSamplerBinding.DescriptorCount = 1;
 			aoSamplerBinding.StageFlags = ShaderStageFlags.FragmentBit;
 			aoSamplerBinding.PImmutableSamplers = null;
+			*/
 
-			DescriptorSetLayoutBinding materialBinding = new();
-			materialBinding.Binding = 6;
+            DescriptorSetLayoutBinding skyboxSamplerBinding = new();
+            skyboxSamplerBinding.Binding = 6;
+            skyboxSamplerBinding.DescriptorType = DescriptorType.CombinedImageSampler;
+            skyboxSamplerBinding.DescriptorCount = 1;
+            skyboxSamplerBinding.StageFlags = ShaderStageFlags.FragmentBit;
+            skyboxSamplerBinding.PImmutableSamplers = null;
+
+            DescriptorSetLayoutBinding materialBinding = new();
+			materialBinding.Binding = 7;
 			materialBinding.DescriptorType = DescriptorType.UniformBuffer;
 			materialBinding.DescriptorCount = 1;
 			materialBinding.StageFlags = ShaderStageFlags.FragmentBit;
 			materialBinding.PImmutableSamplers = null;
 
 			DescriptorSetLayoutBinding lightBinding = new();
-			lightBinding.Binding = 7;
+			lightBinding.Binding = 8;
 			lightBinding.DescriptorType = DescriptorType.UniformBuffer;
 			lightBinding.DescriptorCount = 4;
 			lightBinding.StageFlags = ShaderStageFlags.FragmentBit;
@@ -731,17 +757,18 @@ namespace Engine
 
 			DescriptorSetLayoutCreateInfo createInfo = new();
 			createInfo.SType = StructureType.DescriptorSetLayoutCreateInfo;
-			createInfo.BindingCount = 8;
+			createInfo.BindingCount = 9;
 
-			DescriptorSetLayoutBinding* bindingsPtr = stackalloc DescriptorSetLayoutBinding[8];
+			DescriptorSetLayoutBinding* bindingsPtr = stackalloc DescriptorSetLayoutBinding[9];
 			bindingsPtr[0] = uniformBinding;
-			bindingsPtr[1] = albedoSamplerBinding;
-			bindingsPtr[2] = normalSamplerBinding;
-			bindingsPtr[3] = metallicSamplerBinding;
-			bindingsPtr[4] = roughnessSamplerBinding;
-			bindingsPtr[5] = aoSamplerBinding;
-			bindingsPtr[6] = materialBinding;
-			bindingsPtr[7] = lightBinding;
+			bindingsPtr[1] = textureSamplerBinding;
+			bindingsPtr[2] = albedoSamplerBinding;
+			bindingsPtr[3] = normalSamplerBinding;
+			bindingsPtr[4] = metallicSamplerBinding;
+			bindingsPtr[5] = roughnessSamplerBinding;
+			bindingsPtr[6] = skyboxSamplerBinding;
+			bindingsPtr[7] = materialBinding;
+			bindingsPtr[8] = lightBinding;
 
 			createInfo.PBindings = bindingsPtr;
 

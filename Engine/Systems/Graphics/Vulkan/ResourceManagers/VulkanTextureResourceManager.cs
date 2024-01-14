@@ -54,7 +54,7 @@ namespace Engine.Graphics
             textureBuffer.textureMemory = VulkanHelper.CreateMemory(context, textureBuffer.texture, MemoryPropertyFlags.DeviceLocalBit);
             textureBuffer.textureImageView = VulkanHelper.CreateImageView(context, textureBuffer.texture, ImageViewType.Type2D, Format.R8G8B8A8Srgb, ImageAspectFlags.ColorBit);
 
-            CopyBufferToDevice(context, textureBuffer, texture.data, false);
+            CopyBufferToDevice(context, textureBuffer, texture.data, Format.R8G8B8A8Srgb, false);
 
             return textureBuffer;
 		}
@@ -66,12 +66,24 @@ namespace Engine.Graphics
             textureBuffer.textureMemory = VulkanHelper.CreateMemory(context, textureBuffer.texture, MemoryPropertyFlags.DeviceLocalBit);
             textureBuffer.textureImageView = VulkanHelper.CreateImageView(context, textureBuffer.texture, ImageViewType.TypeCube, Format.R8G8B8A8Srgb, ImageAspectFlags.ColorBit);
 
-            CopyBufferToDevice(context, textureBuffer, texture.data, true);
+            CopyBufferToDevice(context, textureBuffer, texture.data, Format.R8G8B8A8Srgb, true);
 
             return textureBuffer;
         }
 
-        static void CopyBufferToDevice(VkContext context, VkTextureBuffer textureBuffer, Image<Rgba32> img, bool isCubemap)
+        public static VkTextureBuffer CreateHdrTextureBuffer(VkContext context, Graphics.ETextureHdr texture)
+        {
+            VkTextureBuffer textureBuffer = new VkTextureBuffer();
+            textureBuffer.texture = VulkanHelper.CreateImage(context, new((uint)texture.data.Width, (uint)texture.data.Height, 1), ImageType.Type2D, Format.R16G16B16A16Unorm, ImageTiling.Optimal, ImageUsageFlags.TransferDstBit | ImageUsageFlags.SampledBit, ImageCreateFlags.None, 1);
+            textureBuffer.textureMemory = VulkanHelper.CreateMemory(context, textureBuffer.texture, MemoryPropertyFlags.DeviceLocalBit);
+            textureBuffer.textureImageView = VulkanHelper.CreateImageView(context, textureBuffer.texture, ImageViewType.Type2D, Format.R16G16B16A16Unorm, ImageAspectFlags.ColorBit);
+
+            CopyBufferToDevice(context, textureBuffer, texture.data, Format.R16G16B16A16Unorm, false);
+
+            return textureBuffer;
+        }
+
+        static void CopyBufferToDevice<TPixel>(VkContext context, VkTextureBuffer textureBuffer, Image<TPixel> img, Format format, bool isCubemap) where TPixel : unmanaged, IPixel<TPixel>
 		{
             // TODO: Move command pool to context, bad to create for each mesh creating call
             uint graphicsQueueFamily = VulkanHelper.GetGraphicsQueueFamily(context);
@@ -87,12 +99,12 @@ namespace Engine.Graphics
 
             VulkanHelper.MapBufferMemory(context, stagingBuffer, stagingBufferMemory, buff.Memory.Span);
 
-            VulkanHelper.TransitionImageLayout(context, commandPool, graphicsQueue, textureBuffer.texture, Format.R8G8B8A8Srgb, ImageLayout.Undefined, ImageLayout.TransferDstOptimal, isCubemap ? 6u : 1u);
+            VulkanHelper.TransitionImageLayout(context, commandPool, graphicsQueue, textureBuffer.texture, format, ImageLayout.Undefined, ImageLayout.TransferDstOptimal, isCubemap ? 6u : 1u);
             for (int i = 0; i < (isCubemap ? 6 : 1); i++)
             {
                 VulkanHelper.CopyBuffer(context, commandPool, graphicsQueue, stagingBuffer, textureBuffer.texture, (uint)img.Width, (uint)img.Height, (uint)i, 1);
             }
-            VulkanHelper.TransitionImageLayout(context, commandPool, graphicsQueue, textureBuffer.texture, Format.R8G8B8A8Srgb, ImageLayout.TransferDstOptimal, ImageLayout.ShaderReadOnlyOptimal, isCubemap ? 6u : 1u);
+            VulkanHelper.TransitionImageLayout(context, commandPool, graphicsQueue, textureBuffer.texture, format, ImageLayout.TransferDstOptimal, ImageLayout.ShaderReadOnlyOptimal, isCubemap ? 6u : 1u);
 
             unsafe
             {
@@ -101,5 +113,5 @@ namespace Engine.Graphics
                 context.vk.DestroyCommandPool(context.device, commandPool, null);
             }
         }
-	}
+    }
 }

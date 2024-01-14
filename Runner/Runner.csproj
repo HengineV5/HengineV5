@@ -58,6 +58,9 @@
     <None Update="Images\Skybox\skybox.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="Images\Skybox\skybox_hdr.hdr">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="Images\Skybox\skybox_new.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

@@ -2,12 +2,13 @@
 
 const float PI = 3.14159265359;
 
-layout(binding = 1) uniform samplerCube u_Texture;
+layout(binding = 1) uniform sampler2D u_Texture;
 layout(binding = 2) uniform sampler2D u_AlbedoMap;
 layout(binding = 3) uniform sampler2D u_NormalMap;
 layout(binding = 4) uniform sampler2D u_MetallicMap;
 layout(binding = 5) uniform sampler2D u_RoughnessMap;
-//layout(binding = 5) uniform sampler2D u_AoMap;
+layout(binding = 6) uniform samplerCube u_Skybox;
+//layout(binding = 6) uniform sampler2D u_AoMap;
 
 /*
 layout(binding = 2) uniform Material {
@@ -18,13 +19,13 @@ layout(binding = 2) uniform Material {
 } u_Material;
 */
 
-layout(binding = 6) uniform Material {
+layout(binding = 7) uniform Material {
 	vec3 albedo;
 	float metallic;
 	float roughness;
 } u_Material;
 
-layout(binding = 7) uniform Light {
+layout(binding = 8) uniform Light {
 	vec3 position;
 	vec3 ambient;
 	vec3 diffuse;
