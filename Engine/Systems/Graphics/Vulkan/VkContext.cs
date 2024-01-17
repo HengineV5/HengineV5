@@ -19,7 +19,7 @@ namespace Engine
 		public CommandPool commandPool;
 
 		//public RenderPipeline renderPipeline;
-		public RenderPipelineNew<SwapchainRenderTargetManager<DefaultDescriptorSet>, SwapchainRenderPassInfo, SwapchainPipelineInfo, DefaultDescriptorSet, PipelineContainer, PipelineContainerLayer, RenderPassContainer, RenderPassId> pipelineNew;
+		public RenderPipelineNew<SwapchainRenderTargetManager<DefaultDescriptorSet>, DefaultRenderPassInfo, DefaultPipelineInfo, DefaultDescriptorSet, PipelineContainer, PipelineContainerLayer, RenderPassContainer, RenderPassId> pipelineNew;
 
         public VkRenderContext(VkContext context)
         {
@@ -36,10 +36,10 @@ namespace Engine
 			//renderPipeline = RenderPipeline.Create(context, surface, commandPool);
 
 			Swapchain swapchain = Swapchain.Create(context, surface, commandPool);
-			RenderPassContainer container = RenderPassContainer.Create(context, new SwapchainRenderPassInfo(swapchain.GetSurfaceFormat().Format, Swapchain.GetDepthFormat(context)));
+			RenderPassContainer container = RenderPassContainer.Create(context, new DefaultRenderPassInfo(swapchain.GetSurfaceFormat().Format, Swapchain.GetDepthFormat(context)));
 
 			SwapchainRenderTargetManager<DefaultDescriptorSet> renderTargetManager = SwapchainRenderTargetManager<DefaultDescriptorSet>.Create(context, swapchain, container.skyboxRenderPass, commandPool);
-            pipelineNew = RenderPipelineNew<SwapchainRenderTargetManager<DefaultDescriptorSet>, SwapchainRenderPassInfo, SwapchainPipelineInfo, DefaultDescriptorSet, PipelineContainer, PipelineContainerLayer, RenderPassContainer, RenderPassId>.Create(context, renderTargetManager);
+            pipelineNew = RenderPipelineNew<SwapchainRenderTargetManager<DefaultDescriptorSet>, DefaultRenderPassInfo, DefaultPipelineInfo, DefaultDescriptorSet, PipelineContainer, PipelineContainerLayer, RenderPassContainer, RenderPassId>.Create(context, renderTargetManager);
         }
 
 		static unsafe SurfaceKHR CreateSurface(VkContext context)

@@ -303,7 +303,7 @@ namespace Engine
 
             ref DefaultDescriptorSet set = ref renderContext.pipelineNew.GetDescriptor(this.context, 0);
             set.shaderInput.ubo.Value = context.ubo;
-            UpdateFrameDescriptorSet(this.context, set.descriptorSet, skyboxHdrTextureBuffer.textureImageView, 0, albedoTextureBuffer, normalTextureBuffer, metallicTextureBuffer, roughnessTextureBuffer, skyboxTextureBuffer);
+            UpdateFrameDescriptorSet(this.context, set.descriptorSet, skyboxHdrTextureBuffer.textureImageView, albedoTextureBuffer, normalTextureBuffer, metallicTextureBuffer, roughnessTextureBuffer, skyboxTextureBuffer);
 
             renderContext.pipelineNew.Render(this.context, PipelineContainerLayer.Pbr, skyboxBuffer.vertexBuffer, skyboxBuffer.indexBuffer, skyboxBuffer.indicies, 0);
             renderContext.pipelineNew.EndRenderPass(this.context);
@@ -340,8 +340,10 @@ namespace Engine
 		[SystemUpdate, SystemLayer(1, 2)]
 		public void BufferUpdate(ref VulkanRenderContext context, Position.Ref position, Rotation.Ref rotation, Scale.Ref scale, ref VkMeshBuffer mesh, ref VkTextureBuffer textureBuffer)
 		{
-			//renderContext.renderPipeline.UpdateFrameDescriptorSet(this.context, skyboxHdrTextureBuffer.textureImageView, bufferIdx, albedoTextureBuffer, normalTextureBuffer, metallicTextureBuffer, roughnessTextureBuffer, skyboxTextureBuffer);
-			ref DefaultDescriptorSet set = ref renderContext.pipelineNew.GetDescriptor(this.context, bufferIdx);
+            UpdateEntityUbo(ref context.ubo, position, rotation, scale);
+
+            //renderContext.renderPipeline.UpdateFrameDescriptorSet(this.context, skyboxHdrTextureBuffer.textureImageView, bufferIdx, albedoTextureBuffer, normalTextureBuffer, metallicTextureBuffer, roughnessTextureBuffer, skyboxTextureBuffer);
+            ref DefaultDescriptorSet set = ref renderContext.pipelineNew.GetDescriptor(this.context, bufferIdx);
 			set.shaderInput.ubo.Value = context.ubo;
 
             //frame.uboMemories[idx].ubo.Value = ubo;
@@ -351,9 +353,7 @@ namespace Engine
                 set.shaderInput.lights[i].Value = defaultLights[i];
             }
 
-            UpdateEntityUbo(ref context.ubo, position, rotation, scale);
-
-            UpdateFrameDescriptorSet(this.context, set.descriptorSet, skyboxHdrTextureBuffer.textureImageView, bufferIdx, albedoTextureBuffer, normalTextureBuffer, metallicTextureBuffer, roughnessTextureBuffer, skyboxTextureBuffer);
+            UpdateFrameDescriptorSet(this.context, set.descriptorSet, skyboxHdrTextureBuffer.textureImageView, albedoTextureBuffer, normalTextureBuffer, metallicTextureBuffer, roughnessTextureBuffer, skyboxTextureBuffer);
 
             bufferIdx++;
 		}
@@ -412,7 +412,7 @@ namespace Engine
 			ubo.scale = Matrix4x4.CreateScale(new Vector3(scale.x, scale.y, scale.z));
 		}
 
-        unsafe void UpdateFrameDescriptorSet(VkContext context, DescriptorSet descriptorSet, ImageView texture, int idx, VkTextureBuffer albedo, VkTextureBuffer normal, VkTextureBuffer metallic, VkTextureBuffer roughness, VkTextureBuffer skybox)
+        unsafe void UpdateFrameDescriptorSet(VkContext context, DescriptorSet descriptorSet, ImageView texture, VkTextureBuffer albedo, VkTextureBuffer normal, VkTextureBuffer metallic, VkTextureBuffer roughness, VkTextureBuffer skybox)
         {
             Span<DescriptorImageInfo> infos = stackalloc DescriptorImageInfo[6];
             Span<WriteDescriptorSet> descriptorWrites = stackalloc WriteDescriptorSet[6];
