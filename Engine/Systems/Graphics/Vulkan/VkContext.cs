@@ -18,9 +18,10 @@ namespace Engine
 		public SurfaceKHR surface;
 		public CommandPool commandPool;
 
-		public RenderPipeline renderPipeline;
+		//public RenderPipeline renderPipeline;
+		public RenderPipelineNew<SwapchainRenderTargetManager<DefaultDescriptorSet>, SwapchainRenderPassInfo, SwapchainPipelineInfo, DefaultDescriptorSet, PipelineContainer, PipelineContainerLayer, RenderPassContainer, RenderPassId> pipelineNew;
 
-		public VkRenderContext(VkContext context)
+        public VkRenderContext(VkContext context)
         {
 			this.context = context;
         }
@@ -32,8 +33,14 @@ namespace Engine
 			surface = CreateSurface(context);
 			commandPool = VulkanHelper.CreateCommandPool(context, graphicsQueueFamily);
 
-			renderPipeline = RenderPipeline.Create(context, surface, commandPool);
-		}
+			//renderPipeline = RenderPipeline.Create(context, surface, commandPool);
+
+			Swapchain swapchain = Swapchain.Create(context, surface, commandPool);
+			RenderPassContainer container = RenderPassContainer.Create(context, new SwapchainRenderPassInfo(swapchain.GetSurfaceFormat().Format, Swapchain.GetDepthFormat(context)));
+
+			SwapchainRenderTargetManager<DefaultDescriptorSet> renderTargetManager = SwapchainRenderTargetManager<DefaultDescriptorSet>.Create(context, swapchain, container.skyboxRenderPass, commandPool);
+            pipelineNew = RenderPipelineNew<SwapchainRenderTargetManager<DefaultDescriptorSet>, SwapchainRenderPassInfo, SwapchainPipelineInfo, DefaultDescriptorSet, PipelineContainer, PipelineContainerLayer, RenderPassContainer, RenderPassId>.Create(context, renderTargetManager);
+        }
 
 		static unsafe SurfaceKHR CreateSurface(VkContext context)
 		{

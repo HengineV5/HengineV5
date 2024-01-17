@@ -9,9 +9,544 @@ using System.Runtime.CompilerServices;
 using Engine.Components.Graphics;
 using System.Numerics;
 using EnCS;
+using static Engine.RenderPipeline;
 
 namespace Engine
 {
+	public interface IRenderTargetManager<TSelf, TDescriptorSet, TRenderPassInfo, TPipelineInfo>
+		where TSelf : struct, IRenderTargetManager<TSelf, TDescriptorSet, TRenderPassInfo, TPipelineInfo>
+		where TDescriptorSet : struct, IDescriptorSet<TDescriptorSet>
+		where TRenderPassInfo : struct
+		where TPipelineInfo : struct
+	{
+		static abstract RenderTarget<TDescriptorSet> AquireRenderTarget(VkContext context, ref TSelf self);
+
+		static abstract void PresentTarget(VkContext context, ref TSelf self, ref RenderTarget<TDescriptorSet> renderTarget);
+
+		static abstract TRenderPassInfo GetRendePassInfo(VkContext context, ref TSelf self);
+
+		static abstract TPipelineInfo GetPipelineInfo(VkContext context, ref TSelf self);
+
+		static abstract Rect2D GetRenderArea(ref TSelf self);
+	}
+
+	public interface IDescriptorSet<TSelf> where TSelf : struct, IDescriptorSet<TSelf>
+	{
+		static abstract TSelf Create(VkContext context, DescriptorPool descriptorPool);
+
+		static abstract DescriptorSet GetDescriptorSet(ref TSelf self);
+
+		static abstract DescriptorSetLayout GetLayout(VkContext context);
+
+		static abstract DescriptorPool GetPool(VkContext context, uint count);
+	}
+
+	public interface IPipelineContainer<TSelf, TPipelineInfo, TDescriptorSet, TEnum>
+		where TSelf : IPipelineContainer<TSelf, TPipelineInfo, TDescriptorSet, TEnum>
+		where TPipelineInfo : struct
+		where TDescriptorSet : struct, IDescriptorSet<TDescriptorSet>
+		where TEnum : Enum
+    {
+        static abstract TSelf Create(VkContext context, DescriptorSetLayout descriptorSetLayout, in TPipelineInfo pipelineInfo);
+
+        static abstract Pipeline Get(TEnum mask, ref TSelf self);
+
+        static abstract PipelineLayout GetLayout(TEnum mask, ref TSelf self);
+    }
+
+    public interface IRenderPassContainer<TSelf, TRenderPassInfo, TEnum>
+		where TSelf : IRenderPassContainer<TSelf, TRenderPassInfo, TEnum>
+		where TRenderPassInfo : struct
+        where TEnum : Enum
+    {
+        static abstract TSelf Create(VkContext context, in TRenderPassInfo renderPassInfo);
+
+		static abstract RenderPass Get(TEnum mask, ref TSelf self);
+    }
+
+    public struct FrameInFlight<TDescriptorSet>
+		where TDescriptorSet : struct, IDescriptorSet<TDescriptorSet>
+    {
+        public Semaphore imageAvailable;
+        public Semaphore renderFinished;
+        public Fence inFlight;
+		public CommandBuffer commandBuffer;
+        public FixedArray16<TDescriptorSet> descriptorData;
+
+        public FrameInFlight(Semaphore imageAvailable, Semaphore renderFinished, Fence inFlight, CommandBuffer commandBuffer, FixedArray16<TDescriptorSet> descriptorData)
+        {
+            this.imageAvailable = imageAvailable;
+            this.renderFinished = renderFinished;
+            this.inFlight = inFlight;
+			this.commandBuffer = commandBuffer;
+			this.descriptorData = descriptorData;
+        }
+    }
+
+    public struct RenderTarget<TDescriptorSet> where TDescriptorSet : struct, IDescriptorSet<TDescriptorSet>
+	{
+		public FrameInFlight<TDescriptorSet> frame;
+		public Framebuffer framebuffer;
+		public uint imageIndex;
+    }
+
+	public struct SwapchainRenderPassInfo
+	{
+		public Format colorFormat;
+		public Format depthFormat;
+
+        public SwapchainRenderPassInfo(Format colorFormat, Format depthFormat)
+        {
+            this.colorFormat = colorFormat;
+            this.depthFormat = depthFormat;
+        }
+    }
+
+	public struct SwapchainPipelineInfo
+	{
+		public Extent2D extent;
+		public RenderPass compatibleRenderPass;
+
+        public SwapchainPipelineInfo(Extent2D extent, RenderPass compatibleRenderPass)
+        {
+            this.extent = extent;
+            this.compatibleRenderPass = compatibleRenderPass;
+        }
+    }
+
+	public struct SwapchainRenderTargetManager<TDescriptorSet> : IRenderTargetManager<SwapchainRenderTargetManager<TDescriptorSet>, TDescriptorSet, SwapchainRenderPassInfo, SwapchainPipelineInfo>
+		where TDescriptorSet : struct, IDescriptorSet<TDescriptorSet>
+	{
+        const int MAX_FRAMES_IN_FLIGHT = 1;
+
+		RenderPass compatibleRenderPass;
+		Swapchain swapchain;
+
+		Memory<ImageView> imageViews;
+		Memory<Framebuffer> frameBuffers;
+		Memory<FrameInFlight<TDescriptorSet>> framesInFlight;
+
+		int currentFrame;
+
+        public SwapchainRenderTargetManager(Swapchain swapchain, RenderPass compatibleRenderPass, Memory<ImageView> imageViews, Memory<Framebuffer> frameBuffers, Memory<FrameInFlight<TDescriptorSet>> framesInFlight)
+        {
+			this.swapchain = swapchain;
+			this.compatibleRenderPass = compatibleRenderPass;
+			this.imageViews = imageViews;
+			this.frameBuffers = frameBuffers;
+			this.framesInFlight = framesInFlight;
+			this.currentFrame = 0;
+        }
+
+        public static RenderTarget<TDescriptorSet> AquireRenderTarget(VkContext context, ref SwapchainRenderTargetManager<TDescriptorSet> self)
+        {
+            var renderTarget = new RenderTarget<TDescriptorSet>()
+			{
+				frame = self.framesInFlight.Span[self.currentFrame],
+			};
+
+            VulkanHelper.WaitForFence(context, renderTarget.frame.inFlight);
+
+            var aquireResult = self.swapchain.AcquireNextImageIndex(context, renderTarget.frame.imageAvailable, out renderTarget.imageIndex);
+			renderTarget.framebuffer = self.frameBuffers.Span[(int)renderTarget.imageIndex];
+
+            //Console.WriteLine($"A: {renderTarget.imageIndex}, F: {self.currentFrame}");
+
+            //if (aquireResult == Result.ErrorOutOfDateKhr)
+            if (aquireResult != Result.Success)
+				throw new Exception();
+            //return aquireResult;
+
+            return renderTarget;
+        }
+
+		public static SwapchainRenderTargetManager<TDescriptorSet> Create(VkContext context, Swapchain swapchain, RenderPass compatibleRenderPass, CommandPool commandPool)
+		{
+            Memory<ImageView> swapchainImages = new ImageView[swapchain.GetImageCount()];
+            swapchain.GetImages(context, swapchainImages.Span);
+
+            Memory<Framebuffer> frameBuffers = new Framebuffer[swapchain.GetImageCount()];
+            for (int i = 0; i < frameBuffers.Span.Length; i++)
+            {
+                frameBuffers.Span[i] = VulkanHelper.CreateFrameBuffer(context, [swapchainImages.Span[i], swapchain.GetDepthImage()], compatibleRenderPass, swapchain.GetExtent());
+            }
+
+			DescriptorPool descriptorPool = TDescriptorSet.GetPool(context, MAX_FRAMES_IN_FLIGHT * 16);
+
+            Memory<FrameInFlight<TDescriptorSet>> framesInFlight = new FrameInFlight<TDescriptorSet>[MAX_FRAMES_IN_FLIGHT];
+            for (int i = 0; i < framesInFlight.Span.Length; i++)
+            {
+                FixedArray16<TDescriptorSet> descriptorSets = new FixedArray16<TDescriptorSet>();
+
+				for (int a = 0; a < 16; a++)
+				{
+					descriptorSets[a] = TDescriptorSet.Create(context, descriptorPool);
+                }
+
+                framesInFlight.Span[i] = new FrameInFlight<TDescriptorSet>(
+					VulkanHelper.CreateSemaphore(context),
+					VulkanHelper.CreateSemaphore(context),
+					VulkanHelper.CreateFence(context, FenceCreateFlags.SignaledBit),
+                    VulkanHelper.CreateCommandBuffer(context, commandPool),
+                    descriptorSets
+                );
+            }
+
+            return new SwapchainRenderTargetManager<TDescriptorSet>(swapchain, compatibleRenderPass, swapchainImages, frameBuffers, framesInFlight);
+        }
+
+		// TODO: Add image index as generic parameter in RenderTarget
+        public static void PresentTarget(VkContext context, ref SwapchainRenderTargetManager<TDescriptorSet> self, ref RenderTarget<TDescriptorSet> renderTarget)
+        {
+            VulkanHelper.QueuePresent(context, self.swapchain.GetPresentQueue(), self.swapchain.GetSwapchain(), renderTarget.imageIndex, renderTarget.frame.imageAvailable);
+            //Console.WriteLine($"P: {renderTarget.imageIndex}, F: {self.currentFrame}");
+
+            // TODO: Improve
+            self.currentFrame = (self.currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+        }
+
+        public static SwapchainPipelineInfo GetPipelineInfo(VkContext context, ref SwapchainRenderTargetManager<TDescriptorSet> self)
+        {
+			return new SwapchainPipelineInfo(self.swapchain.GetExtent(), self.compatibleRenderPass);
+        }
+
+        public static SwapchainRenderPassInfo GetRendePassInfo(VkContext context, ref SwapchainRenderTargetManager<TDescriptorSet> self)
+        {
+			return new SwapchainRenderPassInfo(self.swapchain.GetSurfaceFormat().Format, Swapchain.GetDepthFormat(context));
+        }
+
+        public static Rect2D GetRenderArea(ref SwapchainRenderTargetManager<TDescriptorSet> self)
+        {
+			return new(new(), self.swapchain.GetExtent());
+        }
+    }
+
+	public struct RenderPipelineNew<TRenderTargetManager, TRenderPassInfo, TPipelineInfo, TDescriptorSet, TPipelineContainer, TPipelineEnum, TRenderPassContainer, TRenderPassEnum>
+		where TRenderTargetManager : struct, IRenderTargetManager<TRenderTargetManager, TDescriptorSet, TRenderPassInfo, TPipelineInfo>
+		where TRenderPassInfo : struct
+		where TPipelineInfo : struct
+		where TDescriptorSet : struct, IDescriptorSet<TDescriptorSet>
+		where TPipelineContainer : IPipelineContainer<TPipelineContainer, TPipelineInfo, TDescriptorSet, TPipelineEnum>
+		where TRenderPassContainer : IRenderPassContainer<TRenderPassContainer, TRenderPassInfo, TRenderPassEnum>
+		where TPipelineEnum : Enum
+		where TRenderPassEnum : Enum
+	{
+        TRenderTargetManager renderTargetManager;
+
+		Queue graphicsQueue;
+
+        TPipelineContainer pipelines;
+        TRenderPassContainer renderPasses;
+
+		ClearColorValue clearColor;
+		RenderTarget<TDescriptorSet> renderTarget;
+
+        public RenderPipelineNew(Queue graphicsQueue, TRenderTargetManager renderTargetManager, TPipelineContainer layers, TRenderPassContainer renderPasses)
+        {
+			this.graphicsQueue = graphicsQueue;
+            this.renderTargetManager = renderTargetManager;
+            this.pipelines = layers;
+            this.renderPasses = renderPasses;
+
+            System.Drawing.Color color = System.Drawing.Color.CornflowerBlue;
+            this.clearColor = new() { Float32_0 = color.R / 255f, Float32_1 = color.G / 255f, Float32_2 = color.B / 255f, Float32_3 = color.A / 255f };
+        }
+
+		public bool StartRender(VkContext context)
+		{
+			renderTarget = TRenderTargetManager.AquireRenderTarget(context, ref renderTargetManager);
+
+            return true;
+        }
+
+		public void StartRenderPass(VkContext context, TRenderPassEnum renderPass, TPipelineEnum pipeline)
+		{
+            var renderArea = TRenderTargetManager.GetRenderArea(ref renderTargetManager);
+			var vkRenderPass = TRenderPassContainer.Get(renderPass, ref renderPasses);
+
+            VulkanHelper.WaitForFence(context, renderTarget.frame.inFlight);
+            context.vk.ResetCommandBuffer(renderTarget.frame.commandBuffer, CommandBufferResetFlags.ReleaseResourcesBit);
+
+            BeginRenderCommand(context, renderTarget.frame.commandBuffer, vkRenderPass, renderTarget.framebuffer, clearColor, renderArea);
+            RenderSetViewportAndScissor(context, renderTarget.frame.commandBuffer, renderArea);
+
+            context.vk.CmdBindPipeline(renderTarget.frame.commandBuffer, PipelineBindPoint.Graphics, TPipelineContainer.Get(pipeline, ref pipelines));
+        }
+
+        public unsafe void Render(VkContext context, TPipelineEnum pipeline, Buffer vertexBuffer, Buffer indexBuffer, uint indicies, int idx)
+        {
+            context.vk.CmdBindDescriptorSets(renderTarget.frame.commandBuffer, PipelineBindPoint.Graphics, TPipelineContainer.GetLayout(pipeline, ref pipelines), 0, 1, TDescriptorSet.GetDescriptorSet(ref renderTarget.frame.descriptorData[idx]), 0, null);
+
+            context.vk.CmdBindVertexBuffers(renderTarget.frame.commandBuffer, 0, [vertexBuffer], [0]);
+            context.vk.CmdBindIndexBuffer(renderTarget.frame.commandBuffer, indexBuffer, 0, IndexType.Uint16);
+
+            context.vk.CmdDrawIndexed(renderTarget.frame.commandBuffer, indicies, 1, 0, 0, 0);
+        }
+
+        public void EndRenderPass(VkContext context)
+        {
+            FinishRender(context, renderTarget.frame.commandBuffer);
+            var result = context.vk.ResetFences(context.device, [renderTarget.frame.inFlight]);
+
+            VulkanHelper.QueueSubmitCommands(context, graphicsQueue, renderTarget.frame.commandBuffer, renderTarget.frame.imageAvailable, renderTarget.frame.inFlight, PipelineStageFlags.ColorAttachmentOutputBit);
+        }
+
+        public void PresentRender(VkContext context)
+        {
+			TRenderTargetManager.PresentTarget(context, ref renderTargetManager, ref renderTarget);
+        }
+
+        // TODO: Improve
+        public unsafe ref TDescriptorSet GetDescriptor(VkContext context, int idx)
+        {
+			return ref renderTarget.frame.descriptorData[idx];
+        }
+
+        public static RenderPipelineNew<TRenderTargetManager, TRenderPassInfo, TPipelineInfo, TDescriptorSet, TPipelineContainer, TPipelineEnum, TRenderPassContainer, TRenderPassEnum> Create(VkContext context, TRenderTargetManager renderTargetManager)
+		{
+            uint graphicsQueueFamily = VulkanHelper.GetGraphicsQueueFamily(context);
+            Queue graphicsQueue = VulkanHelper.GetQueue(context, graphicsQueueFamily);
+
+            return new(graphicsQueue, renderTargetManager, TPipelineContainer.Create(context, TDescriptorSet.GetLayout(context), TRenderTargetManager.GetPipelineInfo(context, ref renderTargetManager)), TRenderPassContainer.Create(context, TRenderTargetManager.GetRendePassInfo(context, ref renderTargetManager)));
+        }
+
+        unsafe void BeginRenderCommand(VkContext context, CommandBuffer commandBuffer, RenderPass renderPass, Framebuffer framebuffer, ClearColorValue clearColor, Rect2D renderArea)
+        {
+            CommandBufferBeginInfo beginInfo = new();
+            beginInfo.SType = StructureType.CommandBufferBeginInfo;
+            beginInfo.Flags = CommandBufferUsageFlags.None;
+            beginInfo.PInheritanceInfo = null;
+
+            context.vk.BeginCommandBuffer(commandBuffer, beginInfo);
+
+            RenderPassBeginInfo renderPassInfo = new();
+            renderPassInfo.SType = StructureType.RenderPassBeginInfo;
+            renderPassInfo.RenderPass = renderPass;
+            renderPassInfo.Framebuffer = framebuffer;
+            renderPassInfo.RenderArea = renderArea;
+
+            ClearValue* clearColors = stackalloc ClearValue[2];
+            clearColors[0] = new(clearColor);
+            clearColors[1] = new(depthStencil: new(1.0f, 0));
+
+            renderPassInfo.ClearValueCount = 2;
+            renderPassInfo.PClearValues = clearColors;
+
+            context.vk.CmdBeginRenderPass(commandBuffer, renderPassInfo, SubpassContents.Inline);
+        }
+
+        unsafe void RenderSetViewportAndScissor(VkContext context, CommandBuffer commandBuffer, Rect2D renderArea)
+        {
+            Viewport viewport = new();
+            viewport.X = 0;
+            viewport.Y = 0;
+            viewport.Width = renderArea.Extent.Width;
+            viewport.Height = renderArea.Extent.Height;
+            viewport.MinDepth = 0f;
+            viewport.MaxDepth = 1f;
+
+            context.vk.CmdSetViewport(commandBuffer, 0, 1, viewport);
+
+            Rect2D scissor = new();
+            scissor.Offset = new(0, 0);
+            scissor.Extent = renderArea.Extent;
+
+            context.vk.CmdSetScissor(commandBuffer, 0, 1, &scissor);
+        }
+
+        void FinishRender(VkContext context, CommandBuffer commandBuffer)
+        {
+            context.vk.CmdEndRenderPass(commandBuffer);
+
+            var result = context.vk.EndCommandBuffer(commandBuffer);
+            if (result != Result.Success)
+                throw new Exception("Failed to end vkCommandBuffer");
+        }
+    }
+
+    public struct DefaultDescriptorSet : IDescriptorSet<DefaultDescriptorSet>
+    {
+		public VulkanShaderInput shaderInput;
+		public DescriptorSet descriptorSet;
+
+        public DefaultDescriptorSet(DescriptorSet descriptorSet, VulkanShaderInput shaderInput)
+        {
+            this.descriptorSet = descriptorSet;
+            this.shaderInput = shaderInput;
+        }
+
+        public static unsafe DefaultDescriptorSet Create(VkContext context, DescriptorPool descriptorPool)
+        {
+			DescriptorSetLayout layout = GetLayout(context);
+            var descriptorSet = new DefaultDescriptorSet(new DescriptorSet(), new VulkanShaderInput());
+
+            DescriptorSetAllocateInfo allocInfo = new();
+            allocInfo.SType = StructureType.DescriptorSetAllocateInfo;
+            allocInfo.DescriptorPool = descriptorPool;
+            allocInfo.DescriptorSetCount = 1;
+            allocInfo.PSetLayouts = &layout;
+
+            var result = context.vk.AllocateDescriptorSets(context.device, allocInfo, out descriptorSet.descriptorSet);
+            if (result != Result.Success)
+                throw new Exception("Failed to allocate vkDescriptorSets");
+
+            Buffer uniformBuffer = VulkanHelper.CreateBuffer(context, BufferUsageFlags.UniformBufferBit, 704);
+            DeviceMemory uniformBuffersMemory = VulkanHelper.CreateBufferMemory(context, uniformBuffer, MemoryPropertyFlags.HostVisibleBit | MemoryPropertyFlags.HostCoherentBit);
+
+            void* dataPtr;
+            context.vk.MapMemory(context.device, uniformBuffersMemory, 0, 704, 0, &dataPtr);
+
+			// TODO: Reorder
+            var uniformBufferBuilder = new UniformBufferBuilder(descriptorSet.descriptorSet, uniformBuffer)
+                        .Variable<UniformBufferObject>(0)
+                        //.Variable<Material>(2)
+                        .Variable<PbrMaterial>(7)
+                        .Array<Light>(8, 4);
+
+            descriptorSet.shaderInput.ubo = uniformBufferBuilder.GetElement<UniformBufferObject>(dataPtr, 0);
+            //framesInFlight.Span[i].uboMemories[a].material = uniformBufferBuilder.GetElement<Material>(dataPtr, 1);
+            descriptorSet.shaderInput.material = uniformBufferBuilder.GetElement<PbrMaterial>(dataPtr, 1);
+            for (int b = 0; b < 4; b++)
+            {
+                descriptorSet.shaderInput.lights[b] = uniformBufferBuilder.GetElement<Light>(dataPtr, 2 + (uint)b);
+            }
+
+            uniformBufferBuilder.UpdateDescriptorSet(context);
+			return descriptorSet;
+        }
+
+        public static DescriptorSet GetDescriptorSet(ref DefaultDescriptorSet self)
+        {
+			return self.descriptorSet;
+        }
+
+        public static DescriptorSetLayout GetLayout(VkContext context)
+        {
+            return RenderPipeline.CreateDescriptorSetLayout(context);
+        }
+
+        public static DescriptorPool GetPool(VkContext context, uint count)
+        {
+            return VulkanHelper.CreateDescriptorPool(context, count);
+        }
+    }
+
+    public struct RenderLayer
+	{
+		public Shader shader;
+		public Pipeline pipeline;
+		public PipelineLayout layout;
+
+        public RenderLayer(Shader shader, Pipeline pipeline, PipelineLayout layout)
+        {
+            this.shader = shader;
+            this.pipeline = pipeline;
+            this.layout = layout;
+        }
+
+        public static RenderLayer Create(VkContext context, Shader shader, PipelineLayout layout, in SwapchainPipelineInfo info)
+		{
+            return new RenderLayer(shader, RenderPipeline.CreateGraphicsPipeline(context, info.extent, layout, info.compatibleRenderPass, shader), layout);
+		}
+    }
+
+	[Flags]
+	public enum PipelineContainerLayer
+	{
+		Skybox,
+		Pbr
+	}
+
+	public struct PipelineContainer : IPipelineContainer<PipelineContainer, SwapchainPipelineInfo, DefaultDescriptorSet, PipelineContainerLayer>
+	{
+		public RenderLayer skyboxLayer;
+		public RenderLayer pbrLayer;
+
+        public PipelineContainer(RenderLayer skyboxLayer, RenderLayer pbrLayer)
+        {
+            this.skyboxLayer = skyboxLayer;
+            this.pbrLayer = pbrLayer;
+        }
+
+        public static PipelineContainer Create(VkContext context, DescriptorSetLayout descriptorSetLayout, in SwapchainPipelineInfo info)
+		{
+			var pipelineLayout = RenderPipeline.CreatePipelineLayout(context, descriptorSetLayout);
+
+            var skyboxShader = Shader.FromFiles("Shaders/Pbr/SkyboxVert.spv", "Shaders/Pbr/SkyboxFrag.spv");
+			var skyboxPipeline = RenderLayer.Create(context, skyboxShader, pipelineLayout, info);
+
+            var pbrShader = Shader.FromFiles("Shaders/Pbr/PbrVert.spv", "Shaders/Pbr/PbrFrag.spv");
+            var pbrPipeline = RenderLayer.Create(context, pbrShader, pipelineLayout, info);
+
+			return new PipelineContainer(skyboxPipeline, pbrPipeline);
+		}
+
+        public static Pipeline Get(PipelineContainerLayer layer, ref PipelineContainer self)
+        {
+			switch (layer)
+			{
+				case PipelineContainerLayer.Skybox:
+                    return self.skyboxLayer.pipeline;
+                case PipelineContainerLayer.Pbr:
+                    return self.pbrLayer.pipeline;
+                default:
+                    throw new Exception();
+            }
+		}
+
+        public static PipelineLayout GetLayout(PipelineContainerLayer layer, ref PipelineContainer self)
+        {
+            switch (layer)
+            {
+                case PipelineContainerLayer.Skybox:
+                    return self.skyboxLayer.layout;
+                case PipelineContainerLayer.Pbr:
+                    return self.pbrLayer.layout;
+                default:
+                    throw new Exception();
+            }
+        }
+    }
+
+	public enum RenderPassId
+	{
+		Skybox,
+		Mesh
+	}
+
+    public struct RenderPassContainer : IRenderPassContainer<RenderPassContainer, SwapchainRenderPassInfo, RenderPassId>
+    {
+		public RenderPass skyboxRenderPass;
+		public RenderPass meshRenderPass;
+
+        public RenderPassContainer(RenderPass skyboxRenderPass, RenderPass meshRenderPass)
+        {
+            this.skyboxRenderPass = skyboxRenderPass;
+            this.meshRenderPass = meshRenderPass;
+        }
+
+        public static RenderPassContainer Create(VkContext context, in SwapchainRenderPassInfo renderPassInfo)
+        {
+            var skyboxRenderPass = CreateSkyboxRenderPass(context, renderPassInfo.colorFormat, renderPassInfo.depthFormat);
+            var meshRenderPass = CreateMeshRenderPass(context, renderPassInfo.colorFormat, renderPassInfo.depthFormat);
+
+			return new RenderPassContainer(skyboxRenderPass, meshRenderPass);
+        }
+
+        public static RenderPass Get(RenderPassId id, ref RenderPassContainer self)
+        {
+			switch (id)
+			{
+				case RenderPassId.Skybox:
+					return self.skyboxRenderPass;
+				case RenderPassId.Mesh:
+					return self.meshRenderPass;
+				default:
+					throw new Exception();
+			}
+		}
+    }
+
 	public struct RenderPipeline
 	{
 		public struct FrameData
@@ -147,8 +682,8 @@ namespace Engine
 			DisposeSwapchain(context, commandPool);
 
 			swapchain = Swapchain.Create(context, surface, commandPool);
-            meshRenderPass = CreateMeshRenderPass(context, swapchain, Swapchain.GetDepthFormat(context));
-            skyboxRenderPass = CreateSkyboxRenderPass(context, swapchain, Swapchain.GetDepthFormat(context));
+            meshRenderPass = CreateMeshRenderPass(context, swapchain.GetSurfaceFormat().Format, Swapchain.GetDepthFormat(context));
+            skyboxRenderPass = CreateSkyboxRenderPass(context, swapchain.GetSurfaceFormat().Format, Swapchain.GetDepthFormat(context));
 			pipelineLayout = CreatePipelineLayout(context, descriptorSetLayout);
 
             var pbrShader = Shader.FromFiles("Shaders/Pbr/PbrVert.spv", "Shaders/Pbr/PbrFrag.spv");
@@ -179,6 +714,7 @@ namespace Engine
 			if (aquireResult == Result.ErrorOutOfDateKhr)
 				return aquireResult;
 
+			/*
 			VulkanHelper.WaitForFence(context, frame.inFlight);
 			context.vk.ResetCommandBuffer(frame.commandBuffer, CommandBufferResetFlags.ReleaseResourcesBit);
 
@@ -217,22 +753,16 @@ namespace Engine
             context.vk.CmdBindIndexBuffer(frame.commandBuffer, indexBuffer, 0, IndexType.Uint16);
 
             context.vk.CmdDrawIndexed(frame.commandBuffer, indicies, 1, 0, 0, 0);
-			/*
-			*/
 
             FinishRender(context, frame.commandBuffer);
 			var result = context.vk.ResetFences(context.device, [frame.inFlight]);
 
 			VulkanHelper.QueueSubmitCommands(context, swapchain.GetGraphicsQueue(), frame.commandBuffer, frame.imageAvailable, frame.inFlight, PipelineStageFlags.ColorAttachmentOutputBit);
             //VulkanHelper.QueuePresent(context, swapchain.GetPresentQueue(), swapchain.GetSwapchain(), imageIndex, frame.imageAvailable);
+			*/
 
             return aquireResult;
 		}
-
-		unsafe void RenderSkybox(VkContext context)
-		{
-            
-        }
 
 		public unsafe void BeginRenderPass(VkContext context)
 		{
@@ -463,8 +993,8 @@ namespace Engine
 		{
 			Swapchain swapchain = Swapchain.Create(context, surface, commandPool);
 
-			RenderPass renderPass = CreateSkyboxRenderPass(context, swapchain, Swapchain.GetDepthFormat(context));
-			RenderPass meshRenderPass = CreateMeshRenderPass(context, swapchain, Swapchain.GetDepthFormat(context));
+			RenderPass renderPass = CreateSkyboxRenderPass(context, swapchain.GetSurfaceFormat().Format, Swapchain.GetDepthFormat(context));
+			RenderPass meshRenderPass = CreateMeshRenderPass(context, swapchain.GetSurfaceFormat().Format, Swapchain.GetDepthFormat(context));
 
 			FixedArray8<Sampler> samplers = new FixedArray8<Sampler>();
 			for (int i = 0; i < 8; i++)
@@ -479,7 +1009,7 @@ namespace Engine
             Pipeline meshPipeline = CreateGraphicsPipeline(context, swapchain.GetExtent(), pipelineLayout, renderPass, pbrShader);
 
             var shaderSkybox = Shader.FromFiles("Shaders/Pbr/SkyboxVert.spv", "Shaders/Pbr/SkyboxFrag.spv");
-            Pipeline skyboxPipeline = CreateGraphicsPipeline(context, swapchain.GetExtent(), pipelineLayout, meshRenderPass, shaderSkybox);
+            Pipeline skyboxPipeline = CreateGraphicsPipeline(context, swapchain.GetExtent(), pipelineLayout, renderPass, shaderSkybox);
 
 			Memory<ImageView> swapchainImages = new ImageView[swapchain.GetImageCount()];
 			swapchain.GetImages(context, swapchainImages.Span);
@@ -549,12 +1079,11 @@ namespace Engine
 			return framesInFlight;
 		}
 
-		static unsafe RenderPass CreateSkyboxRenderPass(VkContext context, Swapchain swapchain, Format depthFormat)
+		// TODO: Make private
+		public static unsafe RenderPass CreateSkyboxRenderPass(VkContext context, Format colorFormat, Format depthFormat)
 		{
-			var surfaceFormat = swapchain.GetSurfaceFormat();
-
 			AttachmentDescription colorAttachment = new();
-			colorAttachment.Format = surfaceFormat.Format;
+			colorAttachment.Format = colorFormat;
 			colorAttachment.Samples = SampleCountFlags.Count1Bit;
 			colorAttachment.LoadOp = AttachmentLoadOp.Clear;
 			colorAttachment.StoreOp = AttachmentStoreOp.Store;
@@ -615,12 +1144,10 @@ namespace Engine
 			return renderPass;
 		}
 
-		static unsafe RenderPass CreateMeshRenderPass(VkContext context, Swapchain swapchain, Format depthFormat)
+		public static unsafe RenderPass CreateMeshRenderPass(VkContext context, Format colorFormat, Format depthFormat)
 		{
-			var surfaceFormat = swapchain.GetSurfaceFormat();
-
 			AttachmentDescription colorAttachment = new();
-			colorAttachment.Format = surfaceFormat.Format;
+			colorAttachment.Format = colorFormat;
 			colorAttachment.Samples = SampleCountFlags.Count1Bit;
 			colorAttachment.LoadOp = AttachmentLoadOp.Load;
 			colorAttachment.StoreOp = AttachmentStoreOp.Store;
@@ -681,7 +1208,7 @@ namespace Engine
 			return renderPass;
 		}
 
-		static unsafe DescriptorSetLayout CreateDescriptorSetLayout(VkContext context)
+		public static unsafe DescriptorSetLayout CreateDescriptorSetLayout(VkContext context)
 		{
 			DescriptorSetLayoutBinding uniformBinding = new();
 			uniformBinding.Binding = 0;
@@ -779,7 +1306,8 @@ namespace Engine
 			return descriptorSetLayout;
 		}
 
-		static unsafe PipelineLayout CreatePipelineLayout(VkContext context, DescriptorSetLayout descriptorSetLayout)
+		// TODO: Make private
+		public static unsafe PipelineLayout CreatePipelineLayout(VkContext context, DescriptorSetLayout descriptorSetLayout)
 		{
 			PipelineColorBlendAttachmentState colorBlendAttatchment = new();
 			colorBlendAttatchment.ColorWriteMask = ColorComponentFlags.RBit | ColorComponentFlags.GBit | ColorComponentFlags.BBit | ColorComponentFlags.ABit;
@@ -859,7 +1387,8 @@ namespace Engine
 			return description;
 		}
 
-		static unsafe Pipeline CreateGraphicsPipeline(VkContext context, Extent2D swapchainExtent, PipelineLayout pipelineLayout, RenderPass renderPass, Shader shader)
+		// TMP: Make private
+		public static unsafe Pipeline CreateGraphicsPipeline(VkContext context, Extent2D swapchainExtent, PipelineLayout pipelineLayout, RenderPass renderPass, Shader shader)
 		{
 			//var shader = Shader.FromFiles("Shaders/VulkanVert.spv", "Shaders/VulkanFrag.spv");
 			//var shader = Shader.FromFiles("Shaders/Pbr/PbrVert.spv", "Shaders/Pbr/PbrFrag.spv");

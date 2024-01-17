@@ -150,9 +150,9 @@ namespace Runner
 			float midX = 4 / 2f;
 			float midY = 4f / 2f;
 
-			for (int y = 0; y < 4; y++)
+			for (int y = 0; y < 5; y++)
 			{
-				for (int x = 0; x < 4; x++)
+				for (int x = 0; x < 6; x++)
 				{
 					Create(mainWorld, new(-midX + x * 2.1f, -midY + y * 2.1f, -5), meshSphere, texture, 0);
 				}

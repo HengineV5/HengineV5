@@ -16,6 +16,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
+using static Engine.RenderPipeline;
 
 namespace Engine
 {
@@ -188,7 +189,9 @@ namespace Engine
 
 		bool framebufferResized = false;
 
-		VkMeshBuffer skyboxBuffer;
+		FixedArray8<Sampler> samplers;
+
+        VkMeshBuffer skyboxBuffer;
 		VkTextureBuffer skyboxTextureBuffer;
 		VkTextureBuffer skyboxHdrTextureBuffer;
 		VkTextureBuffer albedoTextureBuffer;
@@ -211,7 +214,13 @@ namespace Engine
 			defaultLights[1].Position = new Vector3(10, 0, -2);
 			defaultLights[2].Position = new Vector3(-10, 0, -2);
 			defaultLights[3].Position = new Vector3(0, 10, -2);
-		}
+
+            samplers = new FixedArray8<Sampler>();
+            for (int i = 0; i < 8; i++)
+            {
+                samplers[i] = VulkanHelper.CreateSampler(context);
+            }
+        }
 
 		public void Init()
 		{
@@ -250,7 +259,7 @@ namespace Engine
 
 		public unsafe void Dispose()
 		{
-			renderContext.renderPipeline.Dispose(context);
+			//renderContext.renderPipeline.Dispose(context);
 		}
 
 		public unsafe void PreRun()
@@ -269,7 +278,7 @@ namespace Engine
 					window.DoEvents();
 				}
 
-				renderContext.renderPipeline.RecreateSwapchain(context, renderContext.surface, renderContext.commandPool);
+				//renderContext.renderPipeline.RecreateSwapchain(context, renderContext.surface, renderContext.commandPool);
 				framebufferResized = false;
 			}
 		}
@@ -280,12 +289,24 @@ namespace Engine
 			UpdateCameraUbo2(ref context.ubo, camera, position, rotation);
 			context.ubo.cameraPos = new Vector3(position.x, position.y, position.z);
 
+			/*
             var result = renderContext.renderPipeline.StartRender(this.context, ref context.ubo, skyboxTextureBuffer.textureImageView, skyboxBuffer.vertexBuffer, skyboxBuffer.indexBuffer, skyboxBuffer.indicies);
             if (result == Result.ErrorOutOfDateKhr)
             {
                 renderContext.renderPipeline.RecreateSwapchain(this.context, renderContext.surface, renderContext.commandPool);
                 renderContext.renderPipeline.StartRender(this.context, ref context.ubo, skyboxTextureBuffer.textureImageView, skyboxBuffer.vertexBuffer, skyboxBuffer.indexBuffer, skyboxBuffer.indicies);
             }
+			*/
+
+			renderContext.pipelineNew.StartRender(this.context);
+            renderContext.pipelineNew.StartRenderPass(this.context, RenderPassId.Skybox, PipelineContainerLayer.Skybox);
+
+            ref DefaultDescriptorSet set = ref renderContext.pipelineNew.GetDescriptor(this.context, 0);
+            set.shaderInput.ubo.Value = context.ubo;
+            UpdateFrameDescriptorSet(this.context, set.descriptorSet, skyboxHdrTextureBuffer.textureImageView, 0, albedoTextureBuffer, normalTextureBuffer, metallicTextureBuffer, roughnessTextureBuffer, skyboxTextureBuffer);
+
+            renderContext.pipelineNew.Render(this.context, PipelineContainerLayer.Pbr, skyboxBuffer.vertexBuffer, skyboxBuffer.indexBuffer, skyboxBuffer.indicies, 0);
+            renderContext.pipelineNew.EndRenderPass(this.context);
 
             UpdateCameraUbo(ref context.ubo, camera, position, rotation);
         }
@@ -296,7 +317,7 @@ namespace Engine
 		[SystemPreLoop, SystemLayer(0)]
 		public void PreRender()
 		{
-			/*
+            /*
 			var result = renderContext.renderPipeline.StartRender(context);
 			if (result == Result.ErrorOutOfDateKhr)
 			{
@@ -304,45 +325,64 @@ namespace Engine
 				renderContext.renderPipeline.StartRender(context);
 			}
 			*/
-		}
+        }
 
 		[SystemPreLoop, SystemLayer(1, 2)]
 		public void PreRenderPass()
 		{
-			renderContext.renderPipeline.BeginRenderPass(context);
+			//renderContext.renderPipeline.BeginRenderPass(context);
+			renderContext.pipelineNew.StartRenderPass(context, RenderPassId.Mesh, PipelineContainerLayer.Pbr);
 
-			bufferIdx = 0;
+            bufferIdx = 0;
 			renderIdx = 0;
 		}
 
 		[SystemUpdate, SystemLayer(1, 2)]
 		public void BufferUpdate(ref VulkanRenderContext context, Position.Ref position, Rotation.Ref rotation, Scale.Ref scale, ref VkMeshBuffer mesh, ref VkTextureBuffer textureBuffer)
 		{
-			renderContext.renderPipeline.UpdateFrameDescriptorSet(this.context, skyboxHdrTextureBuffer.textureImageView, bufferIdx, albedoTextureBuffer, normalTextureBuffer, metallicTextureBuffer, roughnessTextureBuffer, skyboxTextureBuffer);
-			bufferIdx++;
+			//renderContext.renderPipeline.UpdateFrameDescriptorSet(this.context, skyboxHdrTextureBuffer.textureImageView, bufferIdx, albedoTextureBuffer, normalTextureBuffer, metallicTextureBuffer, roughnessTextureBuffer, skyboxTextureBuffer);
+			ref DefaultDescriptorSet set = ref renderContext.pipelineNew.GetDescriptor(this.context, bufferIdx);
+			set.shaderInput.ubo.Value = context.ubo;
+
+            //frame.uboMemories[idx].ubo.Value = ubo;
+            set.shaderInput.material.Value = defaultPbrMaterial;
+            for (int i = 0; i < 4; i++)
+            {
+                set.shaderInput.lights[i].Value = defaultLights[i];
+            }
+
+            UpdateEntityUbo(ref context.ubo, position, rotation, scale);
+
+            UpdateFrameDescriptorSet(this.context, set.descriptorSet, skyboxHdrTextureBuffer.textureImageView, bufferIdx, albedoTextureBuffer, normalTextureBuffer, metallicTextureBuffer, roughnessTextureBuffer, skyboxTextureBuffer);
+
+            bufferIdx++;
 		}
 
 		[SystemUpdate, SystemLayer(1, 2)]
 		public void RenderUpdate(ref VulkanRenderContext context, Position.Ref position, Rotation.Ref rotation, Scale.Ref scale, ref VkMeshBuffer mesh, ref VkTextureBuffer textureBuffer)
 		{
-			defaultPbrMaterial.roughness = (1 - ((float)renderIdx / 7));
+            //defaultPbrMaterial.roughness = (1 - ((float)renderIdx / 7));
 
-            UpdateEntityUbo(ref context.ubo, position, rotation, scale);
-			renderContext.renderPipeline.Render(this.context, ref context.ubo, defaultPbrMaterial, defaultLights, mesh.vertexBuffer, mesh.indexBuffer, mesh.indicies, renderIdx);
+            //UpdateEntityUbo(ref context.ubo, position, rotation, scale);
+
+			renderContext.pipelineNew.Render(this.context, PipelineContainerLayer.Pbr, mesh.vertexBuffer, mesh.indexBuffer, mesh.indicies, renderIdx);
+			//renderContext.renderPipeline.Render(this.context, ref context.ubo, defaultPbrMaterial, defaultLights, mesh.vertexBuffer, mesh.indexBuffer, mesh.indicies, renderIdx);
 			renderIdx++;
 		}
 
 		[SystemPostLoop, SystemLayer(1, 2)]
 		public void PostRenderPass()
 		{
-			renderContext.renderPipeline.EndRenderPass(context);
+			renderContext.pipelineNew.EndRenderPass(context);
+			//renderContext.renderPipeline.EndRenderPass(context);
 		}
 
 
 		[SystemPostLoop, SystemLayer(0)]
 		public void PostRender()
 		{
-			renderContext.renderPipeline.PresentRender(context);
+			renderContext.pipelineNew.PresentRender(context);
+			//renderContext.renderPipeline.PresentRender(context);
 		}
 
 		public void PostRun()
@@ -371,5 +411,109 @@ namespace Engine
 			ubo.rotation = Matrix4x4.CreateFromQuaternion(new Quaternion(rotation.x, rotation.y, rotation.z, rotation.w));
 			ubo.scale = Matrix4x4.CreateScale(new Vector3(scale.x, scale.y, scale.z));
 		}
-	} 
+
+        unsafe void UpdateFrameDescriptorSet(VkContext context, DescriptorSet descriptorSet, ImageView texture, int idx, VkTextureBuffer albedo, VkTextureBuffer normal, VkTextureBuffer metallic, VkTextureBuffer roughness, VkTextureBuffer skybox)
+        {
+            Span<DescriptorImageInfo> infos = stackalloc DescriptorImageInfo[6];
+            Span<WriteDescriptorSet> descriptorWrites = stackalloc WriteDescriptorSet[6];
+
+            {
+                ref DescriptorImageInfo imageInfo = ref infos[0];
+                imageInfo.ImageLayout = ImageLayout.ReadOnlyOptimal;
+                imageInfo.ImageView = texture;
+                imageInfo.Sampler = samplers[0];
+
+                ref WriteDescriptorSet imageDescriptorWrite = ref descriptorWrites[0];
+                imageDescriptorWrite.SType = StructureType.WriteDescriptorSet;
+                imageDescriptorWrite.DstSet = descriptorSet;
+                imageDescriptorWrite.DstBinding = 1;
+                imageDescriptorWrite.DstArrayElement = 0;
+                imageDescriptorWrite.DescriptorType = DescriptorType.CombinedImageSampler;
+                imageDescriptorWrite.DescriptorCount = 1;
+                imageDescriptorWrite.PImageInfo = (DescriptorImageInfo*)Unsafe.AsPointer(ref imageInfo);
+            }
+
+            {
+                ref DescriptorImageInfo imageInfo = ref infos[1];
+                imageInfo.ImageLayout = ImageLayout.ReadOnlyOptimal;
+                imageInfo.ImageView = albedo.textureImageView;
+                imageInfo.Sampler = samplers[1];
+
+                ref WriteDescriptorSet imageDescriptorWrite = ref descriptorWrites[1];
+                imageDescriptorWrite.SType = StructureType.WriteDescriptorSet;
+                imageDescriptorWrite.DstSet = descriptorSet;
+                imageDescriptorWrite.DstBinding = 2;
+                imageDescriptorWrite.DstArrayElement = 0;
+                imageDescriptorWrite.DescriptorType = DescriptorType.CombinedImageSampler;
+                imageDescriptorWrite.DescriptorCount = 1;
+                imageDescriptorWrite.PImageInfo = (DescriptorImageInfo*)Unsafe.AsPointer(ref imageInfo);
+            }
+
+            {
+                ref DescriptorImageInfo imageInfo = ref infos[2];
+                imageInfo.ImageLayout = ImageLayout.ReadOnlyOptimal;
+                imageInfo.ImageView = normal.textureImageView;
+                imageInfo.Sampler = samplers[2];
+
+                ref WriteDescriptorSet imageDescriptorWrite = ref descriptorWrites[2];
+                imageDescriptorWrite.SType = StructureType.WriteDescriptorSet;
+                imageDescriptorWrite.DstSet = descriptorSet;
+                imageDescriptorWrite.DstBinding = 3;
+                imageDescriptorWrite.DstArrayElement = 0;
+                imageDescriptorWrite.DescriptorType = DescriptorType.CombinedImageSampler;
+                imageDescriptorWrite.DescriptorCount = 1;
+                imageDescriptorWrite.PImageInfo = (DescriptorImageInfo*)Unsafe.AsPointer(ref imageInfo);
+            }
+
+            {
+                ref DescriptorImageInfo imageInfo = ref infos[3];
+                imageInfo.ImageLayout = ImageLayout.ReadOnlyOptimal;
+                imageInfo.ImageView = metallic.textureImageView;
+                imageInfo.Sampler = samplers[3];
+
+                ref WriteDescriptorSet imageDescriptorWrite = ref descriptorWrites[3];
+                imageDescriptorWrite.SType = StructureType.WriteDescriptorSet;
+                imageDescriptorWrite.DstSet = descriptorSet;
+                imageDescriptorWrite.DstBinding = 4;
+                imageDescriptorWrite.DstArrayElement = 0;
+                imageDescriptorWrite.DescriptorType = DescriptorType.CombinedImageSampler;
+                imageDescriptorWrite.DescriptorCount = 1;
+                imageDescriptorWrite.PImageInfo = (DescriptorImageInfo*)Unsafe.AsPointer(ref imageInfo);
+            }
+
+            {
+                ref DescriptorImageInfo imageInfo = ref infos[4];
+                imageInfo.ImageLayout = ImageLayout.ReadOnlyOptimal;
+                imageInfo.ImageView = roughness.textureImageView;
+                imageInfo.Sampler = samplers[4];
+
+                ref WriteDescriptorSet imageDescriptorWrite = ref descriptorWrites[4];
+                imageDescriptorWrite.SType = StructureType.WriteDescriptorSet;
+                imageDescriptorWrite.DstSet = descriptorSet;
+                imageDescriptorWrite.DstBinding = 5;
+                imageDescriptorWrite.DstArrayElement = 0;
+                imageDescriptorWrite.DescriptorType = DescriptorType.CombinedImageSampler;
+                imageDescriptorWrite.DescriptorCount = 1;
+                imageDescriptorWrite.PImageInfo = (DescriptorImageInfo*)Unsafe.AsPointer(ref imageInfo);
+            }
+
+            {
+                ref DescriptorImageInfo imageInfo = ref infos[5];
+                imageInfo.ImageLayout = ImageLayout.ReadOnlyOptimal;
+                imageInfo.ImageView = skybox.textureImageView;
+                imageInfo.Sampler = samplers[5];
+
+                ref WriteDescriptorSet imageDescriptorWrite = ref descriptorWrites[5];
+                imageDescriptorWrite.SType = StructureType.WriteDescriptorSet;
+                imageDescriptorWrite.DstSet = descriptorSet;
+                imageDescriptorWrite.DstBinding = 6;
+                imageDescriptorWrite.DstArrayElement = 0;
+                imageDescriptorWrite.DescriptorType = DescriptorType.CombinedImageSampler;
+                imageDescriptorWrite.DescriptorCount = 1;
+                imageDescriptorWrite.PImageInfo = (DescriptorImageInfo*)Unsafe.AsPointer(ref imageInfo);
+            }
+
+            context.vk.UpdateDescriptorSets(context.device, descriptorWrites, 0, null);
+        }
+    } 
 }
