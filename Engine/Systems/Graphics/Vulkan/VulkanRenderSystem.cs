@@ -289,7 +289,7 @@ namespace Engine
 			UpdateCameraUbo2(ref context.ubo, camera, position, rotation);
 			context.ubo.cameraPos = new Vector3(position.x, position.y, position.z);
 
-			/*
+            /*
             var result = renderContext.renderPipeline.StartRender(this.context, ref context.ubo, skyboxTextureBuffer.textureImageView, skyboxBuffer.vertexBuffer, skyboxBuffer.indexBuffer, skyboxBuffer.indicies);
             if (result == Result.ErrorOutOfDateKhr)
             {
@@ -298,15 +298,30 @@ namespace Engine
             }
 			*/
 
-			renderContext.pipelineNew.StartRender(this.context);
-            renderContext.pipelineNew.StartRenderPass(this.context, RenderPassId.Skybox, PipelineContainerLayer.Skybox);
+            // SkyboxTexture
+            renderContext.texturePipeline.StartRender(this.context);
+            renderContext.texturePipeline.StartRenderPass(this.context, RenderPassId.Skybox, PipelineContainerLayer.Skybox);
 
-            ref DefaultDescriptorSet set = ref renderContext.pipelineNew.GetDescriptor(this.context, 0);
+            ref DefaultDescriptorSet set2 = ref renderContext.texturePipeline.GetDescriptor(this.context, 0);
+            set2.shaderInput.ubo.Value = context.ubo;
+            UpdateFrameDescriptorSet(this.context, set2.descriptorSet, skyboxHdrTextureBuffer.textureImageView, albedoTextureBuffer, normalTextureBuffer, metallicTextureBuffer, roughnessTextureBuffer, skyboxTextureBuffer);
+
+            renderContext.texturePipeline.Render(this.context, PipelineContainerLayer.Pbr, skyboxBuffer.vertexBuffer, skyboxBuffer.indexBuffer, skyboxBuffer.indicies, 0);
+            /*
+			*/
+            renderContext.texturePipeline.EndRenderPass(this.context);
+            renderContext.texturePipeline.PresentRender(this.context);
+
+            // Skybox render
+            renderContext.pipeline.StartRender(this.context);
+            renderContext.pipeline.StartRenderPass(this.context, RenderPassId.Skybox, PipelineContainerLayer.Skybox);
+
+            ref DefaultDescriptorSet set = ref renderContext.pipeline.GetDescriptor(this.context, 0);
             set.shaderInput.ubo.Value = context.ubo;
             UpdateFrameDescriptorSet(this.context, set.descriptorSet, skyboxHdrTextureBuffer.textureImageView, albedoTextureBuffer, normalTextureBuffer, metallicTextureBuffer, roughnessTextureBuffer, skyboxTextureBuffer);
 
-            renderContext.pipelineNew.Render(this.context, PipelineContainerLayer.Pbr, skyboxBuffer.vertexBuffer, skyboxBuffer.indexBuffer, skyboxBuffer.indicies, 0);
-            renderContext.pipelineNew.EndRenderPass(this.context);
+            renderContext.pipeline.Render(this.context, PipelineContainerLayer.Pbr, skyboxBuffer.vertexBuffer, skyboxBuffer.indexBuffer, skyboxBuffer.indicies, 0);
+            renderContext.pipeline.EndRenderPass(this.context);
 
             UpdateCameraUbo(ref context.ubo, camera, position, rotation);
         }
@@ -331,7 +346,7 @@ namespace Engine
 		public void PreRenderPass()
 		{
 			//renderContext.renderPipeline.BeginRenderPass(context);
-			renderContext.pipelineNew.StartRenderPass(context, RenderPassId.Mesh, PipelineContainerLayer.Pbr);
+			renderContext.pipeline.StartRenderPass(context, RenderPassId.Mesh, PipelineContainerLayer.Pbr);
 
             bufferIdx = 0;
 			renderIdx = 0;
@@ -343,7 +358,7 @@ namespace Engine
             UpdateEntityUbo(ref context.ubo, position, rotation, scale);
 
             //renderContext.renderPipeline.UpdateFrameDescriptorSet(this.context, skyboxHdrTextureBuffer.textureImageView, bufferIdx, albedoTextureBuffer, normalTextureBuffer, metallicTextureBuffer, roughnessTextureBuffer, skyboxTextureBuffer);
-            ref DefaultDescriptorSet set = ref renderContext.pipelineNew.GetDescriptor(this.context, bufferIdx);
+            ref DefaultDescriptorSet set = ref renderContext.pipeline.GetDescriptor(this.context, bufferIdx);
 			set.shaderInput.ubo.Value = context.ubo;
 
             //frame.uboMemories[idx].ubo.Value = ubo;
@@ -365,7 +380,7 @@ namespace Engine
 
             //UpdateEntityUbo(ref context.ubo, position, rotation, scale);
 
-			renderContext.pipelineNew.Render(this.context, PipelineContainerLayer.Pbr, mesh.vertexBuffer, mesh.indexBuffer, mesh.indicies, renderIdx);
+			renderContext.pipeline.Render(this.context, PipelineContainerLayer.Pbr, mesh.vertexBuffer, mesh.indexBuffer, mesh.indicies, renderIdx);
 			//renderContext.renderPipeline.Render(this.context, ref context.ubo, defaultPbrMaterial, defaultLights, mesh.vertexBuffer, mesh.indexBuffer, mesh.indicies, renderIdx);
 			renderIdx++;
 		}
@@ -373,7 +388,7 @@ namespace Engine
 		[SystemPostLoop, SystemLayer(1, 2)]
 		public void PostRenderPass()
 		{
-			renderContext.pipelineNew.EndRenderPass(context);
+			renderContext.pipeline.EndRenderPass(context);
 			//renderContext.renderPipeline.EndRenderPass(context);
 		}
 
@@ -381,9 +396,9 @@ namespace Engine
 		[SystemPostLoop, SystemLayer(0)]
 		public void PostRender()
 		{
-			renderContext.pipelineNew.PresentRender(context);
-			//renderContext.renderPipeline.PresentRender(context);
-		}
+			renderContext.pipeline.PresentRender(context);
+            //renderContext.renderPipeline.PresentRender(context);
+        }
 
 		public void PostRun()
 		{

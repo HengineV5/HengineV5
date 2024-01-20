@@ -29,7 +29,7 @@ namespace Engine
     {
         public FrameInFlight<TDescriptorSet> frame;
         public Framebuffer framebuffer;
-        public uint imageIndex;
+        public uint imageIndex; // TODO: Remove
     }
 
     public struct RenderPipelineNew<TRenderTargetManager, TRenderPassInfo, TPipelineInfo, TDescriptorSet, TPipelineContainer, TPipelineEnum, TRenderPassContainer, TRenderPassEnum>
@@ -105,6 +105,7 @@ namespace Engine
         public void PresentRender(VkContext context)
         {
 			TRenderTargetManager.PresentTarget(context, ref renderTargetManager, ref renderTarget);
+            renderTarget = default;
         }
 
         // TODO: Improve

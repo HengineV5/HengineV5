@@ -1,12 +1,14 @@
 ﻿using Silk.NET.Vulkan;
 using EnCS;
+using Silk.NET.Vulkan.Video;
+using System.Buffers;
 
 namespace Engine
 {
     public struct SwapchainRenderTargetManager<TDescriptorSet> : IRenderTargetManager<SwapchainRenderTargetManager<TDescriptorSet>, TDescriptorSet, DefaultRenderPassInfo, DefaultPipelineInfo>
 		where TDescriptorSet : struct, IDescriptorSet<TDescriptorSet>
 	{
-        const int MAX_FRAMES_IN_FLIGHT = 1;
+        const int MAX_FRAMES_IN_FLIGHT = 3;
 
 		RenderPass compatibleRenderPass;
 		Swapchain swapchain;
@@ -47,41 +49,6 @@ namespace Engine
             return renderTarget;
         }
 
-		public static SwapchainRenderTargetManager<TDescriptorSet> Create(VkContext context, Swapchain swapchain, RenderPass compatibleRenderPass, CommandPool commandPool)
-		{
-            Memory<ImageView> swapchainImages = new ImageView[swapchain.GetImageCount()];
-            swapchain.GetImages(context, swapchainImages.Span);
-
-            Memory<Framebuffer> frameBuffers = new Framebuffer[swapchain.GetImageCount()];
-            for (int i = 0; i < frameBuffers.Span.Length; i++)
-            {
-                frameBuffers.Span[i] = VulkanHelper.CreateFrameBuffer(context, [swapchainImages.Span[i], swapchain.GetDepthImage()], compatibleRenderPass, swapchain.GetExtent());
-            }
-
-			DescriptorPool descriptorPool = TDescriptorSet.GetPool(context, MAX_FRAMES_IN_FLIGHT * 16);
-
-            Memory<FrameInFlight<TDescriptorSet>> framesInFlight = new FrameInFlight<TDescriptorSet>[MAX_FRAMES_IN_FLIGHT];
-            for (int i = 0; i < framesInFlight.Span.Length; i++)
-            {
-                FixedArray16<TDescriptorSet> descriptorSets = new FixedArray16<TDescriptorSet>();
-
-				for (int a = 0; a < 16; a++)
-				{
-					descriptorSets[a] = TDescriptorSet.Create(context, descriptorPool);
-                }
-
-                framesInFlight.Span[i] = new FrameInFlight<TDescriptorSet>(
-					VulkanHelper.CreateSemaphore(context),
-					VulkanHelper.CreateSemaphore(context),
-					VulkanHelper.CreateFence(context, FenceCreateFlags.SignaledBit),
-                    VulkanHelper.CreateCommandBuffer(context, commandPool),
-                    descriptorSets
-                );
-            }
-
-            return new SwapchainRenderTargetManager<TDescriptorSet>(swapchain, compatibleRenderPass, swapchainImages, frameBuffers, framesInFlight);
-        }
-
 		// TODO: Add image index as generic parameter in RenderTarget
         public static void PresentTarget(VkContext context, ref SwapchainRenderTargetManager<TDescriptorSet> self, ref RenderTarget<TDescriptorSet> renderTarget)
         {
@@ -105,6 +72,41 @@ namespace Engine
         public static Rect2D GetRenderArea(ref SwapchainRenderTargetManager<TDescriptorSet> self)
         {
 			return new(new(), self.swapchain.GetExtent());
+        }
+
+        public static SwapchainRenderTargetManager<TDescriptorSet> Create(VkContext context, Swapchain swapchain, RenderPass compatibleRenderPass, CommandPool commandPool)
+        {
+            Memory<ImageView> swapchainImages = new ImageView[swapchain.GetImageCount()];
+            swapchain.GetImages(context, swapchainImages.Span);
+
+            Memory<Framebuffer> frameBuffers = new Framebuffer[swapchain.GetImageCount()];
+            for (int i = 0; i < frameBuffers.Span.Length; i++)
+            {
+                frameBuffers.Span[i] = VulkanHelper.CreateFrameBuffer(context, [swapchainImages.Span[i], swapchain.GetDepthImage()], compatibleRenderPass, swapchain.GetExtent());
+            }
+
+            DescriptorPool descriptorPool = TDescriptorSet.GetPool(context, MAX_FRAMES_IN_FLIGHT * 16);
+
+            Memory<FrameInFlight<TDescriptorSet>> framesInFlight = new FrameInFlight<TDescriptorSet>[MAX_FRAMES_IN_FLIGHT];
+            for (int i = 0; i < framesInFlight.Span.Length; i++)
+            {
+                FixedArray16<TDescriptorSet> descriptorSets = new FixedArray16<TDescriptorSet>();
+
+                for (int a = 0; a < 16; a++)
+                {
+                    descriptorSets[a] = TDescriptorSet.Create(context, descriptorPool);
+                }
+
+                framesInFlight.Span[i] = new FrameInFlight<TDescriptorSet>(
+                    VulkanHelper.CreateSemaphore(context),
+                    VulkanHelper.CreateSemaphore(context),
+                    VulkanHelper.CreateFence(context, FenceCreateFlags.SignaledBit),
+                    VulkanHelper.CreateCommandBuffer(context, commandPool),
+                    descriptorSets
+                );
+            }
+
+            return new SwapchainRenderTargetManager<TDescriptorSet>(swapchain, compatibleRenderPass, swapchainImages, frameBuffers, framesInFlight);
         }
     }
 }

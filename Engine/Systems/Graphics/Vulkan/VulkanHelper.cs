@@ -329,7 +329,7 @@ namespace Engine
 			return commandPool;
 		}
 
-		public static unsafe void MapBufferMemory<T>(VkContext context, Buffer buffer, DeviceMemory bufferMemory, T data) where T : unmanaged
+		public static unsafe void CopyToBuffer<T>(VkContext context, Buffer buffer, DeviceMemory bufferMemory, T data) where T : unmanaged
 		{
 			context.vk.GetBufferMemoryRequirements(context.device, buffer, out MemoryRequirements memRequirements);
 
@@ -339,7 +339,7 @@ namespace Engine
 			context.vk.UnmapMemory(context.device, bufferMemory);
 		}
 
-		public static unsafe void MapBufferMemory<T>(VkContext context, Buffer buffer, DeviceMemory bufferMemory, Span<T> data) where T : unmanaged
+		public static unsafe void CopyToBuffer<T>(VkContext context, Buffer buffer, DeviceMemory bufferMemory, Span<T> data) where T : unmanaged
 		{
 			context.vk.GetBufferMemoryRequirements(context.device, buffer, out MemoryRequirements memRequirements);
 			if (data.Length > (int)memRequirements.Size) // When renting memory from pool buffer might be bigger than requested
@@ -351,7 +351,21 @@ namespace Engine
 			context.vk.UnmapMemory(context.device, bufferMemory);
 		}
 
-		public static Format FindSupportedFormat(VkContext context, Span<Format> formats, ImageTiling tiling, FormatFeatureFlags features)
+        public static unsafe Span<byte> MapBuffer(VkContext context, Buffer buffer, DeviceMemory bufferMemory)
+        {
+            context.vk.GetBufferMemoryRequirements(context.device, buffer, out MemoryRequirements memRequirements);
+
+            void* dataPtr;
+            context.vk.MapMemory(context.device, bufferMemory, 0, memRequirements.Size, 0, &dataPtr);
+			return new Span<byte>(dataPtr, (int)memRequirements.Size);
+        }
+
+        public static unsafe void UnmapBuffer(VkContext context, DeviceMemory bufferMemory)
+        {
+            context.vk.UnmapMemory(context.device, bufferMemory);
+        }
+
+        public static Format FindSupportedFormat(VkContext context, Span<Format> formats, ImageTiling tiling, FormatFeatureFlags features)
 		{
 			for (int i = 0; i < formats.Length; i++)
 			{
@@ -483,7 +497,7 @@ namespace Engine
 			EndSingleShotCommands(context, commandBuffer, commandPool, queue);
 		}
 
-		public static unsafe void CopyBuffer(VkContext context, CommandPool commandPool, Queue queue, Buffer srcBuffer, Image dstImage, uint width, uint height, uint baseArrayLayer, uint layerCount)
+		public static unsafe void CopyBufferToImage(VkContext context, CommandPool commandPool, Queue queue, Buffer srcBuffer, Image dstImage, uint width, uint height, uint baseArrayLayer, uint layerCount)
 		{
 			CommandBuffer commandBuffer = BeginSingleShotCommands(context, commandPool);
 
@@ -504,6 +518,52 @@ namespace Engine
 
 			EndSingleShotCommands(context, commandBuffer, commandPool, queue);
 		}
+
+        public static unsafe void CopyImageToBuffer(VkContext context, CommandPool commandPool, Queue queue, Image srcImage, uint width, uint height, Buffer dstBuffer, uint baseArrayLayer, uint layerCount)
+        {
+            CommandBuffer commandBuffer = BeginSingleShotCommands(context, commandPool);
+
+            BufferImageCopy copyRegion = new();
+            copyRegion.BufferOffset = 0;
+            copyRegion.BufferRowLength = 0;
+            copyRegion.BufferImageHeight = 0;
+
+            copyRegion.ImageSubresource.AspectMask = ImageAspectFlags.ColorBit;
+            copyRegion.ImageSubresource.MipLevel = 0;
+            copyRegion.ImageSubresource.BaseArrayLayer = baseArrayLayer;
+            copyRegion.ImageSubresource.LayerCount = 1;
+
+            copyRegion.ImageOffset = new(0, 0, 0);
+            copyRegion.ImageExtent = new(width, height, 1);
+
+            context.vk.CmdCopyImageToBuffer(commandBuffer, srcImage, ImageLayout.TransferSrcOptimal, dstBuffer, 1, copyRegion);
+
+            EndSingleShotCommands(context, commandBuffer, commandPool, queue);
+        }
+
+        public static unsafe void CopyImage(VkContext context, CommandPool commandPool, Queue queue, Image srcImage, Image dstImage, Extent3D extent)
+		{
+            CommandBuffer commandBuffer = BeginSingleShotCommands(context, commandPool);
+
+			ImageCopy imageCopy = new();
+			imageCopy.SrcSubresource.AspectMask = ImageAspectFlags.ColorBit;
+			imageCopy.SrcSubresource.MipLevel = 0;
+			imageCopy.SrcSubresource.BaseArrayLayer = 0;
+			imageCopy.SrcSubresource.LayerCount = 1;
+			imageCopy.SrcOffset = new Offset3D(0, 0, 0);
+
+			imageCopy.DstSubresource.AspectMask = ImageAspectFlags.ColorBit;
+			imageCopy.DstSubresource.MipLevel = 0;
+			imageCopy.DstSubresource.BaseArrayLayer = 0;
+			imageCopy.DstSubresource.LayerCount = 1;
+			imageCopy.DstOffset = new Offset3D(0, 0, 0);
+
+			imageCopy.Extent = extent;
+
+			context.vk.CmdCopyImage(commandBuffer, srcImage, ImageLayout.TransferSrcOptimal, dstImage, ImageLayout.TransferDstOptimal, 1, imageCopy);
+
+            EndSingleShotCommands(context, commandBuffer, commandPool, queue);
+        }
 
 		public static unsafe void TransitionImageLayout(VkContext context, CommandPool commandPool, Queue queue, Image image, Format format, ImageLayout oldLayout, ImageLayout newLayout, uint layerCount)
 		{
@@ -533,7 +593,7 @@ namespace Engine
 			PipelineStageFlags sourceStage = PipelineStageFlags.None;
 			PipelineStageFlags destinationStage = PipelineStageFlags.None;
 
-			if (oldLayout == ImageLayout.Undefined && newLayout == ImageLayout.TransferDstOptimal)
+			if (oldLayout == ImageLayout.Undefined && (newLayout == ImageLayout.TransferDstOptimal || newLayout == ImageLayout.TransferSrcOptimal))
 			{
 				barrier.SrcAccessMask = AccessFlags.None;
 				barrier.DstAccessMask = AccessFlags.TransferWriteBit;
@@ -557,7 +617,47 @@ namespace Engine
 				sourceStage = PipelineStageFlags.TopOfPipeBit;
 				destinationStage = PipelineStageFlags.EarlyFragmentTestsBit;
 			}
-			else
+			else if (oldLayout == ImageLayout.ColorAttachmentOptimal && newLayout == ImageLayout.TransferDstOptimal)
+            {
+                barrier.SrcAccessMask = AccessFlags.None;
+                barrier.DstAccessMask = AccessFlags.TransferWriteBit;
+
+                sourceStage = PipelineStageFlags.TopOfPipeBit;
+                destinationStage = PipelineStageFlags.TransferBit;
+            }
+            else if (oldLayout == ImageLayout.TransferDstOptimal && newLayout == ImageLayout.TransferSrcOptimal)
+            {
+                barrier.SrcAccessMask = AccessFlags.None;
+                barrier.DstAccessMask = AccessFlags.TransferWriteBit;
+
+                sourceStage = PipelineStageFlags.TopOfPipeBit;
+                destinationStage = PipelineStageFlags.TransferBit;
+            }
+            else if (oldLayout == ImageLayout.TransferSrcOptimal && newLayout == ImageLayout.ColorAttachmentOptimal)
+            {
+                barrier.SrcAccessMask = AccessFlags.TransferWriteBit;
+                barrier.DstAccessMask = AccessFlags.ShaderReadBit;
+
+                sourceStage = PipelineStageFlags.TransferBit;
+                destinationStage = PipelineStageFlags.FragmentShaderBit;
+            }
+            else if (oldLayout == ImageLayout.PresentSrcKhr && newLayout == ImageLayout.TransferSrcOptimal)
+            {
+                barrier.SrcAccessMask = AccessFlags.ColorAttachmentWriteBit;
+                barrier.DstAccessMask = AccessFlags.TransferReadBit;
+
+                sourceStage = PipelineStageFlags.ColorAttachmentOutputBit;
+                destinationStage = PipelineStageFlags.TransferBit;
+            }
+            else if (oldLayout == ImageLayout.TransferSrcOptimal && newLayout == ImageLayout.PresentSrcKhr)
+            {
+                barrier.SrcAccessMask = AccessFlags.TransferReadBit;
+                barrier.DstAccessMask = AccessFlags.ColorAttachmentWriteBit;
+
+                sourceStage = PipelineStageFlags.TransferBit;
+                destinationStage = PipelineStageFlags.ColorAttachmentOutputBit;
+            }
+            else
 			{
 				throw new Exception("Invlaid layout transition!");
 			}

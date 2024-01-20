@@ -97,12 +97,12 @@ namespace Engine.Graphics
             Buffer stagingBuffer = VulkanHelper.CreateBuffer<byte>(context, BufferUsageFlags.TransferSrcBit, (uint)imageSize);
             DeviceMemory stagingBufferMemory = VulkanHelper.CreateBufferMemory(context, stagingBuffer, MemoryPropertyFlags.HostVisibleBit | MemoryPropertyFlags.HostCoherentBit);
 
-            VulkanHelper.MapBufferMemory(context, stagingBuffer, stagingBufferMemory, buff.Memory.Span);
+            VulkanHelper.CopyToBuffer(context, stagingBuffer, stagingBufferMemory, buff.Memory.Span);
 
             VulkanHelper.TransitionImageLayout(context, commandPool, graphicsQueue, textureBuffer.texture, format, ImageLayout.Undefined, ImageLayout.TransferDstOptimal, isCubemap ? 6u : 1u);
             for (int i = 0; i < (isCubemap ? 6 : 1); i++)
             {
-                VulkanHelper.CopyBuffer(context, commandPool, graphicsQueue, stagingBuffer, textureBuffer.texture, (uint)img.Width, (uint)img.Height, (uint)i, 1);
+                VulkanHelper.CopyBufferToImage(context, commandPool, graphicsQueue, stagingBuffer, textureBuffer.texture, (uint)img.Width, (uint)img.Height, (uint)i, 1);
             }
             VulkanHelper.TransitionImageLayout(context, commandPool, graphicsQueue, textureBuffer.texture, format, ImageLayout.TransferDstOptimal, ImageLayout.ShaderReadOnlyOptimal, isCubemap ? 6u : 1u);
 

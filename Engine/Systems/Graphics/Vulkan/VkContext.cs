@@ -1,4 +1,5 @@
-﻿using Silk.NET.Core;
+﻿using EnCS;
+using Silk.NET.Core;
 using Silk.NET.Core.Contexts;
 using Silk.NET.Core.Native;
 using Silk.NET.SDL;
@@ -19,12 +20,25 @@ namespace Engine
 		public CommandPool commandPool;
 
 		//public RenderPipeline renderPipeline;
-		public RenderPipelineNew<SwapchainRenderTargetManager<DefaultDescriptorSet>, DefaultRenderPassInfo, DefaultPipelineInfo, DefaultDescriptorSet, PipelineContainer, PipelineContainerLayer, RenderPassContainer, RenderPassId> pipelineNew;
+		public RenderPipelineNew<SwapchainRenderTargetManager<DefaultDescriptorSet>, DefaultRenderPassInfo, DefaultPipelineInfo, DefaultDescriptorSet, PipelineContainer, PipelineContainerLayer, RenderPassContainer, RenderPassId> pipeline;
+		public RenderPipelineNew<TextureRenderTargetManager<DefaultDescriptorSet>, DefaultRenderPassInfo, DefaultPipelineInfo, DefaultDescriptorSet, PipelineContainer, PipelineContainerLayer, RenderPassContainer, RenderPassId> texturePipeline;
 
         public VkRenderContext(VkContext context)
         {
 			this.context = context;
         }
+
+		Image image;
+		DeviceMemory imageMemory;
+		ImageView imageView;
+
+		Image image2;
+		DeviceMemory imageMemory2;
+		ImageView imageView2;
+
+		Image image3;
+		DeviceMemory imageMemory3;
+		ImageView imageView3;
 
 		public void Setup()
 		{
@@ -39,7 +53,36 @@ namespace Engine
 			RenderPassContainer container = RenderPassContainer.Create(context, new DefaultRenderPassInfo(swapchain.GetSurfaceFormat().Format, Swapchain.GetDepthFormat(context)));
 
 			SwapchainRenderTargetManager<DefaultDescriptorSet> renderTargetManager = SwapchainRenderTargetManager<DefaultDescriptorSet>.Create(context, swapchain, container.skyboxRenderPass, commandPool);
-            pipelineNew = RenderPipelineNew<SwapchainRenderTargetManager<DefaultDescriptorSet>, DefaultRenderPassInfo, DefaultPipelineInfo, DefaultDescriptorSet, PipelineContainer, PipelineContainerLayer, RenderPassContainer, RenderPassId>.Create(context, renderTargetManager);
+            pipeline = RenderPipelineNew<SwapchainRenderTargetManager<DefaultDescriptorSet>, DefaultRenderPassInfo, DefaultPipelineInfo, DefaultDescriptorSet, PipelineContainer, PipelineContainerLayer, RenderPassContainer, RenderPassId>.Create(context, renderTargetManager);
+
+			Extent2D extent = swapchain.GetExtent();
+
+            image = VulkanHelper.CreateImage(context, new Extent3D(extent.Width, extent.Height, 1), ImageType.Type2D, Format.B8G8R8A8Srgb, ImageTiling.Optimal, ImageUsageFlags.TransferSrcBit | ImageUsageFlags.ColorAttachmentBit, ImageCreateFlags.None, 1);
+            imageMemory = VulkanHelper.CreateMemory(context, image, MemoryPropertyFlags.DeviceLocalBit);
+            imageView = VulkanHelper.CreateImageView(context, image, ImageViewType.Type2D, Format.B8G8R8A8Srgb, ImageAspectFlags.ColorBit);
+
+            image2 = VulkanHelper.CreateImage(context, new Extent3D(extent.Width, extent.Height, 1), ImageType.Type2D, Swapchain.GetDepthFormat(context), ImageTiling.Optimal, ImageUsageFlags.DepthStencilAttachmentBit, ImageCreateFlags.None, 1);
+            imageMemory2 = VulkanHelper.CreateMemory(context, image2, MemoryPropertyFlags.DeviceLocalBit);
+            imageView2 = VulkanHelper.CreateImageView(context, image2, ImageViewType.Type2D, Swapchain.GetDepthFormat(context), ImageAspectFlags.DepthBit);
+
+            image3 = VulkanHelper.CreateImage(context, new Extent3D(extent.Width, extent.Height, 1), ImageType.Type2D, Format.R8G8B8A8Srgb, ImageTiling.Optimal, ImageUsageFlags.TransferSrcBit | ImageUsageFlags.TransferDstBit | ImageUsageFlags.ColorAttachmentBit, ImageCreateFlags.None, 1);
+            imageMemory3 = VulkanHelper.CreateMemory(context, image3, MemoryPropertyFlags.DeviceLocalBit);
+            imageView3 = VulkanHelper.CreateImageView(context, image3, ImageViewType.Type2D, Format.R8G8B8A8Srgb, ImageAspectFlags.ColorBit);
+
+            FixedArray2<Image> images = new FixedArray2<Image>();
+            images[0] = image;
+            images[1] = image2;
+
+			FixedArray2<ImageView> imageViews = new FixedArray2<ImageView>();
+			imageViews[0] = imageView;
+			imageViews[1] = imageView2;
+
+            FixedArray2<Format> formats = new FixedArray2<Format>();
+            formats[0] = Format.B8G8R8A8Srgb;
+            formats[1] = Swapchain.GetDepthFormat(context);
+
+            TextureRenderTargetManager<DefaultDescriptorSet> textureTargetManager = TextureRenderTargetManager<DefaultDescriptorSet>.Create(context, extent, image3, images, imageViews, formats, container.skyboxRenderPass, commandPool);
+			texturePipeline = RenderPipelineNew<TextureRenderTargetManager<DefaultDescriptorSet>, DefaultRenderPassInfo, DefaultPipelineInfo, DefaultDescriptorSet, PipelineContainer, PipelineContainerLayer, RenderPassContainer, RenderPassId>.Create(context, textureTargetManager);
         }
 
 		static unsafe SurfaceKHR CreateSurface(VkContext context)

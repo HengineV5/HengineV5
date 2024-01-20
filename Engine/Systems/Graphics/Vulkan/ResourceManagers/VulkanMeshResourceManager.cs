@@ -78,10 +78,10 @@ namespace Engine.Graphics
 			Buffer stagingBuffer = VulkanHelper.CreateBuffer<Vertex>(context, BufferUsageFlags.TransferSrcBit, (uint)verticies.Length);
 			DeviceMemory stagingBufferMemory = VulkanHelper.CreateBufferMemory(context, stagingBuffer, MemoryPropertyFlags.HostVisibleBit | MemoryPropertyFlags.HostCoherentBit);
 
-			VulkanHelper.MapBufferMemory(context, stagingBuffer, stagingBufferMemory, verticies.Span);
+			VulkanHelper.CopyToBuffer(context, stagingBuffer, stagingBufferMemory, verticies.Span);
 			VulkanHelper.CopyBuffer(context, commandPool, graphicsQueue, stagingBuffer, meshBuffer.vertexBuffer, (uint)verticies.Span.Length * Vertex.SizeInBytes);
 
-			VulkanHelper.MapBufferMemory(context, stagingBuffer, stagingBufferMemory, indicies.Span);
+			VulkanHelper.CopyToBuffer(context, stagingBuffer, stagingBufferMemory, indicies.Span);
 			VulkanHelper.CopyBuffer(context, commandPool, graphicsQueue, stagingBuffer, meshBuffer.indexBuffer, (uint)indicies.Span.Length * sizeof(ushort));
 
 			unsafe
