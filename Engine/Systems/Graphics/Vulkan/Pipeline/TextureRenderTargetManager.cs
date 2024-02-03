@@ -5,29 +5,29 @@ using Buffer = Silk.NET.Vulkan.Buffer;
 
 namespace Engine
 {
-    public struct TextureRenderTargetManager<TDescriptorSet> : IRenderTargetManager<TextureRenderTargetManager<TDescriptorSet>, TDescriptorSet, DefaultRenderPassInfo, DefaultPipelineInfo>
+    public struct TextureRenderTargetManager<TDescriptorSet, TPixel> : IRenderTargetManager<TextureRenderTargetManager<TDescriptorSet, TPixel>, TDescriptorSet, DefaultRenderPassInfo, DefaultPipelineInfo>
         where TDescriptorSet : struct, IDescriptorSet<TDescriptorSet>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
+        Action<Image<TPixel>> imgAction;
+
         Extent2D extent;
         RenderPass compatibleRenderPass;
-        Image dstImage;
-        FixedArray2<Image> images;
-        FixedArray2<Format> formats;
+        FixedArray2<(Image, Format)> images;
         Framebuffer framebuffer;
         FrameInFlight<TDescriptorSet> frameInFlight;
 
-        public TextureRenderTargetManager(Extent2D extent, RenderPass compatibleRenderPass, Image dstImage, FixedArray2<Image> images, FixedArray2<Format> formats, Framebuffer framebuffer, FrameInFlight<TDescriptorSet> frameInFlight)
+        public TextureRenderTargetManager(Action<Image<TPixel>> imgAction, Extent2D extent, RenderPass compatibleRenderPass, FixedArray2<(Image, Format)> images, Framebuffer framebuffer, FrameInFlight<TDescriptorSet> frameInFlight)
         {
+            this.imgAction = imgAction;
             this.extent = extent;
             this.compatibleRenderPass = compatibleRenderPass;
-            this.dstImage = dstImage;
             this.images = images;
-            this.formats = formats;
             this.framebuffer = framebuffer;
             this.frameInFlight = frameInFlight;
         }
 
-        public static RenderTarget<TDescriptorSet> AquireRenderTarget(VkContext context, ref TextureRenderTargetManager<TDescriptorSet> self)
+        public static RenderTarget<TDescriptorSet> AquireRenderTarget(VkContext context, ref TextureRenderTargetManager<TDescriptorSet, TPixel> self)
         {
             SemaphoreSignalInfo signalInfo = new();
             signalInfo.SType = StructureType.SemaphoreSignalInfo;
@@ -44,22 +44,22 @@ namespace Engine
             };
         }
 
-        public static DefaultPipelineInfo GetPipelineInfo(VkContext context, ref TextureRenderTargetManager<TDescriptorSet> self)
+        public static DefaultPipelineInfo GetPipelineInfo(VkContext context, ref TextureRenderTargetManager<TDescriptorSet, TPixel> self)
         {
             return new DefaultPipelineInfo(self.extent, self.compatibleRenderPass);
         }
 
-        public static DefaultRenderPassInfo GetRendePassInfo(VkContext context, ref TextureRenderTargetManager<TDescriptorSet> self)
+        public static DefaultRenderPassInfo GetRendePassInfo(VkContext context, ref TextureRenderTargetManager<TDescriptorSet, TPixel> self)
         {
-            return new DefaultRenderPassInfo(self.formats[0], self.formats[1]);
+            return new DefaultRenderPassInfo(self.images[0].Item2, self.images[1].Item2);
         }
 
-        public static Rect2D GetRenderArea(ref TextureRenderTargetManager<TDescriptorSet> self)
+        public static Rect2D GetRenderArea(ref TextureRenderTargetManager<TDescriptorSet, TPixel> self)
         {
             return new Rect2D(new(), self.extent);
         }
 
-        public static void PresentTarget(VkContext context, ref TextureRenderTargetManager<TDescriptorSet> self, ref RenderTarget<TDescriptorSet> renderTarget)
+        public static void PresentTarget(VkContext context, ref TextureRenderTargetManager<TDescriptorSet, TPixel> self, ref RenderTarget<TDescriptorSet> renderTarget)
         {
             //context.vk.DeviceWaitIdle(context.device);
             /*
@@ -84,7 +84,7 @@ namespace Engine
             DeviceMemory stagingBufferMemory = VulkanHelper.CreateBufferMemory(context, stagingBuffer, MemoryPropertyFlags.HostVisibleBit | MemoryPropertyFlags.HostCoherentBit);
 
             // Convert swapchain image to tranfer src
-            VulkanHelper.TransitionImageLayout(context, commandPool, graphicsQueue, self.images[0], self.formats[0], ImageLayout.PresentSrcKhr, ImageLayout.TransferSrcOptimal, 1);
+            VulkanHelper.TransitionImageLayout(context, commandPool, graphicsQueue, self.images[0].Item1, self.images[0].Item2, ImageLayout.PresentSrcKhr, ImageLayout.TransferSrcOptimal, 1, 1);
 
             //VulkanHelper.TransitionImageLayout(context, commandPool, graphicsQueue, self.dstImage, Format.R8G8B8A8Srgb, ImageLayout.ColorAttachmentOptimal, ImageLayout.TransferDstOptimal, 1);
             //VulkanHelper.CopyImage(context, commandPool, graphicsQueue, self.images[0], self.dstImage, new Extent3D(self.extent.Width, self.extent.Height, 1));
@@ -92,37 +92,18 @@ namespace Engine
 
             // Transfer image to staging buffer visible to host
             //VulkanHelper.CopyImageToBuffer(context, commandPool, graphicsQueue, self.dstImage, self.extent.Width, self.extent.Height, stagingBuffer, 0, 1);
-            VulkanHelper.CopyImageToBuffer(context, commandPool, graphicsQueue, self.images[0], self.extent.Width, self.extent.Height, stagingBuffer, 0, 1);
+            VulkanHelper.CopyImageToBuffer(context, commandPool, graphicsQueue, self.images[0].Item1, self.extent.Width, self.extent.Height, stagingBuffer, 0);
 
             //VulkanHelper.TransitionImageLayout(context, commandPool, graphicsQueue, self.dstImage, Format.R8G8B8A8Srgb, ImageLayout.TransferSrcOptimal, ImageLayout.ColorAttachmentOptimal, 1);
 
             // Convert image back to swapchain usable
-            VulkanHelper.TransitionImageLayout(context, commandPool, graphicsQueue, self.images[0], self.formats[0], ImageLayout.TransferSrcOptimal, ImageLayout.PresentSrcKhr, 1);
+            VulkanHelper.TransitionImageLayout(context, commandPool, graphicsQueue, self.images[0].Item1, self.images[0].Item2, ImageLayout.TransferSrcOptimal, ImageLayout.PresentSrcKhr, 1, 1);
 
-            //using var buff = MemoryPool<byte>.Shared.Rent((int)imageSize);
-            //VulkanHelper.CopyToBuffer(context, stagingBuffer, stagingBufferMemory, buff.Memory.Span);
-            //var buff = VulkanHelper.MapBuffer(context, stagingBuffer, stagingBufferMemory);
             var buff = new VulkanBuffer(context, stagingBuffer, stagingBufferMemory);
 
-            using var img = SixLabors.ImageSharp.Image.LoadPixelData<Rgba32>(buff.Span, (int)self.extent.Width, (int)self.extent.Height);
-            img.ProcessPixelRows(a => {
-                for (int y = 0; y < a.Height; y++)
-                {
-                    Span<Rgba32> row = a.GetRowSpan(y);
+            using var img = SixLabors.ImageSharp.Image.LoadPixelData<TPixel>(buff.Span, (int)self.extent.Width, (int)self.extent.Height);
+            self.imgAction(img);
 
-                    for (int x = 0; x < row.Length; x++)
-                    {
-                        ref Rgba32 pixel = ref row[x];
-                        byte r = pixel.R;
-                        byte g = pixel.G;
-                        byte b = pixel.B;
-                        pixel = new Rgba32(b, g, r, pixel.A);
-                    }
-                }
-            });
-
-            //Console.WriteLine(buff.Memory.Span[0]);
-            img.Save("test.jpg");
             buff.Unmap();
 
             unsafe
@@ -133,9 +114,12 @@ namespace Engine
             }
         }
 
-        public static TextureRenderTargetManager<TDescriptorSet> Create(VkContext context, Extent2D extent, Image dstImage, FixedArray2<Image> images, FixedArray2<ImageView> imageViews, FixedArray2<Format> formats, RenderPass compatibleRenderPass, CommandPool commandPool)
+        public static TextureRenderTargetManager<TDescriptorSet, TPixel> Create(Action<Image<TPixel>> imgAction, VkContext context, Extent2D extent, FixedArray2<Image> images, FixedArray2<ImageView> imageViews, FixedArray2<Format> formats, RenderPass compatibleRenderPass, CommandPool commandPool)
         {
             Framebuffer framebuffer = VulkanHelper.CreateFrameBuffer(context, imageViews, compatibleRenderPass, extent);
+            FixedArray2<(Image, Format)> imageFormats = new FixedArray2<(Silk.NET.Vulkan.Image, Format)>();
+            imageFormats[0] = (images[0], formats[0]);
+            imageFormats[1] = (images[1], formats[1]);
 
             DescriptorPool descriptorPool = TDescriptorSet.GetPool(context, 16);
             FixedArray16<TDescriptorSet> descriptorSets = new FixedArray16<TDescriptorSet>();
@@ -156,10 +140,10 @@ namespace Engine
             uint graphicsQueueFamily = VulkanHelper.GetGraphicsQueueFamily(context);
             Queue graphicsQueue = VulkanHelper.GetQueue(context, graphicsQueueFamily);
 
-            VulkanHelper.TransitionImageLayout(context, commandPool, graphicsQueue, dstImage, Format.R8G8B8A8Srgb, ImageLayout.Undefined, ImageLayout.TransferSrcOptimal, 1);
-            VulkanHelper.TransitionImageLayout(context, commandPool, graphicsQueue, dstImage, Format.R8G8B8A8Srgb, ImageLayout.TransferSrcOptimal, ImageLayout.ColorAttachmentOptimal, 1);
+            //VulkanHelper.TransitionImageLayout(context, commandPool, graphicsQueue, dstImage, Format.R8G8B8A8Srgb, ImageLayout.Undefined, ImageLayout.TransferSrcOptimal, 1);
+            //VulkanHelper.TransitionImageLayout(context, commandPool, graphicsQueue, dstImage, Format.R8G8B8A8Srgb, ImageLayout.TransferSrcOptimal, ImageLayout.ColorAttachmentOptimal, 1);
 
-            return new TextureRenderTargetManager<TDescriptorSet>(extent, compatibleRenderPass, dstImage, images, formats, framebuffer, frameInFlight);
+            return new TextureRenderTargetManager<TDescriptorSet, TPixel>(imgAction, extent, compatibleRenderPass, imageFormats, framebuffer, frameInFlight);
         }
     }
 }

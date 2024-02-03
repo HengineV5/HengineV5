@@ -4,6 +4,7 @@ using Engine.Components.Graphics;
 using Engine.Graphics;
 using Engine.Parsing;
 using Silk.NET.Maths;
+using Silk.NET.OpenAL;
 using Silk.NET.Windowing;
 using System.Net;
 using System.Numerics;
@@ -13,31 +14,6 @@ namespace Runner
 {
 	internal class Program
 	{
-		/*
-		static void Create(Main world, ShaderProgram shader, VertexArrayObject vao, Vector3 pos)
-		{
-			var objRef = world.Create(new Entity());
-			Entity.Ref ball = world.Get(objRef);
-			ball.Position.Set(pos);
-			ball.Scale.Set(Vector3.One);
-			ball.Rotation.Set(Quaternion.Identity);
-
-			ball.ShaderProgram.Set(shader);
-			ball.VertexArrayObject.Set(vao);
-		}
-
-		static void Create(Main world, Vector3 pos, Mesh mesh, ETexture texture)
-		{
-			var objRef = world.Create(new Entity());
-			Entity.Ref entRef = world.Get(objRef);
-			entRef.Position.Set(pos);
-			entRef.Scale.Set(Vector3.One);
-			entRef.Rotation.Set(Quaternion.Identity);
-			entRef.Mesh.Set(mesh);
-			entRef.ETexture.Set(texture);
-		}
-		*/
-
 		static void Create(Main world, Vector3 pos, Mesh mesh, ETexture texture, int idx)
 		{
 			var objRef = world.Create(new NEntity());
@@ -53,7 +29,22 @@ namespace Runner
 			});
 		}
 
-		static void CreateCamera(Main world, Camera camera, Vector3 position)
+        static void Create(Main world, Vector3 pos, Mesh mesh, PbrMaterialNew material, int idx)
+        {
+            var objRef = world.Create(new NEntity());
+            NEntity.Ref entRef = world.Get(objRef);
+            entRef.Position.Set(pos);
+            entRef.Scale.Set(Vector3.One);
+            entRef.Rotation.Set(Quaternion.Identity);
+            entRef.Mesh.Set(mesh);
+            entRef.PbrMaterialNew.Set(material);
+            entRef.Networked.Set(new Networked()
+            {
+                idx = idx
+            });
+        }
+
+        static void CreateCamera(Main world, Camera camera, Vector3 position)
 		{
 			var objRef = world.Create(new Cam());
 			Cam.Ref entRef = world.Get(objRef);
@@ -123,12 +114,16 @@ namespace Runner
 			var ecs = engine.GetEcs();
 			Main mainWorld = ecs.GetMain();
 
+			//var meshBox = Mesh.LoadGltf("Box", "Models/Box/box.gltf");
+			var meshDuck = Mesh.LoadGltf("Duck", "Models/Duck/Duck.gltf", true);
+			var materialDuck = PbrMaterialNew.LoadGltf("Duck", "Models/Duck/Duck.gltf");
 			//var meshBall = Mesh.LoadOBJ("Ball", "Models/Ball.obj");
 			var meshSphere = Mesh.LoadOBJ("Sphere", "Models/SphereSmooth.obj");
+			var materialSphere = GetMaterial();
 			//var meshBox = Mesh.LoadOBJ("Box", "Models/Box.obj");
 
-			var texture = ETexture.LoadImage("Haakon", "Images/image_2.png");
-			var texture2 = ETexture.LoadImage("Statue", "Images/image.png");
+			//var texture = ETexture.LoadImage("Haakon", "Images/image_2.png");
+			//var texture2 = ETexture.LoadImage("Statue", "Images/image.png");
 
 			Camera camera = new Camera
 			{
@@ -141,8 +136,8 @@ namespace Runner
 
 			CreateCamera(mainWorld, camera, Vector3.Zero);
 
+			Create(mainWorld, new(3, 0, -10), meshDuck, materialDuck, 1);
 			/*
-			Create(mainWorld, new(3, 0, -5), meshBox, texture, 1);
 			Create(mainWorld, new(0, 0, -5), meshBall, texture, 0);
 			Create(mainWorld, new(-3, 0, -5), meshSphere, texture2, 11);
 			*/
@@ -154,7 +149,7 @@ namespace Runner
 			{
 				for (int x = 0; x < 4; x++)
 				{
-					Create(mainWorld, new(-midX + x * 2.1f, -midY + y * 2.1f, -5), meshSphere, texture, 0);
+					Create(mainWorld, new(-midX + x * 2.1f, -midY + y * 2.1f, -5), meshSphere, materialSphere, 0);
 				}
 			}
 
@@ -192,5 +187,36 @@ namespace Runner
 
 			server.Start();
 		}
+
+		static PbrMaterialNew GetMaterial()
+		{
+            var textureAlbedo = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Gold/gold-scuffed_basecolor-boosted.png");
+            //var textureAlbedo = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Iron/rustediron2_basecolor.png");
+            //var textureAlbedo = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Floor/wood_floor_worn_diff_4k.png");
+
+            //var textureNormal = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Gold/gold-scuffed_normal.png");
+            //var textureNormal = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Iron/rustediron2_normal.png");
+            //var textureNormal = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Floor/wood_floor_worn_nor_gl_4k.png");
+
+            var textureMetallic = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Gold/gold-scuffed_metallic.png");
+            //var textureMetallic = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Iron/rustediron2_metallic.png");
+            //var textureMetallic = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Floor/wood_floor_worn_ao_4k.png");
+
+            var textureRoughness = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Gold/gold-scuffed_roughness.png");
+            //var textureRoughness = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Iron/rustediron2_roughness.png");
+            //var textureRoughness = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Floor/wood_floor_worn_rough_4k.png");
+
+            var textureAo = ETexture.LoadImage("PbrGoldAo", "Images/Pbr/Default/Ao.png");
+
+            PbrMaterialNew material = new PbrMaterialNew();
+			material.name = "PbrGold";
+            material.albedo = Vector3.One;
+            material.albedoMap = textureAlbedo;
+            material.metallicMap = textureMetallic;
+            material.roughnessMap = textureRoughness;
+            material.aoMap = textureAo;
+
+			return material;
+        }
 	}
 }

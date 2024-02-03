@@ -57,7 +57,8 @@ namespace Test
 			argTestClass = _TestClass;
 			argTestClass3 = _TestClass3;
 			
-			_MeshResourceManager = new Test.MeshResourceManager(argTestClass4);
+			var argMeshResourceManager = new Test.MeshResourceManager(argTestClass4);
+			_MeshResourceManager = argMeshResourceManager;
 
 			_GraphicsPipeline = new GraphicsPipeline(argGL, argTestClass, argTestClass3);
 			_PhysicsPipeline = new PhysicsPipeline(argTestClass3, argGL);

@@ -20,8 +20,8 @@ namespace Engine
 		public CommandPool commandPool;
 
 		//public RenderPipeline renderPipeline;
-		public RenderPipelineNew<SwapchainRenderTargetManager<DefaultDescriptorSet>, DefaultRenderPassInfo, DefaultPipelineInfo, DefaultDescriptorSet, PipelineContainer, PipelineContainerLayer, RenderPassContainer, RenderPassId> pipeline;
-		public RenderPipelineNew<TextureRenderTargetManager<DefaultDescriptorSet>, DefaultRenderPassInfo, DefaultPipelineInfo, DefaultDescriptorSet, PipelineContainer, PipelineContainerLayer, RenderPassContainer, RenderPassId> texturePipeline;
+		public RenderPipeline<SwapchainRenderTargetManager<DefaultDescriptorSet>, DefaultRenderPassInfo, DefaultPipelineInfo, DefaultDescriptorSet, PipelineContainer, PipelineContainerLayer, RenderPassContainer, RenderPassId> pipeline;
+		public RenderPipeline<TextureRenderTargetManager<DefaultDescriptorSet, Rgba32>, DefaultRenderPassInfo, DefaultPipelineInfo, DefaultDescriptorSet, PipelineContainer, PipelineContainerLayer, RenderPassContainer, RenderPassId> texturePipeline;
 
         public VkRenderContext(VkContext context)
         {
@@ -53,21 +53,21 @@ namespace Engine
 			RenderPassContainer container = RenderPassContainer.Create(context, new DefaultRenderPassInfo(swapchain.GetSurfaceFormat().Format, Swapchain.GetDepthFormat(context)));
 
 			SwapchainRenderTargetManager<DefaultDescriptorSet> renderTargetManager = SwapchainRenderTargetManager<DefaultDescriptorSet>.Create(context, swapchain, container.skyboxRenderPass, commandPool);
-            pipeline = RenderPipelineNew<SwapchainRenderTargetManager<DefaultDescriptorSet>, DefaultRenderPassInfo, DefaultPipelineInfo, DefaultDescriptorSet, PipelineContainer, PipelineContainerLayer, RenderPassContainer, RenderPassId>.Create(context, renderTargetManager);
+            pipeline = RenderPipeline<SwapchainRenderTargetManager<DefaultDescriptorSet>, DefaultRenderPassInfo, DefaultPipelineInfo, DefaultDescriptorSet, PipelineContainer, PipelineContainerLayer, RenderPassContainer, RenderPassId>.Create(context, renderTargetManager);
 
 			Extent2D extent = swapchain.GetExtent();
 
-            image = VulkanHelper.CreateImage(context, new Extent3D(extent.Width, extent.Height, 1), ImageType.Type2D, Format.B8G8R8A8Srgb, ImageTiling.Optimal, ImageUsageFlags.TransferSrcBit | ImageUsageFlags.ColorAttachmentBit, ImageCreateFlags.None, 1);
+            image = VulkanHelper.CreateImage(context, new Extent3D(extent.Width, extent.Height, 1), ImageType.Type2D, Format.B8G8R8A8Srgb, ImageTiling.Optimal, ImageUsageFlags.TransferSrcBit | ImageUsageFlags.ColorAttachmentBit, ImageCreateFlags.None, 1, 1);
             imageMemory = VulkanHelper.CreateMemory(context, image, MemoryPropertyFlags.DeviceLocalBit);
-            imageView = VulkanHelper.CreateImageView(context, image, ImageViewType.Type2D, Format.B8G8R8A8Srgb, ImageAspectFlags.ColorBit);
+            imageView = VulkanHelper.CreateImageView(context, image, ImageViewType.Type2D, Format.B8G8R8A8Srgb, ImageAspectFlags.ColorBit, 1);
 
-            image2 = VulkanHelper.CreateImage(context, new Extent3D(extent.Width, extent.Height, 1), ImageType.Type2D, Swapchain.GetDepthFormat(context), ImageTiling.Optimal, ImageUsageFlags.DepthStencilAttachmentBit, ImageCreateFlags.None, 1);
+            image2 = VulkanHelper.CreateImage(context, new Extent3D(extent.Width, extent.Height, 1), ImageType.Type2D, Swapchain.GetDepthFormat(context), ImageTiling.Optimal, ImageUsageFlags.DepthStencilAttachmentBit, ImageCreateFlags.None, 1, 1);
             imageMemory2 = VulkanHelper.CreateMemory(context, image2, MemoryPropertyFlags.DeviceLocalBit);
-            imageView2 = VulkanHelper.CreateImageView(context, image2, ImageViewType.Type2D, Swapchain.GetDepthFormat(context), ImageAspectFlags.DepthBit);
+            imageView2 = VulkanHelper.CreateImageView(context, image2, ImageViewType.Type2D, Swapchain.GetDepthFormat(context), ImageAspectFlags.DepthBit, 1);
 
-            image3 = VulkanHelper.CreateImage(context, new Extent3D(extent.Width, extent.Height, 1), ImageType.Type2D, Format.R8G8B8A8Srgb, ImageTiling.Optimal, ImageUsageFlags.TransferSrcBit | ImageUsageFlags.TransferDstBit | ImageUsageFlags.ColorAttachmentBit, ImageCreateFlags.None, 1);
+            image3 = VulkanHelper.CreateImage(context, new Extent3D(extent.Width, extent.Height, 1), ImageType.Type2D, Format.R8G8B8A8Srgb, ImageTiling.Optimal, ImageUsageFlags.TransferSrcBit | ImageUsageFlags.TransferDstBit | ImageUsageFlags.ColorAttachmentBit, ImageCreateFlags.None, 1, 1);
             imageMemory3 = VulkanHelper.CreateMemory(context, image3, MemoryPropertyFlags.DeviceLocalBit);
-            imageView3 = VulkanHelper.CreateImageView(context, image3, ImageViewType.Type2D, Format.R8G8B8A8Srgb, ImageAspectFlags.ColorBit);
+            imageView3 = VulkanHelper.CreateImageView(context, image3, ImageViewType.Type2D, Format.R8G8B8A8Srgb, ImageAspectFlags.ColorBit, 1);
 
             FixedArray2<Image> images = new FixedArray2<Image>();
             images[0] = image;
@@ -81,15 +81,36 @@ namespace Engine
             formats[0] = Format.B8G8R8A8Srgb;
             formats[1] = Swapchain.GetDepthFormat(context);
 
-            TextureRenderTargetManager<DefaultDescriptorSet> textureTargetManager = TextureRenderTargetManager<DefaultDescriptorSet>.Create(context, extent, image3, images, imageViews, formats, container.skyboxRenderPass, commandPool);
-			texturePipeline = RenderPipelineNew<TextureRenderTargetManager<DefaultDescriptorSet>, DefaultRenderPassInfo, DefaultPipelineInfo, DefaultDescriptorSet, PipelineContainer, PipelineContainerLayer, RenderPassContainer, RenderPassId>.Create(context, textureTargetManager);
+            TextureRenderTargetManager<DefaultDescriptorSet, Rgba32> textureTargetManager = TextureRenderTargetManager<DefaultDescriptorSet, Rgba32>.Create(SaveImage, context, extent, images, imageViews, formats, container.skyboxRenderPass, commandPool);
+			texturePipeline = RenderPipeline<TextureRenderTargetManager<DefaultDescriptorSet, Rgba32>, DefaultRenderPassInfo, DefaultPipelineInfo, DefaultDescriptorSet, PipelineContainer, PipelineContainerLayer, RenderPassContainer, RenderPassId>.Create(context, textureTargetManager);
         }
 
 		static unsafe SurfaceKHR CreateSurface(VkContext context)
 		{
 			return context.window.VkSurface.Create<AllocationCallbacks>(context.instance.ToHandle(), null).ToSurface();
 		}
-	}
+
+		static void SaveImage(Image<Rgba32> img)
+		{
+            img.ProcessPixelRows(a => {
+                for (int y = 0; y < a.Height; y++)
+                {
+                    Span<Rgba32> row = a.GetRowSpan(y);
+
+                    for (int x = 0; x < row.Length; x++)
+                    {
+                        ref Rgba32 pixel = ref row[x];
+                        byte r = pixel.R;
+                        byte g = pixel.G;
+                        byte b = pixel.B;
+                        pixel = new Rgba32(b, g, r, pixel.A);
+                    }
+                }
+            });
+
+            img.Save("test.jpg");
+        }
+    }
 
 	public class VkContext
 	{

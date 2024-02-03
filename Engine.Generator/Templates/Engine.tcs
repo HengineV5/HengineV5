@@ -45,7 +45,8 @@ namespace $namespace
 			$stepUsedTypes~>arg|$returnType| = _|$returnType|;<~~>\n			<~
 			<~~>\n			<~
 
-			$resourceManagers~>_|$resourceManagerName| = new |$resourceManagerNamespace|.|$resourceManagerName|($resourceManagerArguments~>$argName<~~>, <~);<~~>\n			<~
+			$resourceManagers~>var arg|$resourceManagerName| = new |$resourceManagerNamespace|.|$resourceManagerName|($resourceManagerArguments~>$argName<~~>, <~);
+			_|$resourceManagerName| = arg|$resourceManagerName|;<~~>\n			<~
 
 			$pipelines~>_|$pipelineName| = new $pipelineName($uniqueArgs~>$argName<~~>, <~);<~~>\n			<~
 

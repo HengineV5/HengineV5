@@ -8,6 +8,8 @@ layout(binding = 3) uniform sampler2D u_NormalMap;
 layout(binding = 4) uniform sampler2D u_MetallicMap;
 layout(binding = 5) uniform sampler2D u_RoughnessMap;
 layout(binding = 6) uniform samplerCube u_Skybox;
+layout(binding = 7) uniform samplerCube u_IrradianceMap;
+layout(binding = 8) uniform samplerCube u_SpecularMap;
 //layout(binding = 6) uniform sampler2D u_AoMap;
 
 /*
@@ -19,13 +21,13 @@ layout(binding = 2) uniform Material {
 } u_Material;
 */
 
-layout(binding = 7) uniform Material {
+layout(binding = 9) uniform Material {
 	vec3 albedo;
 	float metallic;
 	float roughness;
 } u_Material;
 
-layout(binding = 8) uniform Light {
+layout(binding = 10) uniform Light {
 	vec3 position;
 	vec3 ambient;
 	vec3 diffuse;
@@ -39,12 +41,34 @@ layout(location = 3) in vec3 v_ViewPos;
 
 layout(location = 0) out vec4 color;
 
-float ao = 0;
+float ao = 1;
+
+vec3 getNormalFromMap()
+{
+    vec3 tangentNormal = texture(u_NormalMap, v_texCoord).xyz * 2.0 - 1.0;
+
+    vec3 Q1  = dFdx(v_pos);
+    vec3 Q2  = dFdy(v_pos);
+    vec2 st1 = dFdx(v_texCoord);
+    vec2 st2 = dFdy(v_texCoord);
+
+    vec3 N   = normalize(v_normal);
+    vec3 T  = normalize(Q1*st2.t - Q2*st1.t);
+    vec3 B  = -normalize(cross(N, T));
+    mat3 TBN = mat3(T, B, N);
+
+    return normalize(TBN * tangentNormal);
+}
 
 vec3 fresnelSchlick(float cosTheta, vec3 F0)
 {
     return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
-}  
+}
+
+vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness)
+{
+    return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
+}   
 
 float distributionGGX(vec3 N, vec3 H, float roughness)
 {
@@ -102,17 +126,28 @@ void main() {
 		//float roughness = u_Material.roughness;
 		*/
 
-		vec3 albedo = texture(u_AlbedoMap, v_texCoord).rgb;
-		albedo = vec3(pow(albedo.x, 2.2), pow(albedo.y, 2.2), pow(albedo.z, 2.2));
+		//vec3 albedo = texture(u_AlbedoMap, v_texCoord).rgb;
+		//albedo = vec3(pow(albedo.x, 2.2), pow(albedo.y, 2.2), pow(albedo.z, 2.2));
+		vec3 albedo = pow(texture(u_AlbedoMap, v_texCoord).rgb, vec3(2.2));
+		//vec3 albedo = u_Material.albedo;
 
 		float metallic = texture(u_MetallicMap, v_texCoord).r;
+		//metallic *= 2;
+		//float metallic = 0.9;
 		float roughness = texture(u_RoughnessMap, v_texCoord).r;
-		roughness *= 8;
+		//ao = texture(u_MetallicMap, v_texCoord).r;
+		//float roughness = 0.0;
+		roughness *= 16;
 		/*
 		*/
 		
 		vec3 N = normalize(v_normal);
+		//vec3 N = getNormalFromMap();
 		vec3 V = normalize(v_ViewPos - v_pos);
+		vec3 R = reflect(-V, N); 
+
+		vec3 F0 = vec3(0.04);
+		F0 = mix(F0, albedo, metallic);
 
 		vec3 Lo = vec3(0.0);
 		for (int i = 0; i < 4; i++)
@@ -124,8 +159,6 @@ void main() {
 			float attenuation = 1.0 / (dist * dist);
 			vec3  radiance = u_Light[i].ambient * attenuation * 50;
 
-			vec3 F0 = vec3(0.04);
-			F0 = mix(F0, albedo, metallic);
 			vec3 F = fresnelSchlick(max(dot(H, V), 0.0), F0);
 
 			float NDF = distributionGGX(N, H, roughness);       
@@ -143,13 +176,32 @@ void main() {
 			Lo += (kD * albedo / PI + specular) * radiance * NdotL;
 		}
 
-		vec3 ambient = vec3(0.03) * albedo * ao;
+		vec3 F = fresnelSchlickRoughness(max(dot(N, V), 0.0), F0, roughness);
+    
+		vec3 kS = F;
+		vec3 kD = 1.0 - kS;
+		kD *= 1.0 - metallic;	  
+    
+		vec3 irradiance = pow(texture(u_IrradianceMap, N).rgb, vec3(2.2));
+		vec3 diffuse      = irradiance * albedo;
+    
+		// sample both the pre-filter map and the BRDF lut and combine them together as per the Split-Sum approximation to get the IBL specular part.
+		const float MAX_REFLECTION_LOD = 5.0;
+		vec3 prefilteredColor = pow(textureLod(u_SpecularMap, R,  roughness * MAX_REFLECTION_LOD).rgb, vec3(2.2));
+		vec2 brdf  = texture(u_Texture, vec2(max(dot(N, V), 0.0), roughness)).rg;
+		vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);
+
+		vec3 ambient = (kD * diffuse + specular) * ao;
 		vec3 result = ambient + Lo;
 
 		result = result / (result + vec3(1.0));
 		result = pow(result, vec3(1.0/2.2)); 
 
 		color = vec4(result, 1.0);
+		//color = vec4(v_texCoord, 0.0, 1.0);
+		//color = vec4(v_texCoord, 0.0, 1.0);
+		//color = vec4(ambient, 1.0);
+		//color = vec4(textureLod(u_SpecularMap, v_normal, 0.5).rgb, 1.0);
 
 		//vec3 I1 = normalize(v_pos - v_ViewPos);
 		//vec3 R1 = reflect(I1, normalize(v_normal));

@@ -56,7 +56,7 @@ namespace Engine
 				.ArchType(x =>
 				{
 					//x.ArchType<Position, Rotation, Scale, Mesh, ETexture>("Entity");
-					x.ArchType<Position, Rotation, Scale, Mesh, ETexture, Networked>("NEntity");
+					x.ArchType<Position, Rotation, Scale, Mesh, ETexture, PbrMaterialNew, Networked>("NEntity");
 					x.ArchType<Position, Rotation, Camera, Networked>("Cam");
 				})
 				.System(x =>
@@ -77,6 +77,7 @@ namespace Engine
 				{
 					x.ResourceManager<VulkanMeshResourceManager>();
 					x.ResourceManager<VulkanTextureResourceManager>();
+					x.ResourceManager<VulkanMaterialResourceManager>();
 
 					//x.ResourceManager<OpenGLMeshResourceManager>();
 					//x.ResourceManager<OpenGLTextureResourceManager>();
@@ -112,10 +113,11 @@ namespace Engine
 				{
 					x.ResourceManager<VulkanMeshResourceManager>();
 					x.ResourceManager<VulkanTextureResourceManager>();
+                    x.ResourceManager<VulkanMaterialResourceManager>();
 
-					//x.ResourceManager<OpenGLMeshResourceManager>();
-					//x.ResourceManager<OpenGLTextureResourceManager>();
-				})
+                    //x.ResourceManager<OpenGLMeshResourceManager>();
+                    //x.ResourceManager<OpenGLTextureResourceManager>();
+                })
 				.Layout(x =>
 				{
 					x.Pipeline("Graphics", x =>

@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using Engine.Parsing.Gltf;
+using System.Numerics;
 using System.Runtime.InteropServices;
 
 namespace Engine.Graphics
@@ -36,4 +37,39 @@ namespace Engine.Graphics
 		public float metallic;
 		public float roughness;
 	}
+
+    public struct PbrMaterialNew
+    {
+		public string name;
+
+        public Vector3 albedo;
+        public ETexture albedoMap;
+        public float metallic;
+        public ETexture metallicMap;
+        public float roughness;
+        public ETexture roughnessMap;
+        public ETexture aoMap;
+
+        public static PbrMaterialNew LoadGltf(string name, string filePath)
+        {
+            PbrMaterialNew material = new PbrMaterialNew();
+			material.albedo = Vector3.One;
+
+            GltfLoader.LoadMaterial(name, filePath, ref material);
+
+			if (string.IsNullOrEmpty(material.albedoMap.name))
+				material.albedoMap = ETexture.LoadImage($"{name}_albedo", "Images/Pbr/Default/Albedo.png");
+
+			if (string.IsNullOrEmpty(material.metallicMap.name))
+				material.metallicMap = ETexture.LoadImage($"{name}_metallic", "Images/Pbr/Default/Metallic.png");
+
+			if (string.IsNullOrEmpty(material.roughnessMap.name))
+				material.roughnessMap = ETexture.LoadImage($"{name}_roughness", "Images/Pbr/Default/Roughness.png");
+
+			if (string.IsNullOrEmpty(material.aoMap.name))
+				material.aoMap = ETexture.LoadImage($"{name}_ao", "Images/Pbr/Default/Ao.png");
+
+            return material;
+        }
+    }
 }

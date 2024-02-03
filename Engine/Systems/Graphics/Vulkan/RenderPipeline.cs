@@ -7,7 +7,6 @@ using Semaphore = Silk.NET.Vulkan.Semaphore;
 using System.Runtime.CompilerServices;
 using Engine.Components.Graphics;
 using EnCS;
-using static Engine.RenderPipeline;
 
 namespace Engine
 {
@@ -35,7 +34,7 @@ namespace Engine
         }
     }
 
-	public struct RenderPipeline
+	public struct RenderPipelineOld
 	{
 		public void Dispose(VkContext context)
 		{

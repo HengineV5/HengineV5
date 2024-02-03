@@ -10,7 +10,7 @@ namespace Engine
 {
 	public static class VulkanHelper
 	{
-		public static unsafe Image CreateImage(VkContext context, Extent3D extent, ImageType type, Format format, ImageTiling tiling, ImageUsageFlags usage, ImageCreateFlags flags, uint arrayLayers)
+		public static unsafe Image CreateImage(VkContext context, Extent3D extent, ImageType type, Format format, ImageTiling tiling, ImageUsageFlags usage, ImageCreateFlags flags, uint arrayLayers, uint mipLevels)
 		{
 			ImageCreateInfo createInfo = new();
 			createInfo.SType = StructureType.ImageCreateInfo;
@@ -18,7 +18,7 @@ namespace Engine
 			createInfo.Extent.Width = extent.Width;
 			createInfo.Extent.Height = extent.Height;
 			createInfo.Extent.Depth = extent.Depth;
-			createInfo.MipLevels = 1;
+			createInfo.MipLevels = mipLevels;
 			createInfo.ArrayLayers = arrayLayers;
 			createInfo.Format = format;
 			createInfo.Tiling = tiling;
@@ -35,7 +35,7 @@ namespace Engine
 			return image;
 		}
 
-		public static unsafe ImageView CreateImageView(VkContext context, Image image, ImageViewType type, Format format, ImageAspectFlags aspectMask)
+		public static unsafe ImageView CreateImageView(VkContext context, Image image, ImageViewType type, Format format, ImageAspectFlags aspectMask, uint mipLevels)
 		{
 			ImageViewCreateInfo createInfo = new();
 			createInfo.SType = StructureType.ImageViewCreateInfo;
@@ -51,7 +51,7 @@ namespace Engine
 
 			createInfo.SubresourceRange.AspectMask = aspectMask;
 			createInfo.SubresourceRange.BaseMipLevel = 0;
-			createInfo.SubresourceRange.LevelCount = 1;
+			createInfo.SubresourceRange.LevelCount = mipLevels;
 			createInfo.SubresourceRange.BaseArrayLayer = 0;
 			createInfo.SubresourceRange.LayerCount = type == ImageViewType.TypeCube ? 6u : 1u;
 
@@ -62,11 +62,11 @@ namespace Engine
 			return imageView;
 		}
 
-		public static unsafe void CreateImageViews(VkContext context, Span<ImageView> imageViews, Span<Image> images, ImageViewType type, Format format, ImageAspectFlags aspectMask)
+		public static unsafe void CreateImageViews(VkContext context, Span<ImageView> imageViews, Span<Image> images, ImageViewType type, Format format, ImageAspectFlags aspectMask, uint mipLevels)
 		{
 			for (int i = 0; i < imageViews.Length; i++)
 			{
-				imageViews[i] = CreateImageView(context, images[i], type, format, aspectMask);
+				imageViews[i] = CreateImageView(context, images[i], type, format, aspectMask, mipLevels);
 			}
 		}
 
@@ -91,7 +91,7 @@ namespace Engine
 			return framebuffer;
 		}
 
-		public static unsafe Sampler CreateSampler(VkContext context)
+		public static unsafe Sampler CreateSampler(VkContext context, float maxLod)
 		{
 			SamplerCreateInfo createInfo = new();
 			createInfo.SType = StructureType.SamplerCreateInfo;
@@ -112,7 +112,7 @@ namespace Engine
 			createInfo.MipmapMode = SamplerMipmapMode.Linear;
 			createInfo.MipLodBias = 0f;
 			createInfo.MinLod = 0f;
-			createInfo.MaxLod = 0f;
+			createInfo.MaxLod = maxLod;
 
 			var result = context.vk.CreateSampler(context.device, createInfo, null, out Sampler sampler);
 			if (result != Result.Success)
@@ -497,17 +497,17 @@ namespace Engine
 			EndSingleShotCommands(context, commandBuffer, commandPool, queue);
 		}
 
-		public static unsafe void CopyBufferToImage(VkContext context, CommandPool commandPool, Queue queue, Buffer srcBuffer, Image dstImage, uint width, uint height, uint baseArrayLayer, uint layerCount)
+		public static unsafe void CopyBufferToImage(VkContext context, CommandPool commandPool, Queue queue, Buffer srcBuffer, Image dstImage, uint width, uint height, uint baseArrayLayer, uint mipLevel, ulong offset = 0, uint rowLength = 0)
 		{
 			CommandBuffer commandBuffer = BeginSingleShotCommands(context, commandPool);
 
 			BufferImageCopy copyRegion = new();
-			copyRegion.BufferOffset = 0;
-			copyRegion.BufferRowLength = 0;
+			copyRegion.BufferOffset = offset;
+			copyRegion.BufferRowLength = rowLength;
 			copyRegion.BufferImageHeight = 0;
 
 			copyRegion.ImageSubresource.AspectMask = ImageAspectFlags.ColorBit;
-			copyRegion.ImageSubresource.MipLevel = 0;
+			copyRegion.ImageSubresource.MipLevel = mipLevel;
 			copyRegion.ImageSubresource.BaseArrayLayer = baseArrayLayer;
 			copyRegion.ImageSubresource.LayerCount = 1;
 
@@ -519,13 +519,13 @@ namespace Engine
 			EndSingleShotCommands(context, commandBuffer, commandPool, queue);
 		}
 
-        public static unsafe void CopyImageToBuffer(VkContext context, CommandPool commandPool, Queue queue, Image srcImage, uint width, uint height, Buffer dstBuffer, uint baseArrayLayer, uint layerCount)
+        public static unsafe void CopyImageToBuffer(VkContext context, CommandPool commandPool, Queue queue, Image srcImage, uint width, uint height, Buffer dstBuffer, uint baseArrayLayer, ulong offset = 0, uint rowLength = 0)
         {
             CommandBuffer commandBuffer = BeginSingleShotCommands(context, commandPool);
 
             BufferImageCopy copyRegion = new();
-            copyRegion.BufferOffset = 0;
-            copyRegion.BufferRowLength = 0;
+            copyRegion.BufferOffset = offset;
+            copyRegion.BufferRowLength = rowLength;
             copyRegion.BufferImageHeight = 0;
 
             copyRegion.ImageSubresource.AspectMask = ImageAspectFlags.ColorBit;
@@ -565,7 +565,7 @@ namespace Engine
             EndSingleShotCommands(context, commandBuffer, commandPool, queue);
         }
 
-		public static unsafe void TransitionImageLayout(VkContext context, CommandPool commandPool, Queue queue, Image image, Format format, ImageLayout oldLayout, ImageLayout newLayout, uint layerCount)
+		public static unsafe void TransitionImageLayout(VkContext context, CommandPool commandPool, Queue queue, Image image, Format format, ImageLayout oldLayout, ImageLayout newLayout, uint layerCount, uint mipLevels, uint baseMipLevel = 0)
 		{
 			CommandBuffer commandBuffer = BeginSingleShotCommands(context, commandPool);
 
@@ -577,8 +577,8 @@ namespace Engine
 			barrier.DstQueueFamilyIndex = Vk.QueueFamilyIgnored;
 			barrier.Image = image;
 			barrier.SubresourceRange.AspectMask = ImageAspectFlags.ColorBit;
-			barrier.SubresourceRange.BaseMipLevel = 0;
-			barrier.SubresourceRange.LevelCount = 1;
+			barrier.SubresourceRange.BaseMipLevel = baseMipLevel;
+			barrier.SubresourceRange.LevelCount = mipLevels;
 			barrier.SubresourceRange.BaseArrayLayer = 0;
 			barrier.SubresourceRange.LayerCount = layerCount;
 

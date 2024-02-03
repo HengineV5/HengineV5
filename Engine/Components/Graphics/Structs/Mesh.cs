@@ -1,5 +1,6 @@
 ﻿using Engine.Components.Graphics;
 using Engine.Parsing;
+using Engine.Parsing.Gltf;
 using Silk.NET.OpenGL;
 using System.IO;
 
@@ -37,6 +38,32 @@ namespace Engine.Graphics
         }
     }
 
+	public struct ECubemapHdr
+	{
+        public string name;
+
+        public Image<Rgba64> front;
+        public Image<Rgba64> back;
+        public Image<Rgba64> left;
+        public Image<Rgba64> right;
+        public Image<Rgba64> top;
+        public Image<Rgba64> bottom;
+
+        public static ECubemapHdr LoadImage(string name, string frontPath, string backPath, string leftPath, string rightPath, string topPath, string bottomPath)
+        {
+            return new ECubemapHdr()
+            {
+                name = name,
+                front = Image.Load<Rgba64>(frontPath),
+                back = Image.Load<Rgba64>(backPath),
+                left = Image.Load<Rgba64>(leftPath),
+                right = Image.Load<Rgba64>(rightPath),
+                top = Image.Load<Rgba64>(topPath),
+                bottom = Image.Load<Rgba64>(bottomPath)
+            };
+        }
+    }
+
 	public struct Mesh
 	{
 		public string name;
@@ -69,6 +96,14 @@ namespace Engine.Graphics
 			{
 				ObjMeshLoader.Parse(reader, ref mesh);
 			}
+
+			return mesh;
+		}
+
+		public static Mesh LoadGltf(string name, string filePath, bool normalize = false)
+		{
+			Mesh mesh = new Mesh();
+			GltfLoader.LoadMesh(name, filePath, ref mesh, normalize);
 
 			return mesh;
 		}

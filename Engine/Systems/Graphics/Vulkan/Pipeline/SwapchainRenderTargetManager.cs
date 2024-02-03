@@ -49,7 +49,6 @@ namespace Engine
             return renderTarget;
         }
 
-		// TODO: Add image index as generic parameter in RenderTarget
         public static void PresentTarget(VkContext context, ref SwapchainRenderTargetManager<TDescriptorSet> self, ref RenderTarget<TDescriptorSet> renderTarget)
         {
             VulkanHelper.QueuePresent(context, self.swapchain.GetPresentQueue(), self.swapchain.GetSwapchain(), renderTarget.imageIndex, renderTarget.frame.imageAvailable);
