@@ -2,6 +2,7 @@
 using Engine.Components;
 using Engine.Graphics;
 using Silk.NET.Input;
+using System.Diagnostics;
 using System.Numerics;
 
 namespace Engine
@@ -131,7 +132,7 @@ namespace Engine
 		{
 			Quaternion camQ = new Quaternion(rotation.x, rotation.y, rotation.z, rotation.w);
             Vector3 camForward = -Multiply(Quaternion.Inverse(camQ), Vector3.UnitZ);
-			Vector3 camRight = Vector3.Cross(camForward, Vector3.UnitY);
+			Vector3 camRight = Vector3.Normalize(Vector3.Cross(camForward, Vector3.UnitY));
 
             Vector3 delta = new Vector3();
 			if (inputHandler.IsKeyDown(Key.W))
@@ -164,39 +165,15 @@ namespace Engine
 			Vector2 mouseDelta = newPos - prevPos;
 			prevPos = newPos;
 
-			//Console.WriteLine(mouseDelta);
 			mouseDelta.Y *= -1;
 			mouseDelta *= 0.001f;
 			cameraRotation += mouseDelta;
 
-			Vector3 cameraDir = new Vector3();
+            Vector3 cameraDir = new Vector3();
 			cameraDir.X = MathF.Cos(cameraRotation.X) * MathF.Cos(cameraRotation.Y);
 			cameraDir.Y = MathF.Sin(cameraRotation.Y);
 			cameraDir.Z = MathF.Sin(cameraRotation.X) * MathF.Cos(cameraRotation.Y);
 
-            /*
-            Vector3 delta = new Vector3(mouseDelta.X * 0.001f, mouseDelta.Y * 0.001f, 0);
-			if (inputHandler.IsKeyDown(Key.W))
-				delta.Z -= 0.05f;
-
-			if (inputHandler.IsKeyDown(Key.A))
-				delta.X -= 0.05f;
-
-			if (inputHandler.IsKeyDown(Key.S))
-				delta.Z += 0.05f;
-
-			if (inputHandler.IsKeyDown(Key.D))
-				delta.X += 0.05f;
-
-			if (inputHandler.IsKeyDown(Key.Q))
-				delta.Y += 0.05f;
-
-			if (inputHandler.IsKeyDown(Key.E))
-				delta.Y -= 0.05f;
-			*/
-
-            var q = new Quaternion(rotation.x, rotation.y, rotation.z, rotation.w);
-			//return Quaternion.Multiply(q, Quaternion.CreateFromYawPitchRoll(delta.X, delta.Y, delta.Z));
 			return Quaternion.CreateFromRotationMatrix(Matrix4x4.CreateLookAt(Vector3.Zero, cameraDir, Vector3.UnitY));
 		}
 	}

@@ -18,7 +18,6 @@ namespace Engine.Graphics
 	public partial class VulkanTextureResourceManager : IResourceManager<ETexture, VkTextureBuffer>
 	{
 		uint idx = 0;
-		Memory<Graphics.ETexture> textures = new Graphics.ETexture[32];
 		Memory<Graphics.VkTextureBuffer> textureBuffers = new Graphics.VkTextureBuffer[32];
 
 		Dictionary<string, uint> textureCache = new Dictionary<string, uint>();
@@ -41,7 +40,6 @@ namespace Engine.Graphics
 				return id;
 
 			textureCache.Add(texture.name, idx);
-			textures.Span[(int)idx] = texture;
 			textureBuffers.Span[(int)idx] = CreateTextureBuffer(context, texture);
 			return idx++;
 		}
@@ -80,42 +78,30 @@ namespace Engine.Graphics
             textureBuffer.textureMemory = VulkanHelper.CreateMemory(context, textureBuffer.texture, MemoryPropertyFlags.DeviceLocalBit);
             textureBuffer.textureImageView = VulkanHelper.CreateImageView(context, textureBuffer.texture, ImageViewType.TypeCube, format, ImageAspectFlags.ColorBit, 1);
 
-            CopyCubemapBufferToDevice(context, textureBuffer, texture.data, format, 0, 1);
+            CopyCubemapBufferToDevice(context, textureBuffer, texture.data, format);
 
             return textureBuffer;
         }
 
-        public static VkTextureBuffer CreateCubeTextureBuffer(VkContext context, Span<Graphics.ETextureHdr> textures)
+        public static VkTextureBuffer CreateMipCubeTextureBuffer(VkContext context, Graphics.ETextureHdr texture, uint mipLevels, Format format)
         {
+            // Format.R16G16B16A16Unorm
+
+            int imgWidth = texture.data.Width;
+            int imgHeight = texture.data.Height;
+
+            if (mipLevels > 1)
+                imgWidth = (int)(imgWidth * (2f / 3f));
+
             VkTextureBuffer textureBuffer = new VkTextureBuffer();
-            textureBuffer.texture = VulkanHelper.CreateImage(context, new((uint)(textures[0].data.Width / 4), (uint)(textures[0].data.Height / 3), 1), ImageType.Type2D, Format.R16G16B16A16Unorm, ImageTiling.Optimal, ImageUsageFlags.TransferDstBit | ImageUsageFlags.SampledBit, ImageCreateFlags.CreateCubeCompatibleBit, 6, (uint)textures.Length);
+            textureBuffer.texture = VulkanHelper.CreateImage(context, new((uint)(imgWidth / 4), (uint)(imgHeight / 3), 1), ImageType.Type2D, format, ImageTiling.Optimal, ImageUsageFlags.TransferDstBit | ImageUsageFlags.SampledBit, ImageCreateFlags.CreateCubeCompatibleBit, 6, mipLevels);
             textureBuffer.textureMemory = VulkanHelper.CreateMemory(context, textureBuffer.texture, MemoryPropertyFlags.DeviceLocalBit);
-            textureBuffer.textureImageView = VulkanHelper.CreateImageView(context, textureBuffer.texture, ImageViewType.TypeCube, Format.R16G16B16A16Unorm, ImageAspectFlags.ColorBit, (uint)textures.Length);
+            textureBuffer.textureImageView = VulkanHelper.CreateImageView(context, textureBuffer.texture, ImageViewType.TypeCube, format, ImageAspectFlags.ColorBit, mipLevels);
 
-            // TODO: Move command pool to context, bad to create for each mesh creating call
-            uint graphicsQueueFamily = VulkanHelper.GetGraphicsQueueFamily(context);
-            Queue graphicsQueue = VulkanHelper.GetQueue(context, graphicsQueueFamily);
-            CommandPool commandPool = VulkanHelper.CreateCommandPool(context, graphicsQueueFamily);
-
-            for (uint i = 0; i < textures.Length; i++)
-            {
-                //VulkanHelper.TransitionImageLayout(context, commandPool, graphicsQueue, textureBuffer.texture, Format.R16G16B16A16Unorm, ImageLayout.Undefined, ImageLayout.TransferDstOptimal, 6, 1, i);
-            }
-            VulkanHelper.TransitionImageLayout(context, commandPool, graphicsQueue, textureBuffer.texture, Format.R16G16B16A16Unorm, ImageLayout.Undefined, ImageLayout.TransferDstOptimal, 6, (uint)textures.Length, 0);
-            for (int i = 0; i < textures.Length; i++)
-            {
-                CopyCubemapBufferToDevice2(context, textureBuffer, textures[i].data, Format.R16G16B16A16Unorm, (uint)i, (uint)textures.Length);
-            }
-            VulkanHelper.TransitionImageLayout(context, commandPool, graphicsQueue, textureBuffer.texture, Format.R16G16B16A16Unorm, ImageLayout.TransferDstOptimal, ImageLayout.ShaderReadOnlyOptimal, 6, (uint)textures.Length, 0);
-            for (uint i = 0; i < textures.Length; i++)
-            {
-                //VulkanHelper.TransitionImageLayout(context, commandPool, graphicsQueue, textureBuffer.texture, Format.R16G16B16A16Unorm, ImageLayout.TransferDstOptimal, ImageLayout.ShaderReadOnlyOptimal, 6, 1, i);
-            }
+            CopyMipCubemapBufferToDevice(context, textureBuffer, texture.data, format, mipLevels);
 
             return textureBuffer;
         }
-        /*
-        */
 
         public static VkTextureBuffer CreateHdrTextureBuffer(VkContext context, Graphics.ETextureHdr texture)
         {
@@ -160,17 +146,12 @@ namespace Engine.Graphics
             }
         }
 
-        static void CopyCubemapBufferToDevice<TPixel>(VkContext context, VkTextureBuffer textureBuffer, Image<TPixel> img, Format format, uint mipLevel, uint mipLevels) where TPixel : unmanaged, IPixel<TPixel>
+        static void CopyCubemapBufferToDevice<TPixel>(VkContext context, VkTextureBuffer textureBuffer, Image<TPixel> img, Format format) where TPixel : unmanaged, IPixel<TPixel>
         {
             // TODO: Move command pool to context, bad to create for each mesh creating call
             uint graphicsQueueFamily = VulkanHelper.GetGraphicsQueueFamily(context);
             Queue graphicsQueue = VulkanHelper.GetQueue(context, graphicsQueueFamily);
             CommandPool commandPool = VulkanHelper.CreateCommandPool(context, graphicsQueueFamily);
-
-            int mipWidth = (int)(img.Width * MathF.Pow(0.5f, mipLevel));
-            int mipHeight = (int)(img.Height * MathF.Pow(0.5f, mipLevel));
-
-            img.Mutate(x => x.Resize(mipWidth, mipHeight));
 
             uint sideWidth = (uint)img.Width / 4u;
             uint sideHeight = (uint)img.Height / 3u;
@@ -186,10 +167,63 @@ namespace Engine.Graphics
             img.CopyPixelDataTo(buff.Memory.Span);
             VulkanHelper.CopyToBuffer(context, stagingBuffer, stagingBufferMemory, buff.Memory.Span);
 
-            VulkanHelper.TransitionImageLayout(context, commandPool, graphicsQueue, textureBuffer.texture, format, ImageLayout.Undefined, ImageLayout.TransferDstOptimal, 6, mipLevels);
+            VulkanHelper.TransitionImageLayout(context, commandPool, graphicsQueue, textureBuffer.texture, format, ImageLayout.Undefined, ImageLayout.TransferDstOptimal, 6, 1);
             for (int i = 0; i < 6; i++)
             {
-                VulkanHelper.CopyBufferToImage(context, commandPool, graphicsQueue, stagingBuffer, textureBuffer.texture, sideWidth, sideHeight, (uint)i, mipLevel, GetSideOffset(i, sideWidth, sideHeight, rowLength, bytesPerPixel) * (ulong)bytesPerPixel, (uint)rowLength);
+                VulkanHelper.CopyBufferToImage(context, commandPool, graphicsQueue, stagingBuffer, textureBuffer.texture, sideWidth, sideHeight, (uint)i, 0, GetSideOffset(i, sideWidth, sideHeight, rowLength) * (ulong)bytesPerPixel, (uint)rowLength);
+            }
+            VulkanHelper.TransitionImageLayout(context, commandPool, graphicsQueue, textureBuffer.texture, format, ImageLayout.TransferDstOptimal, ImageLayout.ShaderReadOnlyOptimal, 6, 1);
+
+            unsafe
+            {
+                context.vk.DestroyBuffer(context.device, stagingBuffer, null);
+                context.vk.FreeMemory(context.device, stagingBufferMemory, null);
+                context.vk.DestroyCommandPool(context.device, commandPool, null);
+            }
+        }
+
+        static void CopyMipCubemapBufferToDevice<TPixel>(VkContext context, VkTextureBuffer textureBuffer, Image<TPixel> img, Format format, uint mipLevels) where TPixel : unmanaged, IPixel<TPixel>
+        {
+            // TODO: Move command pool to context, bad to create for each mesh creating call
+            uint graphicsQueueFamily = VulkanHelper.GetGraphicsQueueFamily(context);
+            Queue graphicsQueue = VulkanHelper.GetQueue(context, graphicsQueueFamily);
+            CommandPool commandPool = VulkanHelper.CreateCommandPool(context, graphicsQueueFamily);
+
+            int imgWidth = img.Width;
+            int imgHeight = img.Height;
+
+            if (mipLevels > 1)
+                imgWidth = (int)(imgWidth * (2f / 3f));
+
+            uint sideWidth = (uint)imgWidth / 4u;
+            uint sideHeight = (uint)imgHeight / 3u;
+
+            int bytesPerPixel = img.PixelType.BitsPerPixel / 8;
+            int imageSize = img.Width * img.Height * bytesPerPixel;
+            using var buff = MemoryPool<byte>.Shared.Rent(imageSize);
+
+            Buffer stagingBuffer = VulkanHelper.CreateBuffer<byte>(context, BufferUsageFlags.TransferSrcBit, (uint)imageSize);
+            DeviceMemory stagingBufferMemory = VulkanHelper.CreateBufferMemory(context, stagingBuffer, MemoryPropertyFlags.HostVisibleBit | MemoryPropertyFlags.HostCoherentBit);
+
+            img.CopyPixelDataTo(buff.Memory.Span);
+            VulkanHelper.CopyToBuffer(context, stagingBuffer, stagingBufferMemory, buff.Memory.Span);
+
+            VulkanHelper.TransitionImageLayout(context, commandPool, graphicsQueue, textureBuffer.texture, format, ImageLayout.Undefined, ImageLayout.TransferDstOptimal, 6, mipLevels);
+            for (uint mipLevel = 0; mipLevel < mipLevels; mipLevel++)
+            {
+                float mipFactor = MathF.Pow(0.5f, mipLevel);
+
+                uint mipWidth = (uint)(sideWidth * mipFactor);
+                uint mipHeight = (uint)(sideHeight * mipFactor);
+
+                int mipStartX = mipLevel == 0 ? 0 : imgWidth;
+                int mipStartY = mipLevel == 0 ? 0 : (int)(imgHeight * mipFactor);
+                uint mipOffset = (uint)(mipStartX + mipStartY * img.Width);
+
+                for (int side = 0; side < 6; side++)
+                {
+                    VulkanHelper.CopyBufferToImage(context, commandPool, graphicsQueue, stagingBuffer, textureBuffer.texture, mipWidth, mipHeight, (uint)side, mipLevel, (mipOffset + GetSideOffset(side, mipWidth, mipHeight, img.Width)) * (ulong)bytesPerPixel, (uint)img.Width);
+                }
             }
             VulkanHelper.TransitionImageLayout(context, commandPool, graphicsQueue, textureBuffer.texture, format, ImageLayout.TransferDstOptimal, ImageLayout.ShaderReadOnlyOptimal, 6, mipLevels);
 
@@ -201,48 +235,7 @@ namespace Engine.Graphics
             }
         }
 
-        static void CopyCubemapBufferToDevice2<TPixel>(VkContext context, VkTextureBuffer textureBuffer, Image<TPixel> img, Format format, uint mipLevel, uint mipLevels) where TPixel : unmanaged, IPixel<TPixel>
-        {
-            // TODO: Move command pool to context, bad to create for each mesh creating call
-            uint graphicsQueueFamily = VulkanHelper.GetGraphicsQueueFamily(context);
-            Queue graphicsQueue = VulkanHelper.GetQueue(context, graphicsQueueFamily);
-            CommandPool commandPool = VulkanHelper.CreateCommandPool(context, graphicsQueueFamily);
-
-            int mipWidth = (int)(img.Width * MathF.Pow(0.5f, mipLevel));
-            int mipHeight = (int)(img.Height * MathF.Pow(0.5f, mipLevel));
-
-            img.Mutate(x => x.Resize(mipWidth, mipHeight));
-
-            uint sideWidth = (uint)img.Width / 4u;
-            uint sideHeight = (uint)img.Height / 3u;
-
-            int bytesPerPixel = img.PixelType.BitsPerPixel / 8;
-            int imageSize = img.Width * img.Height * bytesPerPixel;
-            int rowLength = img.Width;
-            using var buff = MemoryPool<byte>.Shared.Rent(imageSize);
-
-            Buffer stagingBuffer = VulkanHelper.CreateBuffer<byte>(context, BufferUsageFlags.TransferSrcBit, (uint)imageSize);
-            DeviceMemory stagingBufferMemory = VulkanHelper.CreateBufferMemory(context, stagingBuffer, MemoryPropertyFlags.HostVisibleBit | MemoryPropertyFlags.HostCoherentBit);
-
-            img.CopyPixelDataTo(buff.Memory.Span);
-            VulkanHelper.CopyToBuffer(context, stagingBuffer, stagingBufferMemory, buff.Memory.Span);
-
-            //VulkanHelper.TransitionImageLayout(context, commandPool, graphicsQueue, textureBuffer.texture, format, ImageLayout.Undefined, ImageLayout.TransferDstOptimal, 6, mipLevels);
-            for (int i = 0; i < 6; i++)
-            {
-                VulkanHelper.CopyBufferToImage(context, commandPool, graphicsQueue, stagingBuffer, textureBuffer.texture, sideWidth, sideHeight, (uint)i, mipLevel, GetSideOffset(i, sideWidth, sideHeight, rowLength, bytesPerPixel) * (ulong)bytesPerPixel, (uint)rowLength);
-            }
-            //VulkanHelper.TransitionImageLayout(context, commandPool, graphicsQueue, textureBuffer.texture, format, ImageLayout.TransferDstOptimal, ImageLayout.ShaderReadOnlyOptimal, 6, mipLevels);
-
-            unsafe
-            {
-                context.vk.DestroyBuffer(context.device, stagingBuffer, null);
-                context.vk.FreeMemory(context.device, stagingBufferMemory, null);
-                context.vk.DestroyCommandPool(context.device, commandPool, null);
-            }
-        }
-
-        static ulong GetSideOffset(int side, uint sideWidth, uint sideHeight, int rowLength, int bytesPerPixel)
+        static ulong GetSideOffset(int side, uint sideWidth, uint sideHeight, int rowLength)
         {
             int offsetX;
             int offsetY;

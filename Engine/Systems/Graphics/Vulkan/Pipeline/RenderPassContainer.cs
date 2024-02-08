@@ -113,7 +113,7 @@ namespace Engine
             AttachmentDescription depthAttatchment = new();
             depthAttatchment.Format = depthFormat;
             depthAttatchment.Samples = SampleCountFlags.Count1Bit;
-            depthAttatchment.LoadOp = AttachmentLoadOp.Clear;
+            depthAttatchment.LoadOp = AttachmentLoadOp.Load;
             depthAttatchment.StoreOp = AttachmentStoreOp.Store;
             depthAttatchment.StencilLoadOp = AttachmentLoadOp.DontCare;
             depthAttatchment.StencilStoreOp = AttachmentStoreOp.DontCare;

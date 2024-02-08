@@ -22,7 +22,6 @@ namespace Engine.Graphics
 	public partial class VulkanMeshResourceManager : IResourceManager<Mesh, VkMeshBuffer>
 	{
 		uint idx = 0;
-		Memory<Graphics.Mesh> meshes = new Graphics.Mesh[32];
 		Memory<Graphics.VkMeshBuffer> meshBuffers = new Graphics.VkMeshBuffer[32];
 
 		Dictionary<string, uint> meshCache = new Dictionary<string, uint>();
@@ -45,7 +44,6 @@ namespace Engine.Graphics
 				return id;
 
             meshCache.Add(mesh.name, idx);
-			meshes.Span[(int)idx] = mesh;
 			meshBuffers.Span[(int)idx] = CreateMeshBuffer(context, mesh);
 			return idx++;
 		}

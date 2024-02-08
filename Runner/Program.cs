@@ -6,6 +6,7 @@ using Engine.Parsing;
 using Silk.NET.Maths;
 using Silk.NET.OpenAL;
 using Silk.NET.Windowing;
+using System.Dynamic;
 using System.Net;
 using System.Numerics;
 using static Engine.HengineEcs;
@@ -14,22 +15,7 @@ namespace Runner
 {
 	internal class Program
 	{
-		static void Create(Main world, Vector3 pos, Mesh mesh, ETexture texture, int idx)
-		{
-			var objRef = world.Create(new NEntity());
-			NEntity.Ref entRef = world.Get(objRef);
-			entRef.Position.Set(pos);
-			entRef.Scale.Set(Vector3.One);
-			entRef.Rotation.Set(Quaternion.Identity);
-			entRef.Mesh.Set(mesh);
-			entRef.ETexture.Set(texture);
-			entRef.Networked.Set(new Networked()
-			{
-				idx = idx
-			});
-		}
-
-        static void Create(Main world, Vector3 pos, Mesh mesh, PbrMaterialNew material, int idx)
+        static void Create(Main world, Vector3 pos, Mesh mesh, PbrMaterial material, int idx)
         {
             var objRef = world.Create(new NEntity());
             NEntity.Ref entRef = world.Get(objRef);
@@ -37,20 +23,21 @@ namespace Runner
             entRef.Scale.Set(Vector3.One);
             entRef.Rotation.Set(Quaternion.Identity);
             entRef.Mesh.Set(mesh);
-            entRef.PbrMaterialNew.Set(material);
+            entRef.PbrMaterial.Set(material);
             entRef.Networked.Set(new Networked()
             {
                 idx = idx
             });
         }
 
-        static void CreateCamera(Main world, Camera camera, Vector3 position)
+        static void CreateCamera(Main world, Camera camera, Vector3 position, in Skybox skybox)
 		{
 			var objRef = world.Create(new Cam());
 			Cam.Ref entRef = world.Get(objRef);
 			entRef.Camera.Set(camera);
 			entRef.Position.Set(position);
 			entRef.Rotation.Set(Quaternion.Identity);
+			entRef.Skybox.Set(skybox);
 			entRef.Networked.Set(new Networked());
 		}
 
@@ -114,9 +101,22 @@ namespace Runner
 			var ecs = engine.GetEcs();
 			Main mainWorld = ecs.GetMain();
 
-			//var meshBox = Mesh.LoadGltf("Box", "Models/Box/box.gltf");
-			var meshDuck = Mesh.LoadGltf("Duck", "Models/Duck/Duck.gltf", true);
-			var materialDuck = PbrMaterialNew.LoadGltf("Duck", "Models/Duck/Duck.gltf");
+			var skybox = Skybox.LoadSkybox("Skybox", "Images/Skybox/Default");
+            Camera camera = new Camera
+            {
+                width = 800,
+                height = 600,
+                fov = 1.22173f, // 70 degrees
+                zNear = 0.1f,
+                zFar = 1000
+            };
+
+            //var meshBox = Mesh.LoadGltf("Box", "Models/Box/box.gltf");
+            var meshDuck = Mesh.LoadGltf("Duck", "Models/Duck/Duck.gltf", true);
+			var materialDuck = PbrMaterial.LoadGltf("Duck", "Models/Duck/Duck.gltf");
+
+			var meshMap = GetMapMesh();
+
 			//var meshBall = Mesh.LoadOBJ("Ball", "Models/Ball.obj");
 			var meshSphere = Mesh.LoadOBJ("Sphere", "Models/SphereSmooth.obj");
 			var materialSphere = GetMaterial();
@@ -125,22 +125,10 @@ namespace Runner
 			//var texture = ETexture.LoadImage("Haakon", "Images/image_2.png");
 			//var texture2 = ETexture.LoadImage("Statue", "Images/image.png");
 
-			Camera camera = new Camera
-			{
-				width = 800,
-				height = 600,
-				fov = 1.22173f, // 70 degrees
-				zNear = 0.1f,
-				zFar = 1000
-			};
-
-			CreateCamera(mainWorld, camera, Vector3.Zero);
+			CreateCamera(mainWorld, camera, Vector3.Zero, skybox);
 
 			Create(mainWorld, new(3, 0, -10), meshDuck, materialDuck, 1);
-			/*
-			Create(mainWorld, new(0, 0, -5), meshBall, texture, 0);
-			Create(mainWorld, new(-3, 0, -5), meshSphere, texture2, 11);
-			*/
+			Create(mainWorld, new(3, 0, 10), meshMap, materialDuck, 1);
 
 			float midX = 4 / 2f;
 			float midY = 4f / 2f;
@@ -188,7 +176,7 @@ namespace Runner
 			server.Start();
 		}
 
-		static PbrMaterialNew GetMaterial()
+		static PbrMaterial GetMaterial()
 		{
             var textureAlbedo = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Gold/gold-scuffed_basecolor-boosted.png");
             //var textureAlbedo = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Iron/rustediron2_basecolor.png");
@@ -208,15 +196,121 @@ namespace Runner
 
             var textureAo = ETexture.LoadImage("PbrGoldAo", "Images/Pbr/Default/Ao.png");
 
-            PbrMaterialNew material = new PbrMaterialNew();
+            var textureNormal = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Gold/gold-scuffed_normal.png");
+            //var textureNormal = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Iron/rustediron2_normal.png");
+            //var textureNormal = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Floor/wood_floor_worn_nor_gl_4k.png");
+
+            PbrMaterial material = new PbrMaterial();
 			material.name = "PbrGold";
             material.albedo = Vector3.One;
             material.albedoMap = textureAlbedo;
             material.metallicMap = textureMetallic;
             material.roughnessMap = textureRoughness;
             material.aoMap = textureAo;
+			material.normalMap = textureNormal;
 
 			return material;
+        }
+
+		static Mesh GetMapMesh()
+		{
+			const float OUTER_RADIUS = 1f;
+			const float INNER_RADIUS = OUTER_RADIUS * 0.866025404f;
+
+            var mesh = new Mesh();
+			Vertex[] vericies = new Vertex[6];
+			vericies[0] = new Vertex(new(0, 0, OUTER_RADIUS), Vector3.UnitY, new(0.5f, 0));
+			vericies[1] = new Vertex(new(INNER_RADIUS, 0, OUTER_RADIUS * 0.5f), Vector3.UnitY, new(1, 0.33f));
+			vericies[2] = new Vertex(new(INNER_RADIUS, 0, -OUTER_RADIUS * 0.5f), Vector3.UnitY, new(1, 0.66f));
+			vericies[3] = new Vertex(new(0, 0, -OUTER_RADIUS), Vector3.UnitY, new(0.5f, 1));
+			vericies[4] = new Vertex(new(-INNER_RADIUS, 0, -OUTER_RADIUS * 0.5f), Vector3.UnitY, new(0, 0.66f));
+			vericies[5] = new Vertex(new(-INNER_RADIUS, 0, OUTER_RADIUS * 0.5f), Vector3.UnitY, new(0, 0.33f));
+
+			uint[] indicies = new uint[3 * 4];
+			indicies[0] = 2;
+			indicies[1] = 3;
+			indicies[2] = 1;
+
+			indicies[3] = 3;
+			indicies[4] = 4;
+			indicies[5] = 0;
+
+			indicies[6] = 1;
+			indicies[7] = 3;
+			indicies[8] = 0;
+
+			indicies[9] = 4;
+			indicies[10] = 5;
+			indicies[11] = 0;
+
+			mesh.name = "HexMap";
+			//mesh.verticies = vericies;
+			mesh.verticies = GetMapVerticies(2, 1);
+			//mesh.indicies = indicies;
+			mesh.indicies = GetMapIndicies(2, 1);
+
+			return mesh;
+		}
+
+		static Vertex[] GetMapVerticies(int width, int height)
+		{
+            const float OUTER_RADIUS = 1f;
+            const float INNER_RADIUS = OUTER_RADIUS * 0.866025404f;
+
+            List<Vertex> verticeis = new();
+
+			for (int y = 0; y < height; y++)
+			{
+				float posY = y * OUTER_RADIUS;
+				float posX = y * INNER_RADIUS;
+
+                verticeis.Add(new(new(posX + -INNER_RADIUS, 0, posY + -OUTER_RADIUS * 0.5f), Vector3.UnitY, new()));
+                verticeis.Add(new(new(posX + -INNER_RADIUS, 0, posY + OUTER_RADIUS * 0.5f), Vector3.UnitY, new()));
+
+                for (int x = 0; x < width; x++)
+                {
+                    posX = x * INNER_RADIUS * 2 + y * INNER_RADIUS;
+
+                    if (y == height - 1)
+                        verticeis.Add(new(new(posX, 0, posY + OUTER_RADIUS), Vector3.UnitY, new(Random.Shared.NextSingle())));
+
+                    if (y == 0)
+						verticeis.Add(new(new(posX, 0, posY + -OUTER_RADIUS), Vector3.UnitY, new(Random.Shared.NextSingle())));
+
+                    verticeis.Add(new(new(posX + INNER_RADIUS, 0, posY + -OUTER_RADIUS * 0.5f), Vector3.UnitY, new(Random.Shared.NextSingle())));
+                    verticeis.Add(new(new(posX + INNER_RADIUS, 0, posY + OUTER_RADIUS * 0.5f), Vector3.UnitY, new(Random.Shared.NextSingle())));
+                }
+            }
+
+			return verticeis.ToArray();
+		}
+
+		static uint[] GetMapIndicies(int width, int height)
+		{
+            List<uint> indicies = new();
+
+			for (uint x = 0; x < width; x++)
+			{
+				uint offset = x * 4;
+
+                indicies.Add(offset + 2);
+                indicies.Add(offset + 5);
+                indicies.Add(offset + 1);
+
+                indicies.Add(offset + 5);
+                indicies.Add(offset + 4);
+                indicies.Add(offset + 0);
+
+                indicies.Add(offset + 1);
+                indicies.Add(offset + 5);
+                indicies.Add(offset + 0);
+
+				indicies.Add(offset + 4);
+                indicies.Add(offset + 3);
+                indicies.Add(offset + 0);
+            }
+
+			return indicies.ToArray();
         }
 	}
 }

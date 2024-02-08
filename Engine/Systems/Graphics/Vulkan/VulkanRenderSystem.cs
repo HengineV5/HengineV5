@@ -117,11 +117,45 @@ namespace Engine
 		public Vector3 cameraPos;
 	}
 
-	public struct VulkanShaderInput
+    // Phong
+    [StructLayout(LayoutKind.Sequential, Pack = 16)]
+    public struct Material
+    {
+        public Vector3 Ambient;
+        public Vector3 Diffuse;
+        public Vector3 Specular;
+        public float Shininess;
+
+        public static readonly Material Emerald = new Material
+        {
+            Ambient = new Vector3(0.0215f, 0.1745f, 0.0215f),
+            Diffuse = new Vector3(0.07568f, 0.61424f, 0.07568f),
+            Specular = new Vector3(0.633f, 0.727811f, 0.633f),
+            Shininess = 0.6f
+        };
+
+        public static readonly Material WhitePlastic = new Material
+        {
+            Ambient = Vector3.Zero,
+            Diffuse = new Vector3(0.55f, 0.55f, 0.55f),
+            Specular = new Vector3(0.70f, 0.70f, 0.70f),
+            Shininess = 0.25f
+        };
+    }
+
+    [StructLayout(LayoutKind.Sequential, Pack = 16)]
+    public struct PbrMaterialInfo
+    {
+        public Vector3 albedo;
+        public float metallic;
+        public float roughness;
+    }
+
+    public struct VulkanShaderInput
 	{
 		public MappedMemory<UniformBufferObject> ubo;
 		//public MappedMemory<Material> material;
-		public MappedMemory<PbrMaterial> material;
+		public MappedMemory<PbrMaterialInfo> material;
 		public FixedArray4<MappedMemory<Light>> lights;
 	}
 
@@ -146,6 +180,7 @@ namespace Engine
 	public struct VulkanRenderContext
 	{
 		public UniformBufferObject ubo;
+		public VkSkybox skybox;
 
         public VulkanRenderContext()
         {
@@ -154,6 +189,7 @@ namespace Engine
     }
 
 	[System<VulkanRenderContext>]
+	[UsingResource<VulkanSkyboxResourceManager>]
 	[UsingResource<VulkanMeshResourceManager>]
 	[UsingResource<VulkanMaterialResourceManager>]
 	public partial class VulkanRenderSystem
@@ -166,7 +202,7 @@ namespace Engine
 			Shininess = 2f
 		};
 
-		private static PbrMaterial defaultPbrMaterial = new PbrMaterial
+		private static PbrMaterialInfo defaultPbrMaterial = new PbrMaterialInfo
 		{
 			albedo = new Vector3(0.0215f, 0.1745f, 0.0215f),
 			metallic = 0.9f,
@@ -191,16 +227,7 @@ namespace Engine
 		FixedArray8<Sampler> samplers;
 
         VkMeshBuffer skyboxBuffer;
-		VkTextureBuffer skyboxTextureBuffer;
-		VkTextureBuffer skyboxIrradianceTextureBuffer;
-		VkTextureBuffer skyboxSpecularTextureBuffer;
 		VkTextureBuffer skyboxHdrTextureBuffer;
-		//VkTextureBuffer albedoTextureBuffer;
-		VkTextureBuffer normalTextureBuffer;
-        //VkTextureBuffer metallicTextureBuffer;
-        //VkTextureBuffer roughnessTextureBuffer;
-
-        VkPbrMaterial defaultNewMaterial;
 
 		public VulkanRenderSystem(VkContext context, VkRenderContext renderContext, IWindow window)
 		{
@@ -232,58 +259,8 @@ namespace Engine
 			var skyboxMesh = Mesh.LoadOBJ("Skybox", "Models/Skybox.obj");
 			skyboxBuffer = VulkanMeshResourceManager.CreateMeshBuffer(context, skyboxMesh);
 
-            //var textureCubemap = ECubemapHdr.LoadImage("Skybox", "Images/Skybox/Ibl_05/side_2.png", "Images/Skybox/Ibl_05/side_5.png", "Images/Skybox/Ibl_05/side_1.png", "Images/Skybox/Ibl_05/side_4.png", "Images/Skybox/Ibl_05/side_3.png", "Images/Skybox/Ibl_05/side_0.png");
-            //var textureCubemap = ECubemapHdr.LoadImage("Skybox", "Images/Skybox/Default/side_2.png", "Images/Skybox/Default/side_5.png", "Images/Skybox/Default/side_1.png", "Images/Skybox/Default/side_4.png", "Images/Skybox/Default/side_3.png", "Images/Skybox/Default/side_0.png");
-            var textureCubemap = ETextureHdr.LoadImage("Skybox", "Images/Skybox/Default/cubemap.png");
-            skyboxTextureBuffer = VulkanTextureResourceManager.CreateCubeTextureBuffer(context, textureCubemap, Format.R16G16B16A16Unorm);
-
-			//var textureCubemapIbl = ECubemapHdr.LoadImage("Skybox", "Images/Skybox/Ibl/side_2.png", "Images/Skybox/Ibl/side_5.png", "Images/Skybox/Ibl/side_1.png", "Images/Skybox/Ibl/side_4.png", "Images/Skybox/Ibl/side_3.png", "Images/Skybox/Ibl/side_0.png");
-            var textureCubemapIrradiance = ETextureHdr.LoadImage("SkyboxIrradiance", "Images/Skybox/Irradiance/cubemap.png");
-			skyboxIrradianceTextureBuffer = VulkanTextureResourceManager.CreateCubeTextureBuffer(context, textureCubemapIrradiance, Format.R16G16B16A16Unorm);
-
-            var textureCubemapSpecular1 = ETextureHdr.LoadImage("SkyboxSWpecular1", "Images/Skybox/Specular/0/cubemap.png");
-            var textureCubemapSpecular2 = ETextureHdr.LoadImage("SkyboxSWpecular2", "Images/Skybox/Specular/2/cubemap.png");
-            var textureCubemapSpecular3 = ETextureHdr.LoadImage("SkyboxSWpecular3", "Images/Skybox/Specular/4/cubemap.png");
-            var textureCubemapSpecular4 = ETextureHdr.LoadImage("SkyboxSWpecular4", "Images/Skybox/Specular/6/cubemap.png");
-            var textureCubemapSpecular5 = ETextureHdr.LoadImage("SkyboxSWpecular5", "Images/Skybox/Specular/9/cubemap.png");
-
-            skyboxSpecularTextureBuffer = VulkanTextureResourceManager.CreateCubeTextureBuffer(context, [textureCubemapSpecular1, textureCubemapSpecular2, textureCubemapSpecular3, textureCubemapSpecular4, textureCubemapSpecular5]);
-			//var textureSkyboxHdr = ETextureHdr.LoadImage("SkyboxHDR", "Images/Skybox/skybox_hdr.hdr");
-			//skyboxHdrTextureBuffer = VulkanTextureResourceManager.CreateHdrTextureBuffer(context, textureSkyboxHdr);
-
-			var textureBrdfLUT = ETextureHdr.LoadImage("SkyboxHDR", "Images/Skybox/integrationMap.png");
+			var textureBrdfLUT = ETextureHdr.LoadImage("BrdfLUT", "Images/Skybox/integrationMap.png");
             skyboxHdrTextureBuffer = VulkanTextureResourceManager.CreateHdrTextureBuffer(context, textureBrdfLUT);
-
-            var textureAlbedo = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Gold/gold-scuffed_basecolor-boosted.png");
-			//var textureAlbedo = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Iron/rustediron2_basecolor.png");
-			//var textureAlbedo = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Floor/wood_floor_worn_diff_4k.png");
-			//albedoTextureBuffer = VulkanTextureResourceManager.CreateTextureBuffer(context, textureAlbedo);
-
-			var textureNormal = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Gold/gold-scuffed_normal.png");
-			//var textureNormal = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Iron/rustediron2_normal.png");
-            //var textureNormal = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Floor/wood_floor_worn_nor_gl_4k.png");
-            normalTextureBuffer = VulkanTextureResourceManager.CreateTextureBuffer(context, textureNormal);
-
-			var textureMetallic = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Gold/gold-scuffed_metallic.png");
-			//var textureMetallic = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Iron/rustediron2_metallic.png");
-			//var textureMetallic = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Floor/wood_floor_worn_ao_4k.png");
-			//metallicTextureBuffer = VulkanTextureResourceManager.CreateTextureBuffer(context, textureMetallic);
-
-			var textureRoughness = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Gold/gold-scuffed_roughness.png");
-            //var textureRoughness = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Iron/rustediron2_roughness.png");
-            //var textureRoughness = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Floor/wood_floor_worn_rough_4k.png");
-            //roughnessTextureBuffer = VulkanTextureResourceManager.CreateTextureBuffer(context, textureRoughness);
-
-			var textureAo = ETexture.LoadImage("PbrGoldAo", "Images/Pbr/Default/Ao.png");
-
-            PbrMaterialNew material = new PbrMaterialNew();
-            material.albedo = Vector3.One;
-            material.albedoMap = textureAlbedo;
-            material.metallicMap = textureMetallic;
-            material.roughnessMap = textureRoughness;
-			material.aoMap = textureAo;
-
-            defaultNewMaterial = VulkanMaterialResourceManager.CreateMaterialBuffer(context, material);
 
             window.FramebufferResize += Window_Resize;
 		}
@@ -320,19 +297,11 @@ namespace Engine
 		}
 
 		[SystemUpdate, SystemLayer(0)]
-		public void UpdateCamera(ref VulkanRenderContext context, Position.Ref position, Rotation.Ref rotation, Camera.Ref camera)
+		public void UpdateCamera(ref VulkanRenderContext context, Position.Ref position, Rotation.Ref rotation, Camera.Ref camera, ref VkSkybox skybox)
 		{
 			UpdateCameraUbo2(ref context.ubo, camera, position, rotation);
 			context.ubo.cameraPos = new Vector3(position.x, position.y, position.z);
-
-            /*
-            var result = renderContext.renderPipeline.StartRender(this.context, ref context.ubo, skyboxTextureBuffer.textureImageView, skyboxBuffer.vertexBuffer, skyboxBuffer.indexBuffer, skyboxBuffer.indicies);
-            if (result == Result.ErrorOutOfDateKhr)
-            {
-                renderContext.renderPipeline.RecreateSwapchain(this.context, renderContext.surface, renderContext.commandPool);
-                renderContext.renderPipeline.StartRender(this.context, ref context.ubo, skyboxTextureBuffer.textureImageView, skyboxBuffer.vertexBuffer, skyboxBuffer.indexBuffer, skyboxBuffer.indicies);
-            }
-			*/
+			context.skybox = skybox;
 
             // SkyboxTexture
             /*
@@ -341,7 +310,7 @@ namespace Engine
 
             ref DefaultDescriptorSet set2 = ref renderContext.texturePipeline.GetDescriptor(this.context, 0);
             set2.shaderInput.ubo.Value = context.ubo;
-            UpdateFrameDescriptorSet(this.context, set2.descriptorSet, skyboxHdrTextureBuffer.textureImageView, albedoTextureBuffer, normalTextureBuffer, metallicTextureBuffer, roughnessTextureBuffer, skyboxTextureBuffer);
+            UpdateFrameDescriptorSet(this.context, set.descriptorSet, skyboxTextureBuffer);
 
             renderContext.texturePipeline.Render(this.context, PipelineContainerLayer.Pbr, skyboxBuffer.vertexBuffer, skyboxBuffer.indexBuffer, skyboxBuffer.indicies, 0);
             renderContext.texturePipeline.EndRenderPass(this.context);
@@ -354,9 +323,10 @@ namespace Engine
 
             ref DefaultDescriptorSet set = ref renderContext.pipeline.GetDescriptor(this.context, 0);
             set.shaderInput.ubo.Value = context.ubo;
-            UpdateFrameDescriptorSet(this.context, set.descriptorSet, skyboxHdrTextureBuffer, defaultNewMaterial, normalTextureBuffer, skyboxTextureBuffer, skyboxIrradianceTextureBuffer, skyboxSpecularTextureBuffer);
+            UpdateSkyboxDescriptorSet(this.context, set.descriptorSet, skybox.skybox);
 
             renderContext.pipeline.Render(this.context, PipelineContainerLayer.Skybox, skyboxBuffer.vertexBuffer, skyboxBuffer.indexBuffer, skyboxBuffer.indicies, 0);
+            renderContext.pipeline.ClearDepthBuffer(this.context); // Clear depth buffer because mesh rendering might go over multiple render passes, so depth buffer is loaded for each pass.
             renderContext.pipeline.EndRenderPass(this.context);
 
             UpdateCameraUbo(ref context.ubo, camera, position, rotation);
@@ -368,7 +338,6 @@ namespace Engine
 		[SystemPreLoop, SystemLayer(1, 2)]
 		public void PreRenderPass()
 		{
-			//renderContext.renderPipeline.BeginRenderPass(context);
 			renderContext.pipeline.StartRenderPass(context, RenderPassId.Mesh, PipelineContainerLayer.Pbr);
 
             bufferIdx = 0;
@@ -383,14 +352,13 @@ namespace Engine
             ref DefaultDescriptorSet set = ref renderContext.pipeline.GetDescriptor(this.context, bufferIdx);
 			set.shaderInput.ubo.Value = context.ubo;
 
-            //frame.uboMemories[idx].ubo.Value = ubo;
             set.shaderInput.material.Value = defaultPbrMaterial;
             for (int i = 0; i < 4; i++)
             {
                 set.shaderInput.lights[i].Value = defaultLights[i];
             }
 
-            UpdateFrameDescriptorSet(this.context, set.descriptorSet, skyboxHdrTextureBuffer, material, normalTextureBuffer, skyboxTextureBuffer, skyboxIrradianceTextureBuffer, skyboxSpecularTextureBuffer);
+            UpdateMeshDescriptorSet(this.context, set.descriptorSet, skyboxHdrTextureBuffer, material, context.skybox);
 
             bufferIdx++;
 		}
@@ -457,19 +425,29 @@ namespace Engine
             imageDescriptorWrite.PImageInfo = (DescriptorImageInfo*)Unsafe.AsPointer(ref imageInfo);
         }
 
-        unsafe void UpdateFrameDescriptorSet(VkContext context, DescriptorSet descriptorSet, VkTextureBuffer texture, VkPbrMaterial material, VkTextureBuffer normal, VkTextureBuffer skybox, VkTextureBuffer skyboxIrradiance, VkTextureBuffer skyboxSpecular)
+        unsafe void UpdateMeshDescriptorSet(VkContext context, DescriptorSet descriptorSet, VkTextureBuffer texture, VkPbrMaterial material, VkSkybox skybox)
         {
             Span<DescriptorImageInfo> infos = stackalloc DescriptorImageInfo[8];
             Span<WriteDescriptorSet> descriptorWrites = stackalloc WriteDescriptorSet[8];
 
 			CreateDescriptorWrite(ref infos[0], ref descriptorWrites[0], 1, texture, samplers[0], descriptorSet);
 			CreateDescriptorWrite(ref infos[1], ref descriptorWrites[1], 2, material.albedoMap, samplers[1], descriptorSet);
-			CreateDescriptorWrite(ref infos[2], ref descriptorWrites[2], 3, normal, samplers[2], descriptorSet);
+			CreateDescriptorWrite(ref infos[2], ref descriptorWrites[2], 3, material.normalMap, samplers[2], descriptorSet);
 			CreateDescriptorWrite(ref infos[3], ref descriptorWrites[3], 4, material.metallicMap, samplers[3], descriptorSet);
 			CreateDescriptorWrite(ref infos[4], ref descriptorWrites[4], 5, material.roughnessMap, samplers[4], descriptorSet);
-			CreateDescriptorWrite(ref infos[5], ref descriptorWrites[5], 6, skybox, samplers[5], descriptorSet);
-			CreateDescriptorWrite(ref infos[6], ref descriptorWrites[6], 7, skyboxIrradiance, samplers[6], descriptorSet);
-			CreateDescriptorWrite(ref infos[7], ref descriptorWrites[7], 8, skyboxSpecular, samplers[7], descriptorSet);
+			CreateDescriptorWrite(ref infos[5], ref descriptorWrites[5], 6, skybox.skybox, samplers[5], descriptorSet);
+			CreateDescriptorWrite(ref infos[6], ref descriptorWrites[6], 7, skybox.irradiance, samplers[6], descriptorSet);
+			CreateDescriptorWrite(ref infos[7], ref descriptorWrites[7], 8, skybox.specular, samplers[7], descriptorSet);
+
+            context.vk.UpdateDescriptorSets(context.device, descriptorWrites, 0, null);
+        }
+
+        unsafe void UpdateSkyboxDescriptorSet(VkContext context, DescriptorSet descriptorSet, VkTextureBuffer skybox)
+        {
+            Span<DescriptorImageInfo> infos = stackalloc DescriptorImageInfo[1];
+            Span<WriteDescriptorSet> descriptorWrites = stackalloc WriteDescriptorSet[1];
+
+            CreateDescriptorWrite(ref infos[0], ref descriptorWrites[0], 6, skybox, samplers[5], descriptorSet);
 
             context.vk.UpdateDescriptorSets(context.device, descriptorWrites, 0, null);
         }

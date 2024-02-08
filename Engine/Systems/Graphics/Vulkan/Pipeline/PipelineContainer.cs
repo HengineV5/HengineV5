@@ -26,10 +26,10 @@ namespace Engine
 			var pipelineLayout = CreatePipelineLayout(context, descriptorSetLayout);
 
             var skyboxShader = Shader.FromFiles("Shaders/Pbr/SkyboxVert.spv", "Shaders/Pbr/SkyboxFrag.spv");
-			var skyboxPipeline = RenderLayer.Create(context, skyboxShader, pipelineLayout, info);
+			var skyboxPipeline = RenderLayer.CreateSkybox(context, skyboxShader, pipelineLayout, info);
 
             var pbrShader = Shader.FromFiles("Shaders/Pbr/PbrVert.spv", "Shaders/Pbr/PbrFrag.spv");
-            var pbrPipeline = RenderLayer.Create(context, pbrShader, pipelineLayout, info);
+            var pbrPipeline = RenderLayer.CreatePbr(context, pbrShader, pipelineLayout, info);
 
 			return new PipelineContainer(skyboxPipeline, pbrPipeline);
 		}
@@ -105,12 +105,17 @@ namespace Engine
             this.layout = layout;
         }
 
-        public static RenderLayer Create(VkContext context, Shader shader, PipelineLayout layout, in DefaultPipelineInfo info)
+        public static RenderLayer CreatePbr(VkContext context, Shader shader, PipelineLayout layout, in DefaultPipelineInfo info)
         {
-            return new RenderLayer(shader, CreateGraphicsPipeline(context, info.extent, layout, info.compatibleRenderPass, shader), layout);
+            return new RenderLayer(shader, CreateGraphicsPipeline(context, info.extent, layout, info.compatibleRenderPass, shader, CullModeFlags.BackBit), layout);
         }
 
-        static unsafe Pipeline CreateGraphicsPipeline(VkContext context, Extent2D swapchainExtent, PipelineLayout pipelineLayout, RenderPass renderPass, Shader shader)
+        public static RenderLayer CreateSkybox(VkContext context, Shader shader, PipelineLayout layout, in DefaultPipelineInfo info)
+        {
+            return new RenderLayer(shader, CreateGraphicsPipeline(context, info.extent, layout, info.compatibleRenderPass, shader, CullModeFlags.FrontBit), layout);
+        }
+
+        static unsafe Pipeline CreateGraphicsPipeline(VkContext context, Extent2D swapchainExtent, PipelineLayout pipelineLayout, RenderPass renderPass, Shader shader, CullModeFlags cullMode)
         {
             //var shader = Shader.FromFiles("Shaders/VulkanVert.spv", "Shaders/VulkanFrag.spv");
             //var shader = Shader.FromFiles("Shaders/Pbr/PbrVert.spv", "Shaders/Pbr/PbrFrag.spv");
@@ -184,7 +189,7 @@ namespace Engine
             rasterizationStateCreateInfo.RasterizerDiscardEnable = false;
             rasterizationStateCreateInfo.PolygonMode = PolygonMode.Fill;
             rasterizationStateCreateInfo.LineWidth = 1.0f;
-            rasterizationStateCreateInfo.CullMode = CullModeFlags.None;
+            rasterizationStateCreateInfo.CullMode = cullMode;
             rasterizationStateCreateInfo.FrontFace = FrontFace.CounterClockwise;
             rasterizationStateCreateInfo.DepthBiasEnable = false;
             rasterizationStateCreateInfo.DepthBiasConstantFactor = 0;

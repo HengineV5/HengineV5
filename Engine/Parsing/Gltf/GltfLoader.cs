@@ -27,7 +27,7 @@ namespace Engine.Parsing.Gltf
             ReadMesh(Path.GetDirectoryName(path), file, idx, ref mesh, normalize);
         }
 
-        public static void LoadMaterial(string name, string path, ref PbrMaterialNew material)
+        public static void LoadMaterial(string name, string path, ref PbrMaterial material)
         {
             GltfFile file = JsonSerializer.Deserialize(File.ReadAllText(path), GltfSourceGenerationContext.Default.GltfFile);
             int idx = Array.FindIndex(file.materials, x => x.name == name);
@@ -84,7 +84,7 @@ namespace Engine.Parsing.Gltf
             }
         }
 
-        static void ReadMaterial(string baseFolder, GltfFile file, int materialIdx, ref PbrMaterialNew material)
+        static void ReadMaterial(string baseFolder, GltfFile file, int materialIdx, ref PbrMaterial material)
         {
             GltfMaterial gltfMaterial = file.materials[materialIdx];
             GltfPbrMetallicRoughness pbr = gltfMaterial.pbrMetallicRoughness;
@@ -116,6 +116,11 @@ namespace Engine.Parsing.Gltf
                 material.aoMap = ETexture.LoadImage($"{gltfMaterial.name}_ao", Path.Combine(baseFolder, aoUri));
             }
 
+            if (gltfMaterial.normalTexture != null)
+            {
+                string normalUri = file.images[gltfMaterial.normalTexture.index].uri;
+                material.normalMap = ETexture.LoadImage($"{gltfMaterial.name}_normal", Path.Combine(baseFolder, normalUri));
+            }
         }
 
         static unsafe void ReadData<T>(string baseFolder, GltfFile file, GltfAccessor accessor, Span<T> data) where T : unmanaged

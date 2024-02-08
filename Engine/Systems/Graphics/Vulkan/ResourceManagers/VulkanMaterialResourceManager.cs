@@ -13,13 +13,13 @@ namespace Engine.Graphics
         public float roughness;
         public VkTextureBuffer roughnessMap;
         public VkTextureBuffer aoMap;
+        public VkTextureBuffer normalMap;
     }
 
     [ResourceManager]
-    public partial class VulkanMaterialResourceManager : IResourceManager<PbrMaterialNew, VkPbrMaterial>
+    public partial class VulkanMaterialResourceManager : IResourceManager<PbrMaterial, VkPbrMaterial>
     {
         uint idx = 0;
-        Memory<Graphics.PbrMaterialNew> materials = new Graphics.PbrMaterialNew[32];
         Memory<Graphics.VkPbrMaterial> materialBuffers = new Graphics.VkPbrMaterial[32];
 
         Dictionary<string, uint> materialCache = new Dictionary<string, uint>();
@@ -36,18 +36,17 @@ namespace Engine.Graphics
             return ref materialBuffers.Span[(int)id];
         }
 
-        public uint Store(in Graphics.PbrMaterialNew resource)
+        public uint Store(in Graphics.PbrMaterial resource)
         {
             if (materialCache.TryGetValue(resource.name, out uint id))
                 return id;
 
             materialCache.Add(resource.name, idx);
-            materials.Span[(int)idx] = resource;
             materialBuffers.Span[(int)idx] = CreateMaterialBuffer(context, resource);
             return idx++;
         }
 
-        public static VkPbrMaterial CreateMaterialBuffer(VkContext context, Graphics.PbrMaterialNew material)
+        public static VkPbrMaterial CreateMaterialBuffer(VkContext context, Graphics.PbrMaterial material)
         {
             return new VkPbrMaterial()
             {
@@ -58,6 +57,7 @@ namespace Engine.Graphics
                 roughness = material.roughness,
                 roughnessMap = VulkanTextureResourceManager.CreateTextureBuffer(context, material.roughnessMap),
                 aoMap = VulkanTextureResourceManager.CreateTextureBuffer(context, material.aoMap),
+                normalMap = VulkanTextureResourceManager.CreateTextureBuffer(context, material.normalMap),
             };
         }
     }

@@ -40,12 +40,12 @@ namespace Engine
             var uniformBufferBuilder = new UniformBufferBuilder(descriptorSet.descriptorSet, uniformBuffer)
                         .Variable<UniformBufferObject>(0)
                         //.Variable<Material>(2)
-                        .Variable<PbrMaterial>(9)
+                        .Variable<PbrMaterialInfo>(9)
                         .Array<Light>(10, 4);
 
             descriptorSet.shaderInput.ubo = uniformBufferBuilder.GetElement<UniformBufferObject>(dataPtr, 0);
             //framesInFlight.Span[i].uboMemories[a].material = uniformBufferBuilder.GetElement<Material>(dataPtr, 1);
-            descriptorSet.shaderInput.material = uniformBufferBuilder.GetElement<PbrMaterial>(dataPtr, 1);
+            descriptorSet.shaderInput.material = uniformBufferBuilder.GetElement<PbrMaterialInfo>(dataPtr, 1);
             for (int b = 0; b < 4; b++)
             {
                 descriptorSet.shaderInput.lights[b] = uniformBufferBuilder.GetElement<Light>(dataPtr, 2 + (uint)b);
@@ -70,110 +70,48 @@ namespace Engine
             return VulkanHelper.CreateDescriptorPool(context, count);
         }
 
+        static unsafe DescriptorSetLayoutBinding CreateUniformBinding(uint binding, ShaderStageFlags stageFlags, uint descriptorCount)
+        {
+            DescriptorSetLayoutBinding layoutBinding = new();
+            layoutBinding.Binding = binding;
+            layoutBinding.DescriptorType = DescriptorType.UniformBuffer;
+            layoutBinding.DescriptorCount = descriptorCount;
+            layoutBinding.StageFlags = stageFlags;
+            layoutBinding.PImmutableSamplers = null;
+
+            return layoutBinding;
+        }
+
+        static unsafe DescriptorSetLayoutBinding CreateSamplerBinding(uint binding, ShaderStageFlags stageFlags, uint descriptorCount)
+        {
+            DescriptorSetLayoutBinding layoutBinding = new();
+            layoutBinding.Binding = binding;
+            layoutBinding.DescriptorType = DescriptorType.CombinedImageSampler;
+            layoutBinding.DescriptorCount = descriptorCount;
+            layoutBinding.StageFlags = stageFlags;
+            layoutBinding.PImmutableSamplers = null;
+
+            return layoutBinding;
+        }
+
         static unsafe DescriptorSetLayout CreateDescriptorSetLayout(VkContext context)
         {
-            DescriptorSetLayoutBinding uniformBinding = new();
-            uniformBinding.Binding = 0;
-            uniformBinding.DescriptorType = DescriptorType.UniformBuffer;
-            uniformBinding.DescriptorCount = 1;
-            uniformBinding.StageFlags = ShaderStageFlags.VertexBit;
-            uniformBinding.PImmutableSamplers = null;
-
-            DescriptorSetLayoutBinding textureSamplerBinding = new();
-            textureSamplerBinding.Binding = 1;
-            textureSamplerBinding.DescriptorType = DescriptorType.CombinedImageSampler;
-            textureSamplerBinding.DescriptorCount = 1;
-            textureSamplerBinding.StageFlags = ShaderStageFlags.FragmentBit;
-            textureSamplerBinding.PImmutableSamplers = null;
-
-            DescriptorSetLayoutBinding albedoSamplerBinding = new();
-            albedoSamplerBinding.Binding = 2;
-            albedoSamplerBinding.DescriptorType = DescriptorType.CombinedImageSampler;
-            albedoSamplerBinding.DescriptorCount = 1;
-            albedoSamplerBinding.StageFlags = ShaderStageFlags.FragmentBit;
-            albedoSamplerBinding.PImmutableSamplers = null;
-
-            DescriptorSetLayoutBinding normalSamplerBinding = new();
-            normalSamplerBinding.Binding = 3;
-            normalSamplerBinding.DescriptorType = DescriptorType.CombinedImageSampler;
-            normalSamplerBinding.DescriptorCount = 1;
-            normalSamplerBinding.StageFlags = ShaderStageFlags.FragmentBit;
-            normalSamplerBinding.PImmutableSamplers = null;
-
-            DescriptorSetLayoutBinding metallicSamplerBinding = new();
-            metallicSamplerBinding.Binding = 4;
-            metallicSamplerBinding.DescriptorType = DescriptorType.CombinedImageSampler;
-            metallicSamplerBinding.DescriptorCount = 1;
-            metallicSamplerBinding.StageFlags = ShaderStageFlags.FragmentBit;
-            metallicSamplerBinding.PImmutableSamplers = null;
-
-            DescriptorSetLayoutBinding roughnessSamplerBinding = new();
-            roughnessSamplerBinding.Binding = 5;
-            roughnessSamplerBinding.DescriptorType = DescriptorType.CombinedImageSampler;
-            roughnessSamplerBinding.DescriptorCount = 1;
-            roughnessSamplerBinding.StageFlags = ShaderStageFlags.FragmentBit;
-            roughnessSamplerBinding.PImmutableSamplers = null;
-
-            /*
-			DescriptorSetLayoutBinding aoSamplerBinding = new();
-			aoSamplerBinding.Binding = 6;
-			aoSamplerBinding.DescriptorType = DescriptorType.CombinedImageSampler;
-			aoSamplerBinding.DescriptorCount = 1;
-			aoSamplerBinding.StageFlags = ShaderStageFlags.FragmentBit;
-			aoSamplerBinding.PImmutableSamplers = null;
-			*/
-
-            DescriptorSetLayoutBinding skyboxSamplerBinding = new();
-            skyboxSamplerBinding.Binding = 6;
-            skyboxSamplerBinding.DescriptorType = DescriptorType.CombinedImageSampler;
-            skyboxSamplerBinding.DescriptorCount = 1;
-            skyboxSamplerBinding.StageFlags = ShaderStageFlags.FragmentBit;
-            skyboxSamplerBinding.PImmutableSamplers = null;
-
-            DescriptorSetLayoutBinding skyboxIrradianceSamplerBinding = new();
-            skyboxIrradianceSamplerBinding.Binding = 7;
-            skyboxIrradianceSamplerBinding.DescriptorType = DescriptorType.CombinedImageSampler;
-            skyboxIrradianceSamplerBinding.DescriptorCount = 1;
-            skyboxIrradianceSamplerBinding.StageFlags = ShaderStageFlags.FragmentBit;
-            skyboxIrradianceSamplerBinding.PImmutableSamplers = null;
-
-            DescriptorSetLayoutBinding skyboxSpecularSamplerBinding = new();
-            skyboxSpecularSamplerBinding.Binding = 8;
-            skyboxSpecularSamplerBinding.DescriptorType = DescriptorType.CombinedImageSampler;
-            skyboxSpecularSamplerBinding.DescriptorCount = 1;
-            skyboxSpecularSamplerBinding.StageFlags = ShaderStageFlags.FragmentBit;
-            skyboxSpecularSamplerBinding.PImmutableSamplers = null;
-
-            DescriptorSetLayoutBinding materialBinding = new();
-            materialBinding.Binding = 9;
-            materialBinding.DescriptorType = DescriptorType.UniformBuffer;
-            materialBinding.DescriptorCount = 1;
-            materialBinding.StageFlags = ShaderStageFlags.FragmentBit;
-            materialBinding.PImmutableSamplers = null;
-
-            DescriptorSetLayoutBinding lightBinding = new();
-            lightBinding.Binding = 10;
-            lightBinding.DescriptorType = DescriptorType.UniformBuffer;
-            lightBinding.DescriptorCount = 4;
-            lightBinding.StageFlags = ShaderStageFlags.FragmentBit;
-            lightBinding.PImmutableSamplers = null;
-
             DescriptorSetLayoutCreateInfo createInfo = new();
             createInfo.SType = StructureType.DescriptorSetLayoutCreateInfo;
             createInfo.BindingCount = 11;
 
             DescriptorSetLayoutBinding* bindingsPtr = stackalloc DescriptorSetLayoutBinding[11];
-            bindingsPtr[0] = uniformBinding;
-            bindingsPtr[1] = textureSamplerBinding;
-            bindingsPtr[2] = albedoSamplerBinding;
-            bindingsPtr[3] = normalSamplerBinding;
-            bindingsPtr[4] = metallicSamplerBinding;
-            bindingsPtr[5] = roughnessSamplerBinding;
-            bindingsPtr[6] = skyboxSamplerBinding;
-            bindingsPtr[7] = skyboxIrradianceSamplerBinding;
-            bindingsPtr[8] = skyboxSpecularSamplerBinding;
-            bindingsPtr[9] = materialBinding;
-            bindingsPtr[10] = lightBinding;
+            bindingsPtr[0] = CreateUniformBinding(0, ShaderStageFlags.VertexBit, 1);
+            bindingsPtr[1] = CreateSamplerBinding(1, ShaderStageFlags.FragmentBit, 1);
+            bindingsPtr[2] = CreateSamplerBinding(2, ShaderStageFlags.FragmentBit, 1);
+            bindingsPtr[3] = CreateSamplerBinding(3, ShaderStageFlags.FragmentBit, 1);
+            bindingsPtr[4] = CreateSamplerBinding(4, ShaderStageFlags.FragmentBit, 1);
+            bindingsPtr[5] = CreateSamplerBinding(5, ShaderStageFlags.FragmentBit, 1);
+            bindingsPtr[6] = CreateSamplerBinding(6, ShaderStageFlags.FragmentBit, 1);
+            bindingsPtr[7] = CreateSamplerBinding(7, ShaderStageFlags.FragmentBit, 1);
+            bindingsPtr[8] = CreateSamplerBinding(8, ShaderStageFlags.FragmentBit, 1);
+            bindingsPtr[9] = CreateUniformBinding(9, ShaderStageFlags.FragmentBit, 1);
+            bindingsPtr[10] = CreateUniformBinding(10, ShaderStageFlags.FragmentBit, 4);
 
             createInfo.PBindings = bindingsPtr;
 

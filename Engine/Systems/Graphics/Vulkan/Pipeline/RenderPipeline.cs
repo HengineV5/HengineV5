@@ -108,6 +108,23 @@ namespace Engine
             renderTarget = default;
         }
 
+        public void ClearDepthBuffer(VkContext context)
+        {
+            var renderArea = TRenderTargetManager.GetRenderArea(ref renderTargetManager);
+
+            ClearRect clearArea = new ClearRect();
+            clearArea.Rect = renderArea;
+            clearArea.BaseArrayLayer = 0;
+            clearArea.LayerCount = 1;
+
+            ClearAttachment clearInfo = new ClearAttachment();
+            clearInfo.AspectMask = ImageAspectFlags.DepthBit;
+            clearInfo.ColorAttachment = 1;
+            clearInfo.ClearValue = new ClearValue(depthStencil: new(1.0f, 0));
+
+            context.vk.CmdClearAttachments(renderTarget.frame.commandBuffer, [clearInfo], [clearArea]);
+        }
+
         // TODO: Improve
         public unsafe ref TDescriptorSet GetDescriptor(VkContext context, int idx)
         {
