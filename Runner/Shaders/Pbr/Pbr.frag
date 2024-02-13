@@ -45,7 +45,7 @@ float ao = 1;
 
 vec3 getNormalFromMap()
 {
-    vec3 tangentNormal = texture(u_NormalMap, v_texCoord).xyz * 2.0 - 1.0;
+    vec3 tangentNormal = texture(u_NormalMap, v_texCoord).xyz;
 
     vec3 Q1  = dFdx(v_pos);
     vec3 Q2  = dFdy(v_pos);
@@ -131,13 +131,15 @@ void main() {
 		vec3 albedo = pow(texture(u_AlbedoMap, v_texCoord).rgb, vec3(2.2));
 		//vec3 albedo = u_Material.albedo;
 
-		float metallic = texture(u_MetallicMap, v_texCoord).r;
-		//metallic *= 2;
+		//float metallic = 1 - texture(u_MetallicMap, v_texCoord).r;
+		float metallic = 1 - pow(texture(u_MetallicMap, v_texCoord).b, 2.2);
+		//metallic /= 4;
 		//float metallic = 0.9;
-		float roughness = texture(u_RoughnessMap, v_texCoord).r;
+		//float roughness = 1 - texture(u_RoughnessMap, v_texCoord).r;
+		float roughness = 1 - pow(texture(u_RoughnessMap, v_texCoord).r, 2.2);
 		//ao = texture(u_MetallicMap, v_texCoord).r;
 		//float roughness = 0.0;
-		roughness *= 16;
+		//roughness *= 16;
 		/*
 		*/
 		
@@ -201,6 +203,7 @@ void main() {
 		//color = vec4(v_texCoord, 0.0, 1.0);
 		//color = vec4(v_texCoord, 0.0, 1.0);
 		//color = vec4(ambient, 1.0);
+		//color = vec4(max(metallic - 1, 0), 0.0, 0.0, 1.0);
 		//color = vec4(textureLod(u_SpecularMap, v_normal, 0.5).rgb, 1.0);
 
 		//vec3 I1 = normalize(v_pos - v_ViewPos);

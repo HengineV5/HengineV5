@@ -5,6 +5,7 @@
 layout(location = 0) in vec3 position;
 layout(location = 1) in vec3 normal;
 layout(location = 2) in vec2 texCoord;
+layout(location = 3) in vec3 tangent;
 
 layout(location = 0) out vec2 v_texCoord;
 layout(location = 1) out vec3 v_normal;
@@ -23,6 +24,12 @@ layout(binding = 0) uniform UniformBufferObject {
 void main() {
     mat4 model = u_Ubo.translation * u_Ubo.rotation * u_Ubo.scale;
     gl_Position = u_Ubo.proj * u_Ubo.view * model * vec4(position, 1.0);
+
+    mat3 normalMatrix = transpose(inverse(mat3(model)));
+    vec3 T = normalize(normalMatrix * tangent);
+    vec3 N = normalize(normalMatrix * normal);
+    T = normalize(T - dot(T, N) * N);
+    vec3 B = cross(N, T);
 
     v_pos = vec3(model * vec4(position, 1));
     v_viewPos = u_Ubo.viewPos;

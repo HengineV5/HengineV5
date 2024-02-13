@@ -67,6 +67,14 @@ namespace Engine.Parsing.Gltf
             Vector2[] texcoords = new Vector2[texAccessor.count];
             ReadData(baseFolder, file, texAccessor, texcoords.AsSpan());
 
+            Vector4[] tangents = [];
+            if (primitive.attributes.tangent != uint.MaxValue)
+            {
+                GltfAccessor tangentAccessor = file.accessors[primitive.attributes.tangent];
+                tangents = new Vector4[tangentAccessor.count];
+                ReadData(baseFolder, file, tangentAccessor, tangents.AsSpan());
+            }
+
             ushort[] indicies = new ushort[indexAccessor.count];
             ReadData(baseFolder, file, indexAccessor, indicies.AsSpan());
 
@@ -80,7 +88,11 @@ namespace Engine.Parsing.Gltf
 
             for (int i = 0; i < normals.Length; i++)
             {
-                mesh.verticies[i] = new Vertex(positions[i], normals[i], texcoords[i]);
+                Vector3 tangent = Vector3.Zero;
+                if (i < tangents.Length)
+                    tangent = new Vector3(tangents[i].X, tangents[i].Y, tangents[i].Z);
+
+                mesh.verticies[i] = new Vertex(positions[i], normals[i], texcoords[i], tangent);
             }
         }
 

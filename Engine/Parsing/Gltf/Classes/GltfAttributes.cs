@@ -12,5 +12,7 @@ namespace Engine.Parsing.Gltf
         public uint texcoord0 = uint.MaxValue;
         [JsonPropertyName("TEXCOORD_1")]
         public uint texcoord1 = uint.MaxValue;
+        [JsonPropertyName("TANGENT")]
+        public uint tangent = uint.MaxValue;
     }
 }

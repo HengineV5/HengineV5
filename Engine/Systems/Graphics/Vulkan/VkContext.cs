@@ -21,7 +21,7 @@ namespace Engine
 
 		//public RenderPipeline renderPipeline;
 		public RenderPipeline<SwapchainRenderTargetManager<DefaultDescriptorSet>, DefaultRenderPassInfo, DefaultPipelineInfo, DefaultDescriptorSet, PipelineContainer, PipelineContainerLayer, RenderPassContainer, RenderPassId> pipeline;
-		public RenderPipeline<TextureRenderTargetManager<DefaultDescriptorSet, Rgba32>, DefaultRenderPassInfo, DefaultPipelineInfo, DefaultDescriptorSet, PipelineContainer, PipelineContainerLayer, RenderPassContainer, RenderPassId> texturePipeline;
+		//public RenderPipeline<TextureRenderTargetManager<PbrDescriptorSet, Rgba32>, DefaultRenderPassInfo, DefaultPipelineInfo, PbrDescriptorSet, PbrPipelineContainer, PbrPipelineLayer, RenderPassContainer, PbrRenderPassId> texturePipeline;
 
         public VkRenderContext(VkContext context)
         {
@@ -55,6 +55,7 @@ namespace Engine
 			SwapchainRenderTargetManager<DefaultDescriptorSet> renderTargetManager = SwapchainRenderTargetManager<DefaultDescriptorSet>.Create(context, swapchain, container.skyboxRenderPass, commandPool);
             pipeline = RenderPipeline<SwapchainRenderTargetManager<DefaultDescriptorSet>, DefaultRenderPassInfo, DefaultPipelineInfo, DefaultDescriptorSet, PipelineContainer, PipelineContainerLayer, RenderPassContainer, RenderPassId>.Create(context, renderTargetManager);
 
+			/*
 			Extent2D extent = swapchain.GetExtent();
 
             image = VulkanHelper.CreateImage(context, new Extent3D(extent.Width, extent.Height, 1), ImageType.Type2D, Format.B8G8R8A8Srgb, ImageTiling.Optimal, ImageUsageFlags.TransferSrcBit | ImageUsageFlags.ColorAttachmentBit, ImageCreateFlags.None, 1, 1);
@@ -81,8 +82,9 @@ namespace Engine
             formats[0] = Format.B8G8R8A8Srgb;
             formats[1] = Swapchain.GetDepthFormat(context);
 
-            TextureRenderTargetManager<DefaultDescriptorSet, Rgba32> textureTargetManager = TextureRenderTargetManager<DefaultDescriptorSet, Rgba32>.Create(SaveImage, context, extent, images, imageViews, formats, container.skyboxRenderPass, commandPool);
-			texturePipeline = RenderPipeline<TextureRenderTargetManager<DefaultDescriptorSet, Rgba32>, DefaultRenderPassInfo, DefaultPipelineInfo, DefaultDescriptorSet, PipelineContainer, PipelineContainerLayer, RenderPassContainer, RenderPassId>.Create(context, textureTargetManager);
+            TextureRenderTargetManager<PbrDescriptorSet, Rgba32> textureTargetManager = TextureRenderTargetManager<PbrDescriptorSet, Rgba32>.Create(SaveImage, context, extent, images, imageViews, formats, container.skyboxRenderPass, commandPool);
+			texturePipeline = RenderPipeline<TextureRenderTargetManager<PbrDescriptorSet, Rgba32>, DefaultRenderPassInfo, DefaultPipelineInfo, PbrDescriptorSet, PbrPipelineContainer, PbrPipelineLayer, RenderPassContainer, PbrRenderPassId>.Create(context, textureTargetManager);
+			*/
         }
 
 		static unsafe SurfaceKHR CreateSurface(VkContext context)

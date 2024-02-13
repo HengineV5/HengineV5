@@ -1,12 +1,7 @@
 ﻿using Engine;
 using Engine.Components;
-using Engine.Components.Graphics;
 using Engine.Graphics;
 using Engine.Parsing;
-using Silk.NET.Maths;
-using Silk.NET.OpenAL;
-using Silk.NET.Windowing;
-using System.Dynamic;
 using System.Net;
 using System.Numerics;
 using static Engine.HengineEcs;
@@ -15,22 +10,22 @@ namespace Runner
 {
 	internal class Program
 	{
-        static void Create(Main world, Vector3 pos, Mesh mesh, PbrMaterial material, int idx)
-        {
-            var objRef = world.Create(new NEntity());
-            NEntity.Ref entRef = world.Get(objRef);
-            entRef.Position.Set(pos);
-            entRef.Scale.Set(Vector3.One);
-            entRef.Rotation.Set(Quaternion.Identity);
-            entRef.Mesh.Set(mesh);
-            entRef.PbrMaterial.Set(material);
-            entRef.Networked.Set(new Networked()
-            {
-                idx = idx
-            });
-        }
+		static void Create(Main world, Vector3 pos, Mesh mesh, PbrMaterial material, int idx)
+		{
+			var objRef = world.Create(new NEntity());
+			NEntity.Ref entRef = world.Get(objRef);
+			entRef.Position.Set(pos);
+			entRef.Scale.Set(Vector3.One);
+			entRef.Rotation.Set(Quaternion.Identity);
+			entRef.Mesh.Set(mesh);
+			entRef.PbrMaterial.Set(material);
+			entRef.Networked.Set(new Networked()
+			{
+				idx = idx
+			});
+		}
 
-        static void CreateCamera(Main world, Camera camera, Vector3 position, in Skybox skybox)
+		static void CreateCamera(Main world, Camera camera, Vector3 position, in Skybox skybox)
 		{
 			var objRef = world.Create(new Cam());
 			Cam.Ref entRef = world.Get(objRef);
@@ -102,17 +97,17 @@ namespace Runner
 			Main mainWorld = ecs.GetMain();
 
 			var skybox = Skybox.LoadSkybox("Skybox", "Images/Skybox/Default");
-            Camera camera = new Camera
-            {
-                width = 800,
-                height = 600,
-                fov = 1.22173f, // 70 degrees
-                zNear = 0.1f,
-                zFar = 1000
-            };
+			Camera camera = new Camera
+			{
+				width = 800,
+				height = 600,
+				fov = 1.22173f, // 70 degrees
+				zNear = 0.1f,
+				zFar = 1000
+			};
 
-            //var meshBox = Mesh.LoadGltf("Box", "Models/Box/box.gltf");
-            var meshDuck = Mesh.LoadGltf("Duck", "Models/Duck/Duck.gltf", true);
+			//var meshBox = Mesh.LoadGltf("Box", "Models/Box/box.gltf");
+			var meshDuck = Mesh.LoadGltf("Duck", "Models/Duck/Duck.gltf", true);
 			var materialDuck = PbrMaterial.LoadGltf("Duck", "Models/Duck/Duck.gltf");
 
 			var meshMap = GetMapMesh();
@@ -178,53 +173,49 @@ namespace Runner
 
 		static PbrMaterial GetMaterial()
 		{
-            var textureAlbedo = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Gold/gold-scuffed_basecolor-boosted.png");
-            //var textureAlbedo = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Iron/rustediron2_basecolor.png");
-            //var textureAlbedo = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Floor/wood_floor_worn_diff_4k.png");
+			//var textureAlbedo = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Gold/gold-scuffed_basecolor-boosted.png");
+			//var textureAlbedo = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Iron/rustediron2_basecolor.png");
+			var textureAlbedo = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Floor/wood_floor_worn_diff_4k.png");
 
-            //var textureNormal = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Gold/gold-scuffed_normal.png");
-            //var textureNormal = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Iron/rustediron2_normal.png");
-            //var textureNormal = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Floor/wood_floor_worn_nor_gl_4k.png");
+			//var textureNormal = ETexture.LoadImage("PbrGoldNormal", "Images/Pbr/Gold/gold-scuffed_normal.png");
+			//var textureNormal = ETexture.LoadImage("PbrGoldNormal", "Images/Pbr/Iron/rustediron2_normal.png");
+			var textureNormal = ETexture.LoadImage("PbrGoldNormal", "Images/Pbr/Floor/wood_floor_worn_nor_gl_4k.png");
 
-            var textureMetallic = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Gold/gold-scuffed_metallic.png");
-            //var textureMetallic = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Iron/rustediron2_metallic.png");
-            //var textureMetallic = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Floor/wood_floor_worn_ao_4k.png");
+			//var textureMetallic = ETexture.LoadImage("PbrGoldMetallic", "Images/Pbr/Gold/gold-scuffed_metallic.png");
+			//var textureMetallic = ETexture.LoadImage("PbrGoldMetallic", "Images/Pbr/Iron/rustediron2_metallic.png");
+			var textureMetallic = ETexture.LoadImage("PbrGoldMetallic", "Images/Pbr/Floor/wood_floor_worn_arm_4k.png");
 
-            var textureRoughness = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Gold/gold-scuffed_roughness.png");
-            //var textureRoughness = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Iron/rustediron2_roughness.png");
-            //var textureRoughness = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Floor/wood_floor_worn_rough_4k.png");
+			//var textureRoughness = ETexture.LoadImage("PbrGoldRoughness", "Images/Pbr/Gold/gold-scuffed_roughness.png");
+			//var textureRoughness = ETexture.LoadImage("PbrGoldRoughness", "Images/Pbr/Iron/rustediron2_roughness.png");
+			var textureRoughness = ETexture.LoadImage("PbrGoldRoughness", "Images/Pbr/Floor/wood_floor_worn_rough_4k.png");
 
-            var textureAo = ETexture.LoadImage("PbrGoldAo", "Images/Pbr/Default/Ao.png");
+			var textureAo = ETexture.LoadImage("PbrGoldAo", "Images/Pbr/Default/Ao.png");
 
-            var textureNormal = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Gold/gold-scuffed_normal.png");
-            //var textureNormal = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Iron/rustediron2_normal.png");
-            //var textureNormal = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Floor/wood_floor_worn_nor_gl_4k.png");
-
-            PbrMaterial material = new PbrMaterial();
+			PbrMaterial material = new PbrMaterial();
 			material.name = "PbrGold";
-            material.albedo = Vector3.One;
-            material.albedoMap = textureAlbedo;
-            material.metallicMap = textureMetallic;
-            material.roughnessMap = textureRoughness;
-            material.aoMap = textureAo;
+			material.albedo = Vector3.One;
+			material.albedoMap = textureAlbedo;
+			material.metallicMap = textureMetallic;
+			material.roughnessMap = textureRoughness;
+			material.aoMap = textureAo;
 			material.normalMap = textureNormal;
 
 			return material;
-        }
+		}
 
 		static Mesh GetMapMesh()
 		{
 			const float OUTER_RADIUS = 1f;
 			const float INNER_RADIUS = OUTER_RADIUS * 0.866025404f;
 
-            var mesh = new Mesh();
+			var mesh = new Mesh();
 			Vertex[] vericies = new Vertex[6];
-			vericies[0] = new Vertex(new(0, 0, OUTER_RADIUS), Vector3.UnitY, new(0.5f, 0));
-			vericies[1] = new Vertex(new(INNER_RADIUS, 0, OUTER_RADIUS * 0.5f), Vector3.UnitY, new(1, 0.33f));
-			vericies[2] = new Vertex(new(INNER_RADIUS, 0, -OUTER_RADIUS * 0.5f), Vector3.UnitY, new(1, 0.66f));
-			vericies[3] = new Vertex(new(0, 0, -OUTER_RADIUS), Vector3.UnitY, new(0.5f, 1));
-			vericies[4] = new Vertex(new(-INNER_RADIUS, 0, -OUTER_RADIUS * 0.5f), Vector3.UnitY, new(0, 0.66f));
-			vericies[5] = new Vertex(new(-INNER_RADIUS, 0, OUTER_RADIUS * 0.5f), Vector3.UnitY, new(0, 0.33f));
+			vericies[0] = new Vertex(new(0, 0, OUTER_RADIUS), Vector3.UnitY, new(0.5f, 0), Vector3.UnitX);
+			vericies[1] = new Vertex(new(INNER_RADIUS, 0, OUTER_RADIUS * 0.5f), Vector3.UnitY, new(1, 0.33f), Vector3.UnitX);
+			vericies[2] = new Vertex(new(INNER_RADIUS, 0, -OUTER_RADIUS * 0.5f), Vector3.UnitY, new(1, 0.66f), Vector3.UnitX);
+			vericies[3] = new Vertex(new(0, 0, -OUTER_RADIUS), Vector3.UnitY, new(0.5f, 1), Vector3.UnitX);
+			vericies[4] = new Vertex(new(-INNER_RADIUS, 0, -OUTER_RADIUS * 0.5f), Vector3.UnitY, new(0, 0.66f), Vector3.UnitX);
+			vericies[5] = new Vertex(new(-INNER_RADIUS, 0, OUTER_RADIUS * 0.5f), Vector3.UnitY, new(0, 0.33f), Vector3.UnitX);
 
 			uint[] indicies = new uint[3 * 4];
 			indicies[0] = 2;
@@ -254,63 +245,63 @@ namespace Runner
 
 		static Vertex[] GetMapVerticies(int width, int height)
 		{
-            const float OUTER_RADIUS = 1f;
-            const float INNER_RADIUS = OUTER_RADIUS * 0.866025404f;
+			const float OUTER_RADIUS = 1f;
+			const float INNER_RADIUS = OUTER_RADIUS * 0.866025404f;
 
-            List<Vertex> verticeis = new();
+			List<Vertex> verticeis = new();
 
 			for (int y = 0; y < height; y++)
 			{
 				float posY = y * OUTER_RADIUS;
 				float posX = y * INNER_RADIUS;
 
-                verticeis.Add(new(new(posX + -INNER_RADIUS, 0, posY + -OUTER_RADIUS * 0.5f), Vector3.UnitY, new()));
-                verticeis.Add(new(new(posX + -INNER_RADIUS, 0, posY + OUTER_RADIUS * 0.5f), Vector3.UnitY, new()));
+				verticeis.Add(new(new(posX + -INNER_RADIUS, 0, posY + -OUTER_RADIUS * 0.5f), Vector3.UnitY, new(), Vector3.UnitX));
+				verticeis.Add(new(new(posX + -INNER_RADIUS, 0, posY + OUTER_RADIUS * 0.5f), Vector3.UnitY, new(), Vector3.UnitX));
 
-                for (int x = 0; x < width; x++)
-                {
-                    posX = x * INNER_RADIUS * 2 + y * INNER_RADIUS;
+				for (int x = 0; x < width; x++)
+				{
+					posX = x * INNER_RADIUS * 2 + y * INNER_RADIUS;
 
-                    if (y == height - 1)
-                        verticeis.Add(new(new(posX, 0, posY + OUTER_RADIUS), Vector3.UnitY, new(Random.Shared.NextSingle())));
+					if (y == height - 1)
+						verticeis.Add(new(new(posX, 0, posY + OUTER_RADIUS), Vector3.UnitY, new(Random.Shared.NextSingle()), Vector3.UnitX));
 
-                    if (y == 0)
-						verticeis.Add(new(new(posX, 0, posY + -OUTER_RADIUS), Vector3.UnitY, new(Random.Shared.NextSingle())));
+					if (y == 0)
+						verticeis.Add(new(new(posX, 0, posY + -OUTER_RADIUS), Vector3.UnitY, new(Random.Shared.NextSingle()), Vector3.UnitX));
 
-                    verticeis.Add(new(new(posX + INNER_RADIUS, 0, posY + -OUTER_RADIUS * 0.5f), Vector3.UnitY, new(Random.Shared.NextSingle())));
-                    verticeis.Add(new(new(posX + INNER_RADIUS, 0, posY + OUTER_RADIUS * 0.5f), Vector3.UnitY, new(Random.Shared.NextSingle())));
-                }
-            }
+					verticeis.Add(new(new(posX + INNER_RADIUS, 0, posY + -OUTER_RADIUS * 0.5f), Vector3.UnitY, new(Random.Shared.NextSingle()), Vector3.UnitX));
+					verticeis.Add(new(new(posX + INNER_RADIUS, 0, posY + OUTER_RADIUS * 0.5f), Vector3.UnitY, new(Random.Shared.NextSingle()), Vector3.UnitX));
+				}
+			}
 
 			return verticeis.ToArray();
 		}
 
 		static uint[] GetMapIndicies(int width, int height)
 		{
-            List<uint> indicies = new();
+			List<uint> indicies = new();
 
 			for (uint x = 0; x < width; x++)
 			{
 				uint offset = x * 4;
 
-                indicies.Add(offset + 2);
-                indicies.Add(offset + 5);
-                indicies.Add(offset + 1);
+				indicies.Add(offset + 2);
+				indicies.Add(offset + 5);
+				indicies.Add(offset + 1);
 
-                indicies.Add(offset + 5);
-                indicies.Add(offset + 4);
-                indicies.Add(offset + 0);
+				indicies.Add(offset + 5);
+				indicies.Add(offset + 4);
+				indicies.Add(offset + 0);
 
-                indicies.Add(offset + 1);
-                indicies.Add(offset + 5);
-                indicies.Add(offset + 0);
+				indicies.Add(offset + 1);
+				indicies.Add(offset + 5);
+				indicies.Add(offset + 0);
 
 				indicies.Add(offset + 4);
-                indicies.Add(offset + 3);
-                indicies.Add(offset + 0);
-            }
+				indicies.Add(offset + 3);
+				indicies.Add(offset + 0);
+			}
 
 			return indicies.ToArray();
-        }
+		}
 	}
 }

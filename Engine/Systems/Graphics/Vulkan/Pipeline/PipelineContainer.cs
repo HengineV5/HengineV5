@@ -301,7 +301,7 @@ namespace Engine
 
         static Memory<VertexInputAttributeDescription> GetAttributeDescription()
         {
-            Memory<VertexInputAttributeDescription> description = new VertexInputAttributeDescription[3];
+            Memory<VertexInputAttributeDescription> description = new VertexInputAttributeDescription[4];
             description.Span[0].Binding = 0;
             description.Span[0].Location = 0;
             description.Span[0].Format = Format.R32G32B32Sfloat;
@@ -317,7 +317,12 @@ namespace Engine
             description.Span[2].Format = Format.R32G32Sfloat;
             description.Span[2].Offset = sizeof(float) * 3 * 2;
 
-            return description;
+			description.Span[3].Binding = 0;
+			description.Span[3].Location = 3;
+			description.Span[3].Format = Format.R32G32B32Sfloat;
+			description.Span[3].Offset = sizeof(float) * 3 * 2 + sizeof(float) * 2;
+
+			return description;
         }
     }
 }
