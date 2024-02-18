@@ -115,29 +115,12 @@ namespace Engine
             return new RenderLayer(shader, CreateGraphicsPipeline(context, info.extent, layout, info.compatibleRenderPass, shader, CullModeFlags.FrontBit), layout);
         }
 
-        static unsafe Pipeline CreateGraphicsPipeline(VkContext context, Extent2D swapchainExtent, PipelineLayout pipelineLayout, RenderPass renderPass, Shader shader, CullModeFlags cullMode)
+		static unsafe Pipeline CreateGraphicsPipeline(VkContext context, Extent2D extent, PipelineLayout pipelineLayout, RenderPass renderPass, Shader shader, CullModeFlags cullMode)
         {
-            //var shader = Shader.FromFiles("Shaders/VulkanVert.spv", "Shaders/VulkanFrag.spv");
-            //var shader = Shader.FromFiles("Shaders/Pbr/PbrVert.spv", "Shaders/Pbr/PbrFrag.spv");
-
             var vertShader = CreateShaderModule(context.vk, shader.Vertex, context.device);
             var fragShader = CreateShaderModule(context.vk, shader.Fragment, context.device);
 
-            PipelineShaderStageCreateInfo vertexStageCreateInfo = new();
-            vertexStageCreateInfo.SType = StructureType.PipelineShaderStageCreateInfo;
-            vertexStageCreateInfo.Stage = ShaderStageFlags.VertexBit;
-
-            vertexStageCreateInfo.Module = vertShader;
-            vertexStageCreateInfo.PName = (byte*)Marshal.StringToHGlobalAnsi("main");
-
-            PipelineShaderStageCreateInfo fragmentStageCreateInfo = new();
-            fragmentStageCreateInfo.SType = StructureType.PipelineShaderStageCreateInfo;
-            fragmentStageCreateInfo.Stage = ShaderStageFlags.FragmentBit;
-
-            fragmentStageCreateInfo.Module = fragShader;
-            fragmentStageCreateInfo.PName = (byte*)Marshal.StringToHGlobalAnsi("main");
-
-            Span<PipelineShaderStageCreateInfo> shaderStages = [vertexStageCreateInfo, fragmentStageCreateInfo];
+			Span<PipelineShaderStageCreateInfo> shaderStages = [CreateShaderStage(context, ShaderStageFlags.VertexBit, vertShader), CreateShaderStage(context, ShaderStageFlags.FragmentBit, fragShader)];
 
             DynamicState* dynamicState = stackalloc DynamicState[2] { DynamicState.Viewport, DynamicState.Scissor };
 
@@ -167,14 +150,14 @@ namespace Engine
             Viewport viewport = new();
             viewport.X = 0;
             viewport.Y = 0;
-            viewport.Width = swapchainExtent.Width;
-            viewport.Height = swapchainExtent.Height;
+            viewport.Width = extent.Width;
+            viewport.Height = extent.Height;
             viewport.MinDepth = 0;
             viewport.MaxDepth = 1;
 
             Rect2D scissor = new();
             scissor.Offset = new(0, 0);
-            scissor.Extent = swapchainExtent;
+            scissor.Extent = extent;
 
             PipelineViewportStateCreateInfo viewportStateCreateInfo = new();
             viewportStateCreateInfo.SType = StructureType.PipelineViewportStateCreateInfo;
@@ -271,13 +254,25 @@ namespace Engine
             return pipeline;
         }
 
-        static unsafe ShaderModule CreateShaderModule(Vk vk, byte[] code, Device device)
+		static unsafe PipelineShaderStageCreateInfo CreateShaderStage(VkContext context, ShaderStageFlags stage, ShaderModule shaderModule)
+		{
+			PipelineShaderStageCreateInfo createInfo = new();
+			createInfo.SType = StructureType.PipelineShaderStageCreateInfo;
+			createInfo.Stage = stage;
+
+			createInfo.Module = shaderModule;
+			createInfo.PName = (byte*)Marshal.StringToHGlobalAnsi("main");
+
+			return createInfo;
+		}
+
+		static unsafe ShaderModule CreateShaderModule(Vk vk, Memory<byte> code, Device device)
         {
             ShaderModuleCreateInfo createInfo = new();
             createInfo.SType = StructureType.ShaderModuleCreateInfo;
             createInfo.CodeSize = (nuint)code.Length;
 
-            fixed (byte* codePtr = code)
+            fixed (byte* codePtr = code.Span)
             {
                 createInfo.PCode = (uint*)codePtr;
             }

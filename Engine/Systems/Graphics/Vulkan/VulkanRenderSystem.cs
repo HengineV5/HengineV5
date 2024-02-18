@@ -149,6 +149,16 @@ namespace Engine
         public Vector3 albedo;
         public float metallic;
         public float roughness;
+
+		public static PbrMaterialInfo FromMaterial(in VkPbrMaterial material)
+		{
+			return new()
+			{
+				albedo = material.albedo,
+				metallic = material.metallic,
+				roughness = material.roughness
+			};
+		}
     }
 
     public struct VulkanShaderInput
@@ -352,7 +362,7 @@ namespace Engine
             ref DefaultDescriptorSet set = ref renderContext.pipeline.GetDescriptor(this.context, bufferIdx);
 			set.shaderInput.ubo.Value = context.ubo;
 
-            set.shaderInput.material.Value = defaultPbrMaterial;
+            set.shaderInput.material.Value = PbrMaterialInfo.FromMaterial(material);
             for (int i = 0; i < 4; i++)
             {
                 set.shaderInput.lights[i].Value = defaultLights[i];

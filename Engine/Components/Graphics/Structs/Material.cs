@@ -21,6 +21,8 @@ namespace Engine.Graphics
         {
             PbrMaterial material = new PbrMaterial();
 			material.albedo = Vector3.One;
+            material.metallic = 1;
+            material.roughness = 1;
 
             GltfLoader.LoadMaterial(name, filePath, ref material);
 

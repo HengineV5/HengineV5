@@ -120,28 +120,16 @@ vec3 cookTerranceBRDF(vec3 N, vec3 V, vec3 L, vec3 H, vec3 albedo, float metalli
 }
 
 void main() {
-		/*
-		vec3 albedo = u_Material.albedo;
-		float metallic = u_Material.metallic;
-		//float roughness = u_Material.roughness;
-		*/
-
-		//vec3 albedo = texture(u_AlbedoMap, v_texCoord).rgb;
-		//albedo = vec3(pow(albedo.x, 2.2), pow(albedo.y, 2.2), pow(albedo.z, 2.2));
-		vec3 albedo = pow(texture(u_AlbedoMap, v_texCoord).rgb, vec3(2.2));
 		//vec3 albedo = u_Material.albedo;
+		vec3 albedo = pow(texture(u_AlbedoMap, v_texCoord).rgb, vec3(2.2)) * u_Material.albedo;
 
 		//float metallic = 1 - texture(u_MetallicMap, v_texCoord).r;
-		float metallic = 1 - pow(texture(u_MetallicMap, v_texCoord).b, 2.2);
-		//metallic /= 4;
-		//float metallic = 0.9;
+		float metallic = 1 - (pow(texture(u_MetallicMap, v_texCoord).b, 2.2) * u_Material.metallic);
+		//float metallic = 1 - (pow(texture(u_MetallicMap, v_texCoord).b, 2.2));
+
 		//float roughness = 1 - texture(u_RoughnessMap, v_texCoord).r;
-		float roughness = 1 - pow(texture(u_RoughnessMap, v_texCoord).r, 2.2);
-		//ao = texture(u_MetallicMap, v_texCoord).r;
-		//float roughness = 0.0;
-		//roughness *= 16;
-		/*
-		*/
+		float roughness = 1 - (pow(texture(u_RoughnessMap, v_texCoord).r, 2.2) * u_Material.roughness);
+		//float roughness = 1 - (pow(texture(u_RoughnessMap, v_texCoord).r, 2.2));
 		
 		vec3 N = normalize(v_normal);
 		//vec3 N = getNormalFromMap();
@@ -202,9 +190,9 @@ void main() {
 		color = vec4(result, 1.0);
 		//color = vec4(v_texCoord, 0.0, 1.0);
 		//color = vec4(v_texCoord, 0.0, 1.0);
-		//color = vec4(ambient, 1.0);
-		//color = vec4(max(metallic - 1, 0), 0.0, 0.0, 1.0);
-		//color = vec4(textureLod(u_SpecularMap, v_normal, 0.5).rgb, 1.0);
+		//color = vec4(albedo, 1.0);
+		//color = vec4(mod(1, roughness), 0.0, 0.0, 1.0);
+		//color = vec4(u_Material.roughness, 0.0, 0.0, 1.0);
 
 		//vec3 I1 = normalize(v_pos - v_ViewPos);
 		//vec3 R1 = reflect(I1, normalize(v_normal));
