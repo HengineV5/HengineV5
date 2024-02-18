@@ -22,7 +22,7 @@ namespace Runner
 			//var texture = ETexture.LoadImage("Haakon", "Images/image_2.png");
 			//var texture2 = ETexture.LoadImage("Statue", "Images/image.png");
 
-			world.CreateObject(new(3, 0, -10), meshDuck, materialDuck, 1);
+			world.CreateObject(new(3, 0, -10), Vector3.One, meshDuck, materialDuck, 1);
 			//world.CreateObject(new(3, 0, 10), meshMap, materialDuck, 1);
 
 			float midX = 4 / 2f;
@@ -32,7 +32,7 @@ namespace Runner
 			{
 				for (int x = 0; x < 4; x++)
 				{
-					world.CreateObject(new(-midX + x * 2.1f, -midY + y * 2.1f, -5), meshSphere, materialSphere, 0);
+					world.CreateObject(new(-midX + x * 2.1f, -midY + y * 2.1f, -5), Vector3.One, meshSphere, materialSphere, 0);
 				}
 			}
 

@@ -120,8 +120,8 @@ vec3 cookTerranceBRDF(vec3 N, vec3 V, vec3 L, vec3 H, vec3 albedo, float metalli
 }
 
 void main() {
-		//vec3 albedo = u_Material.albedo;
-		vec3 albedo = pow(texture(u_AlbedoMap, v_texCoord).rgb, vec3(2.2)) * u_Material.albedo;
+		vec3 albedo = u_Material.albedo;
+		//vec3 albedo = pow(texture(u_AlbedoMap, v_texCoord).rgb, vec3(2.2)) * u_Material.albedo;
 
 		//float metallic = 1 - texture(u_MetallicMap, v_texCoord).r;
 		float metallic = 1 - (pow(texture(u_MetallicMap, v_texCoord).b, 2.2) * u_Material.metallic);

@@ -47,6 +47,7 @@ namespace Engine.Graphics
         public static PbrMaterial GetDefault(string name)
         {
             PbrMaterial material = new PbrMaterial();
+            material.name = name;
             material.albedo = Vector3.One;
             material.albedoMap = ETexture.LoadImage($"{name}_albedo", "Images/Pbr/Default/Albedo.png");
             material.metallicMap = ETexture.LoadImage($"{name}_metallic", "Images/Pbr/Default/Metallic.png");

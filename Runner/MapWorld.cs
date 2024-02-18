@@ -1,4 +1,7 @@
-﻿using Engine.Graphics;
+﻿using EnCS;
+using Engine.Graphics;
+using Silk.NET.Vulkan;
+using System;
 using System.Numerics;
 using static Engine.HengineEcs;
 
@@ -8,42 +11,44 @@ namespace Runner
 	{
 		public static void Load(Main world)
 		{
-			var meshMap = GetMapMesh();
-			var materialMap = GetMaterial();
+			HexMap map = new HexMap(21, 21);
 
-			world.CreateObject(new(0, -2, -5), meshMap, materialMap, 1);
+			var meshSphere = Mesh.LoadOBJ("Sphere", "Models/SphereSmooth.obj");
+			var materialSphere = GetPointMaterial(Vector3.Zero);
+
+			var meshMap = GetMapMesh();
+			var materialMap = GetMapMaterial();
+
+			map.Init(world, ref meshSphere, ref meshMap, ref materialSphere);
+
+			using var neighbors = map.GetNeighbors(new HexCoord(5, 5));
+
+            var blackMat = GetPointMaterial(Vector3.Zero);
+			for (int i = 0; i < 6; i++)
+			{
+				world.Get(neighbors.Memory.Span[i]).PbrMaterial.Set(blackMat);
+			}
 		}
 
-		static PbrMaterial GetMaterial()
+		public static Vector3 RandomColor()
 		{
-			//var textureAlbedo = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Gold/gold-scuffed_basecolor-boosted.png");
-			//var textureAlbedo = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Iron/rustediron2_basecolor.png");
-			var textureAlbedo = ETexture.LoadImage("PbrGoldAlbedo", "Images/Pbr/Floor/wood_floor_worn_diff_4k.png");
+			return new Vector3(Random.Shared.NextSingle(), Random.Shared.NextSingle(), Random.Shared.NextSingle());
+		}
 
-			//var textureNormal = ETexture.LoadImage("PbrGoldNormal", "Images/Pbr/Gold/gold-scuffed_normal.png");
-			//var textureNormal = ETexture.LoadImage("PbrGoldNormal", "Images/Pbr/Iron/rustediron2_normal.png");
-			var textureNormal = ETexture.LoadImage("PbrGoldNormal", "Images/Pbr/Floor/wood_floor_worn_nor_gl_4k.png");
+		static PbrMaterial GetMapMaterial()
+		{
+			PbrMaterial material = PbrMaterial.GetDefault("Map");
 
-			//var textureMetallic = ETexture.LoadImage("PbrGoldMetallic", "Images/Pbr/Gold/gold-scuffed_metallic.png");
-			//var textureMetallic = ETexture.LoadImage("PbrGoldMetallic", "Images/Pbr/Iron/rustediron2_metallic.png");
-			var textureMetallic = ETexture.LoadImage("PbrGoldMetallic", "Images/Pbr/Floor/wood_floor_worn_arm_4k.png");
+			return material;
+		}
 
-			//var textureRoughness = ETexture.LoadImage("PbrGoldRoughness", "Images/Pbr/Gold/gold-scuffed_roughness.png");
-			//var textureRoughness = ETexture.LoadImage("PbrGoldRoughness", "Images/Pbr/Iron/rustediron2_roughness.png");
-			var textureRoughness = ETexture.LoadImage("PbrGoldRoughness", "Images/Pbr/Floor/wood_floor_worn_rough_4k.png");
+		static PbrMaterial pMaterial = PbrMaterial.GetDefault($"Point");
 
-			var textureAo = ETexture.LoadImage("PbrGoldAo", "Images/Pbr/Default/Ao.png");
-
-			PbrMaterial material = new PbrMaterial();
-			material.name = "PbrGold";
-			material.albedo = Vector3.One;
-			material.albedoMap = textureAlbedo;
-			material.metallic = 1;
-			material.metallicMap = textureMetallic;
-			material.roughness = 1;
-			material.roughnessMap = textureRoughness;
-			material.aoMap = textureAo;
-			material.normalMap = textureNormal;
+		public static PbrMaterial GetPointMaterial(Vector3 color)
+		{
+			PbrMaterial material = pMaterial;
+			material.name = $"Point: {color}";
+			material.albedo = color;
 
 			return material;
 		}
@@ -54,36 +59,45 @@ namespace Runner
 			const float INNER_RADIUS = OUTER_RADIUS * 0.866025404f;
 
 			var mesh = new Mesh();
-			Vertex[] vericies = new Vertex[6];
-			vericies[0] = new Vertex(new(0, 0, OUTER_RADIUS), Vector3.UnitY, new(0.5f, 0), Vector3.UnitX);
-			vericies[1] = new Vertex(new(INNER_RADIUS, 0, OUTER_RADIUS * 0.5f), Vector3.UnitY, new(1, 0.33f), Vector3.UnitX);
-			vericies[2] = new Vertex(new(INNER_RADIUS, 0, -OUTER_RADIUS * 0.5f), Vector3.UnitY, new(1, 0.66f), Vector3.UnitX);
-			vericies[3] = new Vertex(new(0, 0, -OUTER_RADIUS), Vector3.UnitY, new(0.5f, 1), Vector3.UnitX);
-			vericies[4] = new Vertex(new(-INNER_RADIUS, 0, -OUTER_RADIUS * 0.5f), Vector3.UnitY, new(0, 0.66f), Vector3.UnitX);
-			vericies[5] = new Vertex(new(-INNER_RADIUS, 0, OUTER_RADIUS * 0.5f), Vector3.UnitY, new(0, 0.33f), Vector3.UnitX);
+			Vertex[] vericies = new Vertex[7];
+			vericies[0] = new Vertex(new(0, 0, 0), Vector3.UnitY, new(0.5f, 0), Vector3.UnitX);
+			vericies[1] = new Vertex(new(0, 0, OUTER_RADIUS), Vector3.UnitY, new(0.5f, 0), Vector3.UnitX);
+			vericies[2] = new Vertex(new(INNER_RADIUS, 0, OUTER_RADIUS * 0.5f), Vector3.UnitY, new(1, 0.33f), Vector3.UnitX);
+			vericies[3] = new Vertex(new(INNER_RADIUS, 0, -OUTER_RADIUS * 0.5f), Vector3.UnitY, new(1, 0.66f), Vector3.UnitX);
+			vericies[4] = new Vertex(new(0, 0, -OUTER_RADIUS), Vector3.UnitY, new(0.5f, 1), Vector3.UnitX);
+			vericies[5] = new Vertex(new(-INNER_RADIUS, 0, -OUTER_RADIUS * 0.5f), Vector3.UnitY, new(0, 0.66f), Vector3.UnitX);
+			vericies[6] = new Vertex(new(-INNER_RADIUS, 0, OUTER_RADIUS * 0.5f), Vector3.UnitY, new(0, 0.33f), Vector3.UnitX);
 
-			uint[] indicies = new uint[3 * 4];
-			indicies[0] = 2;
-			indicies[1] = 3;
-			indicies[2] = 1;
-
-			indicies[3] = 3;
-			indicies[4] = 4;
-			indicies[5] = 0;
-
-			indicies[6] = 1;
+			uint[] indicies = new uint[3 * 6];
+			indicies[0] = 0;
+			indicies[1] = 1;
+			indicies[2] = 2;
+			
+			indicies[3] = 0;
+			indicies[4] = 2;
+			indicies[5] = 3;
+			
+			indicies[6] = 0;
 			indicies[7] = 3;
-			indicies[8] = 0;
-
-			indicies[9] = 4;
-			indicies[10] = 5;
-			indicies[11] = 0;
+			indicies[8] = 4;
+			
+			indicies[9] = 0;
+			indicies[10] = 4;
+			indicies[11] = 5;
+			
+			indicies[12] = 0;
+			indicies[13] = 5;
+			indicies[14] = 6;
+			
+			indicies[15] = 0;
+			indicies[16] = 6;
+			indicies[17] = 1;
 
 			mesh.name = "HexMap";
-			//mesh.verticies = vericies;
-			mesh.verticies = GetMapVerticies(2, 1);
-			//mesh.indicies = indicies;
-			mesh.indicies = GetMapIndicies(2, 1);
+			mesh.verticies = vericies;
+			//mesh.verticies = GetMapVerticies(2, 1);
+			mesh.indicies = indicies;
+			//mesh.indicies = GetMapIndicies(2, 1);
 
 			return mesh;
 		}

@@ -20,7 +20,7 @@ namespace Engine.Graphics
     public partial class VulkanMaterialResourceManager : IResourceManager<PbrMaterial, VkPbrMaterial>
     {
         uint idx = 0;
-        Memory<Graphics.VkPbrMaterial> materialBuffers = new Graphics.VkPbrMaterial[32];
+        Memory<Graphics.VkPbrMaterial> materialBuffers = new Graphics.VkPbrMaterial[256];
 
         Dictionary<string, uint> materialCache = new Dictionary<string, uint>();
 
