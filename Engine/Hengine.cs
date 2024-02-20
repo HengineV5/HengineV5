@@ -127,7 +127,10 @@ namespace Engine
 					x.Pipeline("Graphics", x =>
 					{
 						//x.Sequential<OpenGLRenderSystem>();
-						x.Sequential<VulkanRenderSystem>();
+						x.Sequential<VulkanRenderSystem>(x =>
+						{
+							x.Sequential<Random>();
+						});
 					});
 
 					x.Pipeline("Rotate", x =>

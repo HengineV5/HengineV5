@@ -29,6 +29,11 @@ using Henkgine;
 
 namespace Test
 {
+	struct TestContext
+	{
+		public float val1;
+	}
+
 	public class HengineBuilder
 	{
 		public HengineBuilder()
@@ -98,7 +103,7 @@ namespace Test
 
 	}
 
-	[System]
+	[System<TestContext>]
 	public partial class OpenGLRenderSystem
 	{
 		public OpenGLRenderSystem(GL gl, TestClass w)

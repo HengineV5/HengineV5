@@ -43,6 +43,11 @@ namespace Engine
 				return this;
 			}
 
+			public HenginePipeline Sequential<T>(PipelineAction pipeline) where T : class
+			{
+				return this;
+			}
+
 			public HenginePipeline Paralell<T>() where T : class
 			{
 				return this;

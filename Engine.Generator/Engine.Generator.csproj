@@ -8,7 +8,7 @@
 		<!-- Nuget -->
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<PackageId>Engine.Generator</PackageId>
-		<Version>0.0.25</Version>
+		<Version>0.0.27</Version>
 		
 		<!-- We don't want to reference the source generator dll directly in consuming projects -->
 		<IncludeBuildOutput>false</IncludeBuildOutput>

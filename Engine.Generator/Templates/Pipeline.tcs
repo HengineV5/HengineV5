@@ -30,8 +30,9 @@ namespace $namespace
 			{
 				$pipelineSystems|$hasPreRun == true|~>_|$systemName|.PreRun();<~~>\n				<~
 
+				$pipelineContextArguments~>$argType arg$argType = new $argType();<~~>\n				<~
 
-				$pipelineSystems~>world.Loop(_|$systemName|);<~~>\n				<~
+				$pipelineSystems~>world.Loop(_|$systemName|$systemContextArgs~>, ref $argName<~);<~~>\n				<~
 
 				$pipelineSystems|$hasPostRun == true|~>_|$systemName|.PostRun();<~~>\n				<~
 

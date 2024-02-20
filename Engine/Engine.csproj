@@ -12,8 +12,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="EnCS" Version="0.0.34" />
-    <PackageReference Include="Engine.Generator" Version="0.0.25" />
+    <PackageReference Include="EnCS" Version="0.0.35" />
+    <PackageReference Include="Engine.Generator" Version="0.0.27" />
     <PackageReference Include="Silk.NET" Version="2.20.0" />
     <PackageReference Include="SixLabors.ImageSharp" Version="3.0.2" />
   </ItemGroup>

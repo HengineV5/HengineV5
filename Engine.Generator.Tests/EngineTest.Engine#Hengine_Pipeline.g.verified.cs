@@ -34,8 +34,9 @@ namespace Test
 			public void Run(HengineEcs.Main world)
 			{
 				_OpenGLRenderSystem.PreRun();
+				TestContext argTestContext = new TestContext();
 
-				world.Loop(_OpenGLRenderSystem);
+				world.Loop(_OpenGLRenderSystem, argTestContext);
 				world.Loop(_System2);
 				world.Loop(_System3);
 
@@ -64,6 +65,7 @@ namespace Test
 
 			public void Run(HengineEcs.Main world)
 			{
+				
 				
 
 				world.Loop(_System2);

@@ -81,10 +81,13 @@ namespace Engine.Generator
 				if (nameArgument.Expression is not LiteralExpressionSyntax nameExpression)
 					continue;
 
+				var systems = GetPipelineSystems(compilation, layoutLambda.Expression as SimpleLambdaExpressionSyntax);
+
 				models.Add(new Pipeline()
 				{
 					name = nameExpression.Token.Value.ToString(),
-					systems = GetPipelineSystems(compilation, layoutLambda.Expression as SimpleLambdaExpressionSyntax)
+					systems = systems,
+					contextArguments = systems.SelectMany(x => x.contextArguments).GroupBy(x => x.type).Select(x => x.First()).ToList()
 				});
 			}
 
@@ -121,10 +124,13 @@ namespace Engine.Generator
 				bool hasPreRun = methods.Any(x => x.Identifier.Text == "PreRun");
 				bool hasPostRun = methods.Any(x => x.Identifier.Text == "PostRun");
 
+				TryGetSystemContexts(systemClass, new List<Diagnostic>(), out List<SystemArgument> contextArguments);
+
 				models.Add(new PipelineSystem()
 				{
 					name = systemName.Identifier.Text,
 					arguments = GetSystemConstructorArguments(systemClass),
+					contextArguments = contextArguments,
 					hasInit = hasInit,
 					hasDispose = hasDispose,
 					hasPreRun = hasPreRun,
@@ -156,12 +162,35 @@ namespace Engine.Generator
 
 			return args;
 		}
+
+		static bool TryGetSystemContexts(ClassDeclarationSyntax node, List<Diagnostic> diagnostics, out List<SystemArgument> contexts)
+		{
+			var attribute = node.AttributeLists.SelectMany(x => x.Attributes).First(x => x.Name.GetName() == "System" || x.Name.GetName() == "SystemAttribute");
+			contexts = new List<SystemArgument>();
+
+			if (attribute.Name is not GenericNameSyntax g)
+				return true;
+
+			foreach (TypeSyntax type in g.TypeArgumentList.Arguments)
+			{
+				if (type is not IdentifierNameSyntax i)
+					continue;
+
+				contexts.Add(new SystemArgument()
+				{
+					type = i.Identifier.Text
+				});
+			}
+
+			return true;
+		}
 	}
 
 	struct Pipeline
 	{
 		public string name;
 		public List<PipelineSystem> systems;
+		public List<SystemArgument> contextArguments;
 
 		public Model<ReturnType> GetModel()
 		{
@@ -169,6 +198,7 @@ namespace Engine.Generator
 
 			model.Set("pipelineName".AsSpan(), Parameter.Create($"{name}Pipeline"));
 			model.Set("pipelineSystems".AsSpan(), Parameter.CreateEnum<IModel<ReturnType>>(systems.Select(x => x.GetModel())));
+			model.Set("pipelineContextArguments".AsSpan(), Parameter.CreateEnum<IModel<ReturnType>>(contextArguments.Select(x => x.GetModel())));
 
 			var uniqueArgs = systems.SelectMany(x => x.arguments).GroupBy(x => x.type).Select(x => x.First());
 			model.Set("uniqueArgs".AsSpan(), Parameter.CreateEnum<IModel<ReturnType>>(uniqueArgs.Select(x => x.GetModel())));
@@ -181,6 +211,7 @@ namespace Engine.Generator
 	{
 		public string name;
 		public List<SystemArgument> arguments;
+		public List<SystemArgument> contextArguments;
 
 		public bool hasInit;
 		public bool hasDispose;
@@ -193,6 +224,7 @@ namespace Engine.Generator
 
 			model.Set("systemName".AsSpan(), Parameter.Create(name));
 			model.Set("systemArgs".AsSpan(), Parameter.CreateEnum<IModel<ReturnType>>(arguments.Select(x => x.GetModel())));
+			model.Set("systemContextArgs".AsSpan(), Parameter.CreateEnum<IModel<ReturnType>>(contextArguments.Select(x => x.GetModel())));
 			model.Set("hasInit".AsSpan(), Parameter.Create(hasInit));
 			model.Set("hasDispose".AsSpan(), Parameter.Create(hasDispose));
 			model.Set("hasPreRun".AsSpan(), Parameter.Create(hasPreRun));
