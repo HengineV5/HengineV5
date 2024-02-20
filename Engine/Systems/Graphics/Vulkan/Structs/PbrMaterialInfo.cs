@@ -1,0 +1,24 @@
+﻿using Engine.Graphics;
+using System.Numerics;
+using System.Runtime.InteropServices;
+
+namespace Engine
+{
+	[StructLayout(LayoutKind.Sequential, Pack = 16)]
+    public struct PbrMaterialInfo
+    {
+        public Vector3 albedo;
+        public float metallic;
+        public float roughness;
+
+		public static PbrMaterialInfo FromMaterial(in VkPbrMaterial material)
+		{
+			return new()
+			{
+				albedo = material.albedo,
+				metallic = material.metallic,
+				roughness = material.roughness
+			};
+		}
+    }
+}

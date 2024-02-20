@@ -18,6 +18,7 @@ namespace Engine
 
 		public SurfaceKHR surface;
 		public CommandPool commandPool;
+		public FixedArray8<Sampler> samplers;
 
 		//public RenderPipeline renderPipeline;
 		public RenderPipeline<SwapchainRenderTargetManager<DefaultDescriptorSet>, DefaultRenderPassInfo, DefaultPipelineInfo, DefaultDescriptorSet, PipelineContainer, PipelineContainerLayer, RenderPassContainer, RenderPassId> pipeline;
@@ -42,6 +43,14 @@ namespace Engine
 
 		public void Setup()
 		{
+			samplers = new FixedArray8<Sampler>();
+			for (int i = 0; i < 8; i++)
+			{
+				samplers[i] = VulkanHelper.CreateSampler(context, 0);
+			}
+
+			samplers[7] = VulkanHelper.CreateSampler(context, 5);
+
 			uint graphicsQueueFamily = VulkanHelper.GetGraphicsQueueFamily(context);
 
 			surface = CreateSurface(context);

@@ -65,15 +65,20 @@ namespace Engine
 				{
 					x.System<PositionSystem>();
 					x.System<RotateSystem>();
-					x.System<OpenGLRenderSystem>();
-					x.System<VulkanRenderSystem>();
 					x.System<MoveSystem>();
+
+					x.System<OpenGLRenderSystem>();
+
+					x.System<VulkanCameraSystem>();
+					x.System<VulkanPbrRenderSystem>();
+					x.System<VulkanPresentSystem>();
+
 					//x.System<ClientSendSystem>();
 					//x.System<ClientReceiveSystem>();
 				})
 				.World(x =>
 				{
-					x.World</*HengineEcs.NEntity, */HengineEcs.Cam, HengineEcs.Hex>("Main");
+					x.World<HengineEcs.NEntity, HengineEcs.Cam, HengineEcs.Hex>("Main");
 				})
 				.Resource(x =>
 				{
@@ -127,10 +132,10 @@ namespace Engine
 					x.Pipeline("Graphics", x =>
 					{
 						//x.Sequential<OpenGLRenderSystem>();
-						x.Sequential<VulkanRenderSystem>(x =>
-						{
-							x.Sequential<Random>();
-						});
+
+						x.Sequential<VulkanCameraSystem>();
+						x.Sequential<VulkanPbrRenderSystem>();
+						x.Sequential<VulkanPresentSystem>();
 					});
 
 					x.Pipeline("Rotate", x =>

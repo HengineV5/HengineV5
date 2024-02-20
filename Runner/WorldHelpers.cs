@@ -10,8 +10,6 @@ namespace Runner
 	{
 		public static EnCS.ArchRef<NEntity> CreateObject(this Main world, Vector3 pos, Vector3 scale, Mesh mesh, PbrMaterial material, int idx)
 		{
-			return default;
-			/*
 			var objRef = world.Create(new NEntity());
 			NEntity.Ref entRef = world.Get(objRef);
 			entRef.Position.Set(pos);
@@ -25,7 +23,6 @@ namespace Runner
 			});
 
 			return objRef;
-			*/
 		}
 
 		public static EnCS.ArchRef<Hex> CreateHex(this Main world, Vector3 pos, Vector3 scale, HexCell hexCell, Mesh mesh, PbrMaterial material, int idx)
