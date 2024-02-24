@@ -3,6 +3,7 @@ using Engine.Parsing;
 using Engine.Parsing.Gltf;
 using Silk.NET.OpenGL;
 using System.IO;
+using System.Numerics;
 
 namespace Engine.Graphics
 {
@@ -70,6 +71,28 @@ namespace Engine.Graphics
 
 		public uint[] indicies;
 		public Vertex[] verticies;
+
+		public void RecalculateNormals()
+		{
+			for (int i = 0; i < indicies.Length / 3; i++)
+			{
+				uint indexA = indicies[i * 3 + 0];
+				uint indexB = indicies[i * 3 + 1];
+				uint indexC = indicies[i * 3 + 2];
+
+				Vector3 A = verticies[indexA].position;
+				Vector3 AB = verticies[indexB].position - A;
+				Vector3 AC = verticies[indexC].position - A;
+
+				if (AB == Vector3.Zero || AC == Vector3.Zero)
+					continue;
+
+				Vector3 normal = Vector3.Normalize(Vector3.Cross(AB, AC));
+				verticies[indexA].normal = normal;
+				verticies[indexB].normal = normal;
+				verticies[indexC].normal = normal;
+            }
+		}
 
 		public VertexArrayObject CreateVertexArray(GL gl)
 		{

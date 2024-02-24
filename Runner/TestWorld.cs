@@ -16,6 +16,7 @@ namespace Runner
 
 			//var meshBall = Mesh.LoadOBJ("Ball", "Models/Ball.obj");
 			var meshSphere = Mesh.LoadOBJ("Sphere", "Models/SphereSmooth.obj");
+			//meshSphere.RecalculateNormals();
 			var materialSphere = GetMaterial();
 			//var meshBox = Mesh.LoadOBJ("Box", "Models/Box.obj");
 

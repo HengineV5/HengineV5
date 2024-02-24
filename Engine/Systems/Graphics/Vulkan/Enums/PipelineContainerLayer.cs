@@ -3,6 +3,7 @@
     public enum PipelineContainerLayer
 	{
 		Skybox,
-		Pbr
+		Pbr,
+		Wireframe
 	}
 }

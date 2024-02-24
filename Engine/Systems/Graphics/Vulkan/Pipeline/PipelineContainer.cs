@@ -14,11 +14,13 @@ namespace Engine
 
         public RenderLayer skyboxLayer;
 		public RenderLayer pbrLayer;
+		public RenderLayer wireframeLayer;
 
-        public PipelineContainer(RenderLayer skyboxLayer, RenderLayer pbrLayer)
+        public PipelineContainer(RenderLayer skyboxLayer, RenderLayer pbrLayer, RenderLayer wireframeLayer)
         {
             this.skyboxLayer = skyboxLayer;
             this.pbrLayer = pbrLayer;
+            this.wireframeLayer = wireframeLayer;
         }
 
         public static PipelineContainer Create(VkContext context, DescriptorSetLayout descriptorSetLayout, in DefaultPipelineInfo info)
@@ -31,7 +33,10 @@ namespace Engine
             var pbrShader = Shader.FromFiles("Shaders/Pbr/PbrVert.spv", "Shaders/Pbr/PbrFrag.spv");
             var pbrPipeline = RenderLayer.CreatePbr(context, pbrShader, pipelineLayout, info);
 
-			return new PipelineContainer(skyboxPipeline, pbrPipeline);
+			var wireframeShader = Shader.FromFiles("Shaders/Pbr/PbrVert.spv", "Shaders/Pbr/BlackFrag.spv");
+			var wireframePipeline = RenderLayer.CreateWireframe(context, wireframeShader, pipelineLayout, info);
+
+			return new PipelineContainer(skyboxPipeline, pbrPipeline, wireframePipeline);
 		}
 
         public static Pipeline Get(PipelineContainerLayer layer, ref PipelineContainer self)
@@ -42,6 +47,8 @@ namespace Engine
                     return self.skyboxLayer.pipeline;
                 case PipelineContainerLayer.Pbr:
                     return self.pbrLayer.pipeline;
+                case PipelineContainerLayer.Wireframe:
+                    return self.wireframeLayer.pipeline;
                 default:
                     throw new Exception();
             }
@@ -55,6 +62,8 @@ namespace Engine
                     return self.skyboxLayer.layout;
                 case PipelineContainerLayer.Pbr:
                     return self.pbrLayer.layout;
+                case PipelineContainerLayer.Wireframe:
+                    return self.wireframeLayer.layout;
                 default:
                     throw new Exception();
             }
@@ -107,15 +116,20 @@ namespace Engine
 
         public static RenderLayer CreatePbr(VkContext context, Shader shader, PipelineLayout layout, in DefaultPipelineInfo info)
         {
-            return new RenderLayer(shader, CreateGraphicsPipeline(context, info.extent, layout, info.compatibleRenderPass, shader, CullModeFlags.BackBit), layout);
+            return new RenderLayer(shader, CreateGraphicsPipeline(context, info.extent, layout, info.compatibleRenderPass, shader, CullModeFlags.BackBit, PolygonMode.Fill, true), layout);
         }
 
         public static RenderLayer CreateSkybox(VkContext context, Shader shader, PipelineLayout layout, in DefaultPipelineInfo info)
         {
-            return new RenderLayer(shader, CreateGraphicsPipeline(context, info.extent, layout, info.compatibleRenderPass, shader, CullModeFlags.FrontBit), layout);
+            return new RenderLayer(shader, CreateGraphicsPipeline(context, info.extent, layout, info.compatibleRenderPass, shader, CullModeFlags.FrontBit, PolygonMode.Fill, true), layout);
         }
 
-		static unsafe Pipeline CreateGraphicsPipeline(VkContext context, Extent2D extent, PipelineLayout pipelineLayout, RenderPass renderPass, Shader shader, CullModeFlags cullMode)
+        public static RenderLayer CreateWireframe(VkContext context, Shader shader, PipelineLayout layout, in DefaultPipelineInfo info)
+        {
+            return new RenderLayer(shader, CreateGraphicsPipeline(context, info.extent, layout, info.compatibleRenderPass, shader, CullModeFlags.None, PolygonMode.Line, true), layout);
+        }
+
+		static unsafe Pipeline CreateGraphicsPipeline(VkContext context, Extent2D extent, PipelineLayout pipelineLayout, RenderPass renderPass, Shader shader, CullModeFlags cullMode, PolygonMode polygonMode, bool depthTest)
         {
             var vertShader = CreateShaderModule(context.vk, shader.Vertex, context.device);
             var fragShader = CreateShaderModule(context.vk, shader.Fragment, context.device);
@@ -170,9 +184,9 @@ namespace Engine
             rasterizationStateCreateInfo.SType = StructureType.PipelineRasterizationStateCreateInfo;
             rasterizationStateCreateInfo.DepthClampEnable = false;
             rasterizationStateCreateInfo.RasterizerDiscardEnable = false;
-            rasterizationStateCreateInfo.PolygonMode = PolygonMode.Fill;
-            rasterizationStateCreateInfo.LineWidth = 1.0f;
-            rasterizationStateCreateInfo.CullMode = cullMode;
+            rasterizationStateCreateInfo.PolygonMode = polygonMode;
+            rasterizationStateCreateInfo.LineWidth = polygonMode == PolygonMode.Fill ? 1.0f : 1.5f;
+			rasterizationStateCreateInfo.CullMode = cullMode;
             rasterizationStateCreateInfo.FrontFace = FrontFace.CounterClockwise;
             rasterizationStateCreateInfo.DepthBiasEnable = false;
             rasterizationStateCreateInfo.DepthBiasConstantFactor = 0;
@@ -211,8 +225,8 @@ namespace Engine
 
             PipelineDepthStencilStateCreateInfo depthStencilStateCreateInfo = new();
             depthStencilStateCreateInfo.SType = StructureType.PipelineDepthStencilStateCreateInfo;
-            depthStencilStateCreateInfo.DepthTestEnable = true;
-            depthStencilStateCreateInfo.DepthWriteEnable = true;
+            depthStencilStateCreateInfo.DepthTestEnable = depthTest;
+            depthStencilStateCreateInfo.DepthWriteEnable = depthTest;
             depthStencilStateCreateInfo.DepthCompareOp = CompareOp.Less;
             depthStencilStateCreateInfo.DepthBoundsTestEnable = false;
             depthStencilStateCreateInfo.MinDepthBounds = 0.0f;

@@ -71,6 +71,7 @@ namespace Engine
 
 					x.System<VulkanCameraSystem>();
 					x.System<VulkanPbrRenderSystem>();
+					x.System<VulkanWireframeRenderSystem>();
 					x.System<VulkanPresentSystem>();
 
 					//x.System<ClientSendSystem>();
@@ -135,6 +136,7 @@ namespace Engine
 
 						x.Sequential<VulkanCameraSystem>();
 						x.Sequential<VulkanPbrRenderSystem>();
+						x.Sequential<VulkanWireframeRenderSystem>();
 						x.Sequential<VulkanPresentSystem>();
 					});
 

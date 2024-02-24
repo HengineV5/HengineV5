@@ -1,0 +1,91 @@
+﻿using EnCS;
+using EnCS.Attributes;
+using Engine.Components;
+using Engine.Graphics;
+using Silk.NET.Windowing;
+using System.Numerics;
+
+namespace Engine
+{
+	[System<VulkanRenderContext>]
+	[UsingResource<VulkanMeshResourceManager>]
+	[UsingResource<VulkanMaterialResourceManager>]
+	public partial class VulkanWireframeRenderSystem
+	{
+		IWindow window;
+		VkContext context;
+		VkRenderContext renderContext;
+		IInputHandler inputHandler;
+
+		bool wireframeEnabled = true;
+		bool keyPressed = false;
+
+		public VulkanWireframeRenderSystem(VkContext context, VkRenderContext renderContext, IWindow window, IInputHandler inputHandler)
+		{
+			this.context = context;
+			this.renderContext = renderContext;
+			this.window = window;
+			this.inputHandler = inputHandler;
+		}
+
+		public void Init()
+		{
+		}
+
+		// TODO: Refactor out
+		int bufferIdx;
+		int updateIdx;
+
+		[SystemPreLoop, SystemLayer(0, 2)]
+		public void PreRenderPass()
+		{
+			if (inputHandler.IsKeyDown(Silk.NET.Input.Key.F1) && !keyPressed)
+				wireframeEnabled = !wireframeEnabled;
+
+			keyPressed = inputHandler.IsKeyDown(Silk.NET.Input.Key.F1);
+
+			if (wireframeEnabled)
+				renderContext.pipeline.StartRenderPass(context, RenderPassId.Mesh, PipelineContainerLayer.Wireframe);
+
+			bufferIdx = 0;
+			updateIdx = 0;
+		}
+
+		[SystemUpdate, SystemLayer(0, 2)]
+		public void BufferUpdate(ref VulkanRenderContext context, Position.Ref position, Rotation.Ref rotation, Scale.Ref scale, ref VkMeshBuffer mesh, ref VkPbrMaterial material)
+		{
+			if (wireframeEnabled)
+			{
+				UpdateEntityUbo(ref context.ubo, position, rotation, scale);
+
+				ref DefaultDescriptorSet set = ref renderContext.pipeline.GetDescriptor(this.context, bufferIdx);
+				set.shaderInput.ubo.Value = context.ubo;
+			}
+
+
+			bufferIdx++;
+		}
+
+		[SystemUpdate, SystemLayer(0, 2)]
+		public void RenderUpdate(ref VulkanRenderContext context, Position.Ref position, Rotation.Ref rotation, Scale.Ref scale, ref VkMeshBuffer mesh, ref VkPbrMaterial material)
+		{
+			if (wireframeEnabled)
+				renderContext.pipeline.Render(this.context, PipelineContainerLayer.Wireframe, mesh.vertexBuffer, mesh.indexBuffer, mesh.indicies, updateIdx);
+			updateIdx++;
+		}
+
+		[SystemPostLoop, SystemLayer(0, 2)]
+		public void PostRenderPass()
+		{
+			if (wireframeEnabled)
+				renderContext.pipeline.EndRenderPass(context);
+		}
+
+		static void UpdateEntityUbo(ref UniformBufferObject ubo, Position.Ref position, Rotation.Ref rotation, Scale.Ref scale)
+		{
+			ubo.translation = Matrix4x4.CreateTranslation(new Vector3(position.x, position.y, position.z));
+			ubo.rotation = Matrix4x4.CreateFromQuaternion(new Quaternion(rotation.x, rotation.y, rotation.z, rotation.w));
+			ubo.scale = Matrix4x4.CreateScale(new Vector3(scale.x, scale.y, scale.z));
+		}
+	}
+}

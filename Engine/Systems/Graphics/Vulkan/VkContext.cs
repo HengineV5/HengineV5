@@ -223,6 +223,8 @@ namespace Engine
 
 			PhysicalDeviceFeatures deviceFeatures = new();
 			deviceFeatures.SamplerAnisotropy = true;
+			deviceFeatures.FillModeNonSolid = true;
+			deviceFeatures.WideLines = true;
 
 			DeviceCreateInfo createInfo = new();
 			createInfo.SType = StructureType.DeviceCreateInfo;
