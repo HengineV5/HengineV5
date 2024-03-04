@@ -66,10 +66,15 @@ namespace Runner
 				zFar = 1000
 			};
 
-			mainWorld.CreateCamera(camera, Vector3.Zero, skybox);
+			var meshDuck = Mesh.LoadGltf("Duck", "Models/Duck/Duck.gltf", true);
+			var materialDuck = PbrMaterial.LoadGltf("Duck", "Models/Duck/Duck.gltf");
+
+            Console.WriteLine(engineConfig.idx);
+            mainWorld.CreateObject(new(3, 0, -10), Vector3.One, meshDuck, materialDuck, engineConfig.idx == 10 ? 11 : 10);
+			mainWorld.CreateCamera(camera, Vector3.Zero, skybox, engineConfig.idx);
 
 			//TestWorld.Load(mainWorld);
-			MapWorld.Load(mainWorld);
+			//MapWorld.Load(mainWorld);
 
 			engine.Start();
 			engine.argIWindow.Dispose();
@@ -98,8 +103,8 @@ namespace Runner
 				zFar = 1000
 			};
 
-			mainWorld.CreateCamera(camera, Vector3.Zero, 0);
-			mainWorld.CreateCamera(camera, Vector3.Zero, 1);
+			mainWorld.CreateCamera(camera, Vector3.Zero, 10);
+			mainWorld.CreateCamera(camera, Vector3.Zero, 11);
 
 			server.Start();
 		}

@@ -87,7 +87,7 @@ namespace Engine.Generator
 				{
 					name = nameExpression.Token.Value.ToString(),
 					systems = systems,
-					contextArguments = systems.SelectMany(x => x.contextArguments).GroupBy(x => x.type).Select(x => x.First()).ToList()
+					contextArguments = systems.SelectMany(x => x.contextArguments).Where(x => x.type != "EngineContext").GroupBy(x => x.type).Select(x => x.First()).ToList()
 				});
 			}
 

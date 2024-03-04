@@ -5,7 +5,7 @@ using System.Numerics;
 
 namespace Engine
 {
-	[System]
+	[System<EngineContext>]
 	public partial class ClientSendSystem
     {
 		IClient client;
@@ -15,24 +15,24 @@ namespace Engine
 			this.client = client;
         }
 
-		int skipCount = 0;
+		float time = 0;
 
 		[SystemPreLoop]
 		public void PreUpdate()
 		{
-			skipCount++;
-
-			if (skipCount >= Random.Shared.Next(5, 10))
-				skipCount = 0;
 		}
 
         [SystemUpdate]
-		public void Update(Position.Ref position, Rotation.Ref rotation, Camera.Ref camera, Networked.Ref networked)
+		public void Update(ref EngineContext engineContext, Position.Ref position, Rotation.Ref rotation, Camera.Ref camera, Networked.Ref networked)
 		{
-			if (skipCount != 0)
+			time += engineContext.dt;
+			if (time < .1f / 20)
 				return;
 
-			client.SendData(new NetworkPacket()
+            //Console.WriteLine($"Sending: {networked.idx} {new Vector3(position.x, position.y, position.z)}, {new Quaternion(rotation.x, rotation.y, rotation.z, rotation.w)}");
+
+            time = 0;
+            client.SendData(new NetworkPacket()
 			{
 				idx = networked.idx,
 				position = new Vector3(position.x, position.y, position.z),
@@ -41,7 +41,7 @@ namespace Engine
 		}
 	}
 
-	[System]
+	[System<EngineContext>]
 	public partial class ClientReceiveSystem
 	{
 		IClient client;
@@ -58,9 +58,9 @@ namespace Engine
 		}
 
 		[SystemUpdate]
-		public void Update(Position.Ref position, Rotation.Ref rotation, Scale.Ref scale, Networked.Ref networked)
+		public void Update(ref EngineContext engineContext, Position.Ref position, Rotation.Ref rotation, Scale.Ref scale, Networked.Ref networked)
 		{
-			var packets = client.GetPackets();
+            var packets = client.GetPackets();
 			List<int> toRemove = new List<int>();
 			for (int i = 0; i < packets.Count; i++)
 			{
@@ -68,7 +68,9 @@ namespace Engine
 
 				if (packet.idx == networked.idx)
 				{
-					position.Set(packet.position + new Vector3(0, 0, -5));
+                    //Console.WriteLine($"Found match: {packet.idx} {packet.position}, {packet.roation}");
+
+                    position.Set(packet.position);
 					rotation.Set(packet.roation);
 					toRemove.Add(i);
 

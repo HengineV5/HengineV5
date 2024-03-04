@@ -24,6 +24,11 @@ namespace Engine
 		public int idx;
 	}
 
+	public struct EngineContext
+	{
+		public float dt;
+	}
+
 	[System]
 	public partial class PositionSystem
 	{
@@ -74,8 +79,8 @@ namespace Engine
 					x.System<VulkanWireframeRenderSystem>();
 					x.System<VulkanPresentSystem>();
 
-					//x.System<ClientSendSystem>();
-					//x.System<ClientReceiveSystem>();
+					x.System<ClientSendSystem>();
+					x.System<ClientReceiveSystem>();
 				})
 				.World(x =>
 				{
@@ -116,7 +121,7 @@ namespace Engine
 					x.Setup(GlfwSetup.VulkanSetup);
 					x.Setup(VulkanSetup.RenderSetup);
 
-					//x.Setup(NetworkSetup.ClientSetup);
+					x.Setup(NetworkSetup.ClientSetup);
 				})
 				.Resource(x =>
 				{
@@ -144,8 +149,9 @@ namespace Engine
 					{
 						//x.Sequential<RotateSystem>();
 						x.Sequential<MoveSystem>();
-						//x.Sequential<ClientSendSystem>();
-						//x.Sequential<ClientReceiveSystem>();
+
+						x.Sequential<ClientSendSystem>();
+						x.Sequential<ClientReceiveSystem>();
 					});
 
 					x.World("Main", x =>

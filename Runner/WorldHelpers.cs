@@ -43,7 +43,7 @@ namespace Runner
 			return objRef;
 		}
 
-		public static void CreateCamera(this Main world, Camera camera, Vector3 position, in Skybox skybox)
+		public static void CreateCamera(this Main world, Camera camera, Vector3 position, in Skybox skybox, int idx)
 		{
 			var objRef = world.Create(new Cam());
 			Cam.Ref entRef = world.Get(objRef);
@@ -51,10 +51,13 @@ namespace Runner
 			entRef.Position.Set(position);
 			entRef.Rotation.Set(Quaternion.Identity);
 			entRef.Skybox.Set(skybox);
-			entRef.Networked.Set(new Networked());
+			entRef.Networked.Set(new Networked()
+			{
+				idx = idx
+			});
 		}
 
-		public static void CreateCamera(this HengineServerEcs.Main world, Camera camera, Vector3 position, int idx = 0)
+		public static void CreateCamera(this HengineServerEcs.Main world, Camera camera, Vector3 position, int idx)
 		{
 			var objRef = world.Create(new HengineServerEcs.Cam());
 			HengineServerEcs.Cam.Ref entRef = world.Get(objRef);

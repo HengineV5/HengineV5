@@ -1,5 +1,6 @@
 using System.Runtime.Intrinsics;
 using System.Runtime.CompilerServices;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using Engine;
@@ -22,6 +23,7 @@ namespace $namespace
 		$resourceManagers~>|$resourceManagerNamespace|.|$resourceManagerName| _|$resourceManagerName|;<~~>\n		<~
 
 		bool initialized = false;
+		Stopwatch sw = new Stopwatch();
 
 		public $engineName()
 		{
@@ -62,11 +64,17 @@ namespace $namespace
 			if (!initialized)
 				throw new System.Exception("$engineName must be initialized by running initialize() before start.");
 
+			sw.Restart();
+
+			var engineContext = new EngineContext();
 			while (true)
 			{
+				engineContext.dt = sw.ElapsedMilliseconds / 1000f;
+				sw.Restart();
+
 				var mainWorld = ecs.GetMain();
 
-				$pipelines~>_|$pipelineName|.Run(mainWorld);<~~>\n				<~
+				$pipelines~>_|$pipelineName|.Run(ref engineContext, mainWorld);<~~>\n				<~
 
 				if (ShouldExit())
 				{

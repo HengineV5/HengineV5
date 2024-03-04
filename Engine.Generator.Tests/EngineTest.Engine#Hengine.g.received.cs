@@ -1,4 +1,4 @@
-//HintName: Hengine.g.cs
+﻿//HintName: Hengine.g.cs
 using System.Runtime.Intrinsics;
 using System.Runtime.CompilerServices;
 using System.Diagnostics;

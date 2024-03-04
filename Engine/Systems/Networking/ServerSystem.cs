@@ -3,6 +3,7 @@ using Engine.Components;
 using Engine.Graphics;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Numerics;
 using System.Text;
@@ -10,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace Engine
 {
-	[System]
+	[System<EngineContext>]
 	public partial class ServerSystem
 	{
 		IServer server;
@@ -25,21 +26,16 @@ namespace Engine
 			server.AcceptNewClients();
 		}
 
-		int skipCount = 0;
+		float time = 0;
 
 		[SystemPreLoop]
         public void UpdateClients()
         {
             server.AcceptData();
-
-			skipCount++;
-
-			if (skipCount == 10000 * 2)
-				skipCount = 0;
 		}
 
         [SystemUpdate]
-        public void Update(Position.Ref position, Rotation.Ref rotation, Camera.Ref camera, Networked.Ref networked)
+        public void Update(ref EngineContext engineContext, Position.Ref position, Rotation.Ref rotation, Camera.Ref camera, Networked.Ref networked)
         {
             var packets = server.GetPackets();
             List<int> toRemove = new List<int>();
@@ -49,6 +45,8 @@ namespace Engine
 
                 if (packet.idx == networked.idx)
                 {
+                    Console.WriteLine($"Found match: {packet.idx} {packet.position}, {packet.roation}");
+
                     position.Set(packet.position);
                     rotation.Set(packet.roation);
                     toRemove.Add(i);
@@ -62,11 +60,15 @@ namespace Engine
         }
 
 		[SystemUpdate]
-		public void Update2(Position.Ref position, Rotation.Ref rotation, Camera.Ref camera, Networked.Ref networked)
+		public void Update2(ref EngineContext engineContext, Position.Ref position, Rotation.Ref rotation, Camera.Ref camera, Networked.Ref networked)
 		{
-			if (skipCount != 0)
+            time += MathF.Max(engineContext.dt, 0.00001f);
+            if (time < 1.12f / 20)
 				return;
 
+			time = 0;
+
+            //Console.WriteLine($"BroadcastingL: {new Vector3(position.x, position.y, position.z)} {new Quaternion(rotation.x, rotation.y, rotation.z, rotation.w)}");
             server.BroadcastPacket(new NetworkPacket()
 			{
 				idx = networked.idx,

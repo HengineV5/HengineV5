@@ -84,7 +84,7 @@ namespace Engine
 				});
 			}
 
-            Console.WriteLine($"All clients connected.");
+            Console.WriteLine($"All clients connected: {clients.Count}.");
         }
 
 		public void AcceptData()
@@ -99,9 +99,6 @@ namespace Engine
 
 				int length = client.socket.Receive(buff);
 
-				if (length == 0)
-					continue;
-
 				for (int a = 0; a < length; a++)
 				{
 					if (buff[a] == endSign[0])
@@ -111,15 +108,20 @@ namespace Engine
 					}
 				}
 
+				if (length == 0)
+					continue;
+
 				try
 				{
 					var packet = JsonSerializer.Deserialize(buff.Slice(0, length), NetworkPacketSourceGenerationContext.Default.NetworkPacket);
 					packets.Add(packet);
-				}
-				catch (Exception)
-				{
 
-				}
+                    Console.WriteLine($"Added packet from {i}: {packet.idx}, {packet.position}, {packet.roation}");
+                }
+				catch (Exception e)
+				{
+                    //Console.WriteLine($"Failed!: {e.Message}");
+                }
 			}
 		}
 
@@ -162,14 +164,11 @@ namespace Engine
 
 		public void AcceptData()
 		{
-			if (socket.Available <= 0)
+            if (socket.Available <= 0)
 				return;
 
 			Span<byte> buff = stackalloc byte[1024];
 			int length = socket.Receive(buff);
-
-			if (length == 0)
-				return;
 
 			for (int i = 0; i < length; i++)
 			{
@@ -180,14 +179,18 @@ namespace Engine
 				}
 			}
 
+			if (length == 0)
+				return;
+
 			try
 			{
 				var packet = JsonSerializer.Deserialize(buff.Slice(0, length), NetworkPacketSourceGenerationContext.Default.NetworkPacket);
+				//Console.WriteLine($"Added packet from server with id {packet.idx}");
 				packets.Add(packet);
-            }
-			catch (Exception)
+			}
+			catch (Exception e)
 			{
-
+				//Console.WriteLine($"Client failed!: {e.Message}");
 			}
 		}
 
@@ -198,8 +201,7 @@ namespace Engine
 
 		public void SendData(NetworkPacket data)
 		{
-			data.idx = idx;
-			var bytes = JsonSerializer.SerializeToUtf8Bytes(data, NetworkPacketSourceGenerationContext.Default.NetworkPacket);
+            var bytes = JsonSerializer.SerializeToUtf8Bytes(data, NetworkPacketSourceGenerationContext.Default.NetworkPacket);
 			socket.Send(bytes);
 			socket.Send(endSign);
 		}

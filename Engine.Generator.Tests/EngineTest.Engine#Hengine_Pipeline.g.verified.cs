@@ -31,12 +31,12 @@ namespace Test
 				_OpenGLRenderSystem.Init();
 			}
 
-			public void Run(HengineEcs.Main world)
+			public void Run(ref EngineContext engineContext, HengineEcs.Main world)
 			{
 				_OpenGLRenderSystem.PreRun();
 				TestContext argTestContext = new TestContext();
 
-				world.Loop(_OpenGLRenderSystem, argTestContext);
+				world.Loop(_OpenGLRenderSystem, ref argTestContext);
 				world.Loop(_System2);
 				world.Loop(_System3);
 
@@ -63,7 +63,7 @@ namespace Test
 				
 			}
 
-			public void Run(HengineEcs.Main world)
+			public void Run(ref EngineContext engineContext, HengineEcs.Main world)
 			{
 				
 				

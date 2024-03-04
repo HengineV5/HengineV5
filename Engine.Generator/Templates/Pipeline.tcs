@@ -26,7 +26,7 @@ namespace $namespace
 
 			}
 
-			public void Run(|$ecsName|.Main world)
+			public void Run(ref EngineContext argEngineContext, |$ecsName|.Main world)
 			{
 				$pipelineSystems|$hasPreRun == true|~>_|$systemName|.PreRun();<~~>\n				<~
 

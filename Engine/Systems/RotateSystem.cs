@@ -78,7 +78,8 @@ namespace Engine
 		IInputHandler inputHandler;
 
 		Vector2 prevPos;
-		Vector2 cameraRotation = new Vector2(-MathF.PI / 2f, 0);
+		//Vector2 cameraRotation = new Vector2(-MathF.PI / 2f, 0);
+		Vector2 cameraRotation = Vector2.Zero;
 
 		public MoveSystem(IInputHandler inputHandler)
 		{
