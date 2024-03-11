@@ -17,7 +17,7 @@ namespace Engine
 		VkRenderContext renderContext;
 		IInputHandler inputHandler;
 
-		bool wireframeEnabled = true;
+		bool wireframeEnabled = false;
 		bool keyPressed = false;
 
 		public VulkanWireframeRenderSystem(VkContext context, VkRenderContext renderContext, IWindow window, IInputHandler inputHandler)

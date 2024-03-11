@@ -42,7 +42,7 @@ namespace Engine.Parsing.Gltf
             GltfAccessor normalAccessor = file.accessors[primitive.attributes.normal];
             GltfAccessor positionAccessor = file.accessors[primitive.attributes.position];
             GltfAccessor texAccessor = file.accessors[primitive.attributes.texcoord0];
-            GltfAccessor indexAccessor = file.accessors[primitive.indicies];
+            GltfAccessor indexAccessor = file.accessors[primitive.indices];
 
             Vector3[] normals = new Vector3[normalAccessor.count];
             ReadData(baseFolder, file, normalAccessor, normals.AsSpan());

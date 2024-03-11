@@ -43,7 +43,7 @@ namespace Runner
 			return objRef;
 		}
 
-		public static void CreateCamera(this Main world, Camera camera, Vector3 position, in Skybox skybox, int idx)
+		public static EnCS.ArchRef<Cam> CreateCamera(this Main world, Camera camera, Vector3 position, in Skybox skybox, int idx)
 		{
 			var objRef = world.Create(new Cam());
 			Cam.Ref entRef = world.Get(objRef);
@@ -55,6 +55,8 @@ namespace Runner
 			{
 				idx = idx
 			});
+
+			return objRef;
 		}
 
 		public static void CreateCamera(this HengineServerEcs.Main world, Camera camera, Vector3 position, int idx)

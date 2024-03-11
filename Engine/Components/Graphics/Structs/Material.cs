@@ -16,6 +16,7 @@ namespace Engine.Graphics
         public ETexture roughnessMap;
         public ETexture aoMap;
         public ETexture normalMap;
+        public ETexture depthMap;
 
         public static PbrMaterial LoadGltf(string name, string filePath)
         {
@@ -41,6 +42,9 @@ namespace Engine.Graphics
 			if (string.IsNullOrEmpty(material.normalMap.name))
 				material.normalMap = ETexture.LoadImage($"{name}_normal", "Images/Pbr/Default/Normal.png");
 
+			if (string.IsNullOrEmpty(material.depthMap.name))
+				material.normalMap = ETexture.LoadImage($"{name}_depth", "Images/Pbr/Default/Depth.png");
+
             return material;
         }
 
@@ -54,6 +58,7 @@ namespace Engine.Graphics
             material.roughnessMap = ETexture.LoadImage($"{name}_roughness", "Images/Pbr/Default/Roughness.png");
             material.aoMap = ETexture.LoadImage($"{name}_ao", "Images/Pbr/Default/Ao.png");
             material.normalMap = ETexture.LoadImage($"{name}_normal", "Images/Pbr/Default/Normal.png");
+            material.depthMap = ETexture.LoadImage($"{name}_depth", "Images/Pbr/Default/Depth.png");
 
             return material;
         }

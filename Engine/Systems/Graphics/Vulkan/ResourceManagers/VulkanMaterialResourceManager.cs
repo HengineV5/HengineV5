@@ -14,6 +14,7 @@ namespace Engine.Graphics
         public VkTextureBuffer roughnessMap;
         public VkTextureBuffer aoMap;
         public VkTextureBuffer normalMap;
+        public VkTextureBuffer depthMap;
     }
 
     [ResourceManager]
@@ -58,6 +59,7 @@ namespace Engine.Graphics
                 roughnessMap = VulkanTextureResourceManager.CreateTextureBuffer(context, material.roughnessMap),
                 aoMap = VulkanTextureResourceManager.CreateTextureBuffer(context, material.aoMap),
                 normalMap = VulkanTextureResourceManager.CreateTextureBuffer(context, material.normalMap),
+                depthMap = VulkanTextureResourceManager.CreateTextureBuffer(context, material.depthMap),
             };
         }
     }

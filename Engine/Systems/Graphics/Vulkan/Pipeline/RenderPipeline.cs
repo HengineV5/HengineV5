@@ -44,6 +44,7 @@ namespace Engine
 	{
         TRenderTargetManager renderTargetManager;
 
+        CommandPool commandPool;
 		Queue graphicsQueue;
 
         TPipelineContainer pipelines;
@@ -52,9 +53,10 @@ namespace Engine
 		ClearColorValue clearColor;
 		RenderTarget<TDescriptorSet> renderTarget;
 
-        public RenderPipeline(Queue graphicsQueue, TRenderTargetManager renderTargetManager, TPipelineContainer layers, TRenderPassContainer renderPasses)
+        public RenderPipeline(Queue graphicsQueue, CommandPool commandPool, TRenderTargetManager renderTargetManager, TPipelineContainer layers, TRenderPassContainer renderPasses)
         {
 			this.graphicsQueue = graphicsQueue;
+            this.commandPool = commandPool;
             this.renderTargetManager = renderTargetManager;
             this.pipelines = layers;
             this.renderPasses = renderPasses;
@@ -104,7 +106,24 @@ namespace Engine
 
         public void PresentRender(VkContext context)
         {
-			TRenderTargetManager.PresentTarget(context, ref renderTargetManager, ref renderTarget);
+            // If RendeTargetManager failes to present recreate pipeline and try again
+			if (!TRenderTargetManager.PresentTarget(context, ref renderTargetManager, ref renderTarget))
+            {
+				context.vk.DeviceWaitIdle(context.device);
+
+				TRenderTargetManager.Dispose(context, ref renderTargetManager, commandPool);
+                TRenderPassContainer.Dispose(context, ref renderPasses);
+                TPipelineContainer.Dispose(context, ref pipelines);
+
+				renderTargetManager = TRenderTargetManager.Create(context, commandPool);
+				renderPasses = TRenderPassContainer.Create(context, TRenderTargetManager.GetRendePassInfo(context, ref renderTargetManager));
+
+				RenderPass compatibleRenderPass = TRenderPassContainer.GetCompatibleRenderPass(ref renderPasses);
+				pipelines = TPipelineContainer.Create(context, TDescriptorSet.GetLayout(context), TRenderPassContainer.GetCompatibleRenderPass(ref renderPasses), TRenderTargetManager.GetPipelineInfo(context, ref renderTargetManager));
+
+				TRenderTargetManager.Init(context, ref renderTargetManager, compatibleRenderPass, commandPool);
+			}
+
             renderTarget = default;
         }
 
@@ -131,12 +150,19 @@ namespace Engine
 			return ref renderTarget.frame.descriptorData[idx];
         }
 
-        public static RenderPipeline<TRenderTargetManager, TRenderPassInfo, TPipelineInfo, TDescriptorSet, TPipelineContainer, TPipelineEnum, TRenderPassContainer, TRenderPassEnum> Create(VkContext context, TRenderTargetManager renderTargetManager)
+        public static RenderPipeline<TRenderTargetManager, TRenderPassInfo, TPipelineInfo, TDescriptorSet, TPipelineContainer, TPipelineEnum, TRenderPassContainer, TRenderPassEnum> Create(VkContext context, CommandPool commandPool)
 		{
             uint graphicsQueueFamily = VulkanHelper.GetGraphicsQueueFamily(context);
             Queue graphicsQueue = VulkanHelper.GetQueue(context, graphicsQueueFamily);
 
-            return new(graphicsQueue, renderTargetManager, TPipelineContainer.Create(context, TDescriptorSet.GetLayout(context), TRenderTargetManager.GetPipelineInfo(context, ref renderTargetManager)), TRenderPassContainer.Create(context, TRenderTargetManager.GetRendePassInfo(context, ref renderTargetManager)));
+			var renderTargetManager = TRenderTargetManager.Create(context, commandPool);
+            var renderPassContainer = TRenderPassContainer.Create(context, TRenderTargetManager.GetRendePassInfo(context, ref renderTargetManager));
+
+            RenderPass compatibleRenderPass = TRenderPassContainer.GetCompatibleRenderPass(ref renderPassContainer);
+            var pipelineContainer = TPipelineContainer.Create(context, TDescriptorSet.GetLayout(context), TRenderPassContainer.GetCompatibleRenderPass(ref renderPassContainer), TRenderTargetManager.GetPipelineInfo(context, ref renderTargetManager));
+
+            TRenderTargetManager.Init(context, ref renderTargetManager, compatibleRenderPass, commandPool);
+			return new(graphicsQueue, commandPool, renderTargetManager, pipelineContainer, renderPassContainer);
         }
 
         unsafe void BeginRenderCommand(VkContext context, CommandBuffer commandBuffer, RenderPass renderPass, Framebuffer framebuffer, ClearColorValue clearColor, Rect2D renderArea)

@@ -2,6 +2,7 @@
 using EnCS;
 using Silk.NET.Vulkan.Video;
 using System.Buffers;
+using Silk.NET.SDL;
 
 namespace Engine
 {
@@ -10,7 +11,6 @@ namespace Engine
 	{
         const int MAX_FRAMES_IN_FLIGHT = 3;
 
-		RenderPass compatibleRenderPass;
 		Swapchain swapchain;
 
 		Memory<ImageView> imageViews;
@@ -19,13 +19,9 @@ namespace Engine
 
 		int currentFrame;
 
-        public SwapchainRenderTargetManager(Swapchain swapchain, RenderPass compatibleRenderPass, Memory<ImageView> imageViews, Memory<Framebuffer> frameBuffers, Memory<FrameInFlight<TDescriptorSet>> framesInFlight)
+        public SwapchainRenderTargetManager(Swapchain swapchain)
         {
 			this.swapchain = swapchain;
-			this.compatibleRenderPass = compatibleRenderPass;
-			this.imageViews = imageViews;
-			this.frameBuffers = frameBuffers;
-			this.framesInFlight = framesInFlight;
 			this.currentFrame = 0;
         }
 
@@ -49,18 +45,25 @@ namespace Engine
             return renderTarget;
         }
 
-        public static void PresentTarget(VkContext context, ref SwapchainRenderTargetManager<TDescriptorSet> self, ref RenderTarget<TDescriptorSet> renderTarget)
+        public static bool PresentTarget(VkContext context, ref SwapchainRenderTargetManager<TDescriptorSet> self, ref RenderTarget<TDescriptorSet> renderTarget)
         {
-            VulkanHelper.QueuePresent(context, self.swapchain.GetPresentQueue(), self.swapchain.GetSwapchain(), renderTarget.imageIndex, renderTarget.frame.imageAvailable);
-            //Console.WriteLine($"P: {renderTarget.imageIndex}, F: {self.currentFrame}");
+            var presentResult = VulkanHelper.QueuePresent(context, self.swapchain.GetPresentQueue(), self.swapchain.GetSwapchain(), renderTarget.imageIndex, renderTarget.frame.imageAvailable);
+			if (presentResult == Result.ErrorOutOfDateKhr || presentResult == Result.SuboptimalKhr)
+			{
+				return false;
+				throw new Exception();
+				//recreateSwapChain();
+                //RecreateSwapchain(context, )
+			}
 
-            // TODO: Improve
-            self.currentFrame = (self.currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+			// TODO: Improve
+			self.currentFrame = (self.currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+			return true;
         }
 
         public static DefaultPipelineInfo GetPipelineInfo(VkContext context, ref SwapchainRenderTargetManager<TDescriptorSet> self)
         {
-			return new DefaultPipelineInfo(self.swapchain.GetExtent(), self.compatibleRenderPass);
+			return new DefaultPipelineInfo(self.swapchain.GetExtent());
         }
 
         public static DefaultRenderPassInfo GetRendePassInfo(VkContext context, ref SwapchainRenderTargetManager<TDescriptorSet> self)
@@ -73,39 +76,102 @@ namespace Engine
 			return new(new(), self.swapchain.GetExtent());
         }
 
-        public static SwapchainRenderTargetManager<TDescriptorSet> Create(VkContext context, Swapchain swapchain, RenderPass compatibleRenderPass, CommandPool commandPool)
+        public static SwapchainRenderTargetManager<TDescriptorSet> Create(VkContext context, CommandPool commandPool)
         {
-            Memory<ImageView> swapchainImages = new ImageView[swapchain.GetImageCount()];
-            swapchain.GetImages(context, swapchainImages.Span);
+			SurfaceKHR surface = CreateSurface(context);
+			Swapchain swapchain = Swapchain.Create(context, surface, commandPool);
 
-            Memory<Framebuffer> frameBuffers = new Framebuffer[swapchain.GetImageCount()];
-            for (int i = 0; i < frameBuffers.Span.Length; i++)
-            {
-                frameBuffers.Span[i] = VulkanHelper.CreateFrameBuffer(context, [swapchainImages.Span[i], swapchain.GetDepthImage()], compatibleRenderPass, swapchain.GetExtent());
-            }
-
-            DescriptorPool descriptorPool = TDescriptorSet.GetPool(context, MAX_FRAMES_IN_FLIGHT * 16);
-
-            Memory<FrameInFlight<TDescriptorSet>> framesInFlight = new FrameInFlight<TDescriptorSet>[MAX_FRAMES_IN_FLIGHT];
-            for (int i = 0; i < framesInFlight.Span.Length; i++)
-            {
-                FixedArray16<TDescriptorSet> descriptorSets = new FixedArray16<TDescriptorSet>();
-
-                for (int a = 0; a < 16; a++)
-                {
-                    descriptorSets[a] = TDescriptorSet.Create(context, descriptorPool);
-                }
-
-                framesInFlight.Span[i] = new FrameInFlight<TDescriptorSet>(
-                    VulkanHelper.CreateSemaphore(context),
-                    VulkanHelper.CreateSemaphore(context),
-                    VulkanHelper.CreateFence(context, FenceCreateFlags.SignaledBit),
-                    VulkanHelper.CreateCommandBuffer(context, commandPool),
-                    descriptorSets
-                );
-            }
-
-            return new SwapchainRenderTargetManager<TDescriptorSet>(swapchain, compatibleRenderPass, swapchainImages, frameBuffers, framesInFlight);
+            return new SwapchainRenderTargetManager<TDescriptorSet>(swapchain);
         }
-    }
+
+		public static void Init(VkContext context, ref SwapchainRenderTargetManager<TDescriptorSet> self, RenderPass compatibleRenderPass, CommandPool commandPool)
+		{
+			self.imageViews = new ImageView[self.swapchain.GetImageCount()];
+			self.swapchain.GetImages(context, self.imageViews.Span);
+
+			self.frameBuffers = new Framebuffer[self.swapchain.GetImageCount()];
+			for (int i = 0; i < self.frameBuffers.Span.Length; i++)
+			{
+				self.frameBuffers.Span[i] = VulkanHelper.CreateFrameBuffer(context, [self.imageViews.Span[i], self.swapchain.GetDepthImage()], compatibleRenderPass, self.swapchain.GetExtent());
+			}
+
+			DescriptorPool descriptorPool = TDescriptorSet.GetPool(context, MAX_FRAMES_IN_FLIGHT * 16);
+
+			self.framesInFlight = new FrameInFlight<TDescriptorSet>[MAX_FRAMES_IN_FLIGHT];
+			for (int i = 0; i < self.framesInFlight.Span.Length; i++)
+			{
+				FixedArray16<TDescriptorSet> descriptorSets = new FixedArray16<TDescriptorSet>();
+
+				for (int a = 0; a < 16; a++)
+				{
+					descriptorSets[a] = TDescriptorSet.Create(context, descriptorPool);
+				}
+
+				self.framesInFlight.Span[i] = new FrameInFlight<TDescriptorSet>(
+					VulkanHelper.CreateSemaphore(context),
+					VulkanHelper.CreateSemaphore(context),
+					VulkanHelper.CreateFence(context, FenceCreateFlags.SignaledBit),
+					VulkanHelper.CreateCommandBuffer(context, commandPool),
+					descriptorSets
+				);
+			}
+		}
+
+		public static unsafe void Dispose(VkContext context, ref SwapchainRenderTargetManager<TDescriptorSet> self, CommandPool commandPool)
+		{
+			self.swapchain.Dispose(context);
+
+			foreach (var frameBuffer in self.frameBuffers.Span)
+			{
+				context.vk.DestroyFramebuffer(context.device, frameBuffer, null);
+			}
+
+			foreach (var imageView in self.imageViews.Span)
+			{
+				context.vk.DestroyImageView(context.device, imageView, null);
+			}
+
+			foreach (var frame in self.framesInFlight.Span)
+			{
+				context.vk.FreeCommandBuffers(context.device, commandPool, [frame.commandBuffer]);
+			}
+		}
+
+		static unsafe SurfaceKHR CreateSurface(VkContext context)
+		{
+			return context.window.VkSurface.Create<AllocationCallbacks>(context.instance.ToHandle(), null).ToSurface();
+		}
+
+		/*
+		static void RecreateSwapchain(VkContext context, SurfaceKHR surface, CommandPool commandPool)
+		{
+			context.vk.DeviceWaitIdle(context.device);
+
+			swapchain.Dispose(context);
+			DisposeSwapchain(context, commandPool);
+
+			swapchain = Swapchain.Create(context, surface, commandPool);
+			meshRenderPass = CreateMeshRenderPass(context, swapchain.GetSurfaceFormat().Format, Swapchain.GetDepthFormat(context));
+			skyboxRenderPass = CreateSkyboxRenderPass(context, swapchain.GetSurfaceFormat().Format, Swapchain.GetDepthFormat(context));
+			pipelineLayout = CreatePipelineLayout(context, descriptorSetLayout);
+
+			var pbrShader = Shader.FromFiles("Shaders/Pbr/PbrVert.spv", "Shaders/Pbr/PbrFrag.spv");
+			meshPipeline = CreateGraphicsPipeline(context, swapchain.GetExtent(), pipelineLayout, skyboxRenderPass, pbrShader);
+
+			var shaderSkybox = Shader.FromFiles("Shaders/Pbr/SkyboxVert.spv", "Shaders/Pbr/SkyboxFrag.spv");
+			skyboxPipeline = CreateGraphicsPipeline(context, swapchain.GetExtent(), pipelineLayout, skyboxRenderPass, shaderSkybox);
+
+			swapchain.GetImages(context, swapchainImages.Span);
+			for (int i = 0; i < frameBuffers.Span.Length; i++)
+			{
+				frameBuffers.Span[i] = VulkanHelper.CreateFrameBuffer(context, [swapchainImages.Span[i], swapchain.GetDepthImage()], skyboxRenderPass, swapchain.GetExtent());
+			}
+
+			for (int i = 0; i < framesInFlight.Span.Length; i++)
+			{
+				framesInFlight.Span[i].commandBuffer = VulkanHelper.CreateCommandBuffer(context, commandPool);
+			}
+		}
+        */
+	}
 }

@@ -25,12 +25,10 @@ namespace Engine
 	public struct DefaultPipelineInfo
 	{
 		public Extent2D extent;
-		public RenderPass compatibleRenderPass;
 
-        public DefaultPipelineInfo(Extent2D extent, RenderPass compatibleRenderPass)
+        public DefaultPipelineInfo(Extent2D extent)
         {
             this.extent = extent;
-            this.compatibleRenderPass = compatibleRenderPass;
         }
     }
 

@@ -7,9 +7,10 @@ layout(binding = 2) uniform sampler2D u_AlbedoMap;
 layout(binding = 3) uniform sampler2D u_NormalMap;
 layout(binding = 4) uniform sampler2D u_MetallicMap;
 layout(binding = 5) uniform sampler2D u_RoughnessMap;
-layout(binding = 6) uniform samplerCube u_Skybox;
-layout(binding = 7) uniform samplerCube u_IrradianceMap;
-layout(binding = 8) uniform samplerCube u_SpecularMap;
+layout(binding = 6) uniform sampler2D u_DepthMap;
+layout(binding = 7) uniform samplerCube u_Skybox;
+layout(binding = 8) uniform samplerCube u_IrradianceMap;
+layout(binding = 9) uniform samplerCube u_SpecularMap;
 //layout(binding = 6) uniform sampler2D u_AoMap;
 
 /*
@@ -21,13 +22,13 @@ layout(binding = 2) uniform Material {
 } u_Material;
 */
 
-layout(binding = 9) uniform Material {
+layout(binding = 10) uniform Material {
 	vec3 albedo;
 	float metallic;
 	float roughness;
 } u_Material;
 
-layout(binding = 10) uniform Light {
+layout(binding = 11) uniform Light {
 	vec3 position;
 	vec3 ambient;
 	vec3 diffuse;
@@ -38,27 +39,12 @@ layout(location = 0) in vec2 v_texCoord;
 layout(location = 1) in vec3 v_normal;
 layout(location = 2) in vec3 v_pos;
 layout(location = 3) in vec3 v_ViewPos;
+layout(location = 4) in mat3 v_TBN;
 
 layout(location = 0) out vec4 color;
 
 float ao = 1;
-
-vec3 getNormalFromMap()
-{
-    vec3 tangentNormal = texture(u_NormalMap, v_texCoord).xyz;
-
-    vec3 Q1  = dFdx(v_pos);
-    vec3 Q2  = dFdy(v_pos);
-    vec2 st1 = dFdx(v_texCoord);
-    vec2 st2 = dFdy(v_texCoord);
-
-    vec3 N   = normalize(v_normal);
-    vec3 T  = normalize(Q1*st2.t - Q2*st1.t);
-    vec3 B  = -normalize(cross(N, T));
-    mat3 TBN = mat3(T, B, N);
-
-    return normalize(TBN * tangentNormal);
-}
+float height_scale = 0.1 / 4;
 
 vec3 fresnelSchlick(float cosTheta, vec3 F0)
 {
@@ -105,34 +91,26 @@ float geometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
     return ggx1 * ggx2;
 }
 
-vec3 cookTerranceBRDF(vec3 N, vec3 V, vec3 L, vec3 H, vec3 albedo, float metallic, float roughness)
+vec2 ParallaxMapping(vec2 texCoords, vec3 viewDir)
 {
-	vec3 F0 = vec3(0.04);
-	F0 = mix(F0, albedo, metallic);
-	vec3 F = fresnelSchlick(max(dot(H, V), 0.0), F0);
-
-	float NDF = distributionGGX(N, H, roughness);       
-	float G   = geometrySmith(N, V, L, roughness);  
-
-	vec3 numerator    = NDF * G * F;
-	float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0)  + 0.0001;
-	return numerator / denominator;  
+	float height = -texture(u_DepthMap, texCoords).r;
+	vec2 p = viewDir.xy / viewDir.z * (height * height_scale);
+    return texCoords - p;
 }
 
 void main() {
-		//vec3 albedo = u_Material.albedo;
-		vec3 albedo = pow(texture(u_AlbedoMap, v_texCoord).rgb, vec3(2.2));
+		vec3 viewDir = normalize(v_TBN * v_ViewPos - v_TBN * v_pos);
+		vec2 texCoords = ParallaxMapping(v_texCoord, viewDir);
 
-		//float metallic = 1 - texture(u_MetallicMap, v_texCoord).r;
-		float metallic = 1 - (pow(texture(u_MetallicMap, v_texCoord).b, 2.2) * u_Material.metallic);
-		//float metallic = 1 - (pow(texture(u_MetallicMap, v_texCoord).b, 2.2));
-
-		//float roughness = 1 - texture(u_RoughnessMap, v_texCoord).r;
-		float roughness = 1 - (pow(texture(u_RoughnessMap, v_texCoord).r, 2.2) * u_Material.roughness);
-		//float roughness = 1 - (pow(texture(u_RoughnessMap, v_texCoord).r, 2.2));
+		vec3 albedo = texture(u_AlbedoMap, texCoords).rgb;
+		float metallic = texture(u_MetallicMap, texCoords).r;
+		float roughness = texture(u_RoughnessMap, texCoords).r;
 		
-		vec3 N = normalize(v_normal);
-		//vec3 N = getNormalFromMap();
+		vec3 N = texture(u_NormalMap, texCoords).rgb;
+		//N = N * 2.0 - 1.0;
+		N = normalize(v_TBN * N);
+
+
 		vec3 V = normalize(v_ViewPos - v_pos);
 		vec3 R = reflect(-V, N); 
 
@@ -147,7 +125,7 @@ void main() {
 
 			float dist = length(u_Light[i].position - v_pos);
 			float attenuation = 1.0 / (dist * dist);
-			vec3  radiance = u_Light[i].ambient * attenuation * 50;
+			vec3  radiance = u_Light[i].ambient * attenuation * 25;
 
 			vec3 F = fresnelSchlick(max(dot(H, V), 0.0), F0);
 
@@ -188,13 +166,11 @@ void main() {
 		result = pow(result, vec3(1.0/2.2)); 
 
 		color = vec4(result, 1.0);
-		//color = vec4(v_texCoord, 0.0, 1.0);
-		//color = vec4(v_texCoord, 0.0, 1.0);
-		//color = vec4(N, 1.0);
-		//color = vec4(mod(1, roughness), 0.0, 0.0, 1.0);
-		//color = vec4(u_Material.roughness, 0.0, 0.0, 1.0);
 
-		//vec3 I1 = normalize(v_pos - v_ViewPos);
-		//vec3 R1 = reflect(I1, normalize(v_normal));
-		//color = vec4(texture(u_Texture, R1).rgb, 1.0);
+		/*
+		float height = texture(u_DepthMap, v_texCoord).r;
+		height = height - 0.1;
+		height *= 1.5;
+		color = vec4(vec3(height), 1.0);
+		*/
 }

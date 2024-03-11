@@ -1,6 +1,7 @@
 ﻿using EnCS;
 using EnCS.Attributes;
 using Silk.NET.Vulkan;
+using SixLabors.ImageSharp.PixelFormats;
 using System.Buffers;
 using Buffer = Silk.NET.Vulkan.Buffer;
 using Image = Silk.NET.Vulkan.Image;
@@ -115,7 +116,7 @@ namespace Engine.Graphics
             return textureBuffer;
         }
 
-        static void CopyBufferToDevice<TPixel>(VkContext context, VkTextureBuffer textureBuffer, Span<Image<TPixel>> imgs, Format format) where TPixel : unmanaged, IPixel<TPixel>
+        static void CopyBufferToDevice<TPixel>(VkContext context, VkTextureBuffer textureBuffer, Span<SixLabors.ImageSharp.Image<TPixel>> imgs, Format format) where TPixel : unmanaged, IPixel<TPixel>
 		{
             // TODO: Move command pool to context, bad to create for each mesh creating call
             uint graphicsQueueFamily = VulkanHelper.GetGraphicsQueueFamily(context);
@@ -146,7 +147,7 @@ namespace Engine.Graphics
             }
         }
 
-        static void CopyCubemapBufferToDevice<TPixel>(VkContext context, VkTextureBuffer textureBuffer, Image<TPixel> img, Format format) where TPixel : unmanaged, IPixel<TPixel>
+        static void CopyCubemapBufferToDevice<TPixel>(VkContext context, VkTextureBuffer textureBuffer, SixLabors.ImageSharp.Image<TPixel> img, Format format) where TPixel : unmanaged, IPixel<TPixel>
         {
             // TODO: Move command pool to context, bad to create for each mesh creating call
             uint graphicsQueueFamily = VulkanHelper.GetGraphicsQueueFamily(context);
@@ -182,7 +183,7 @@ namespace Engine.Graphics
             }
         }
 
-        static void CopyMipCubemapBufferToDevice<TPixel>(VkContext context, VkTextureBuffer textureBuffer, Image<TPixel> img, Format format, uint mipLevels) where TPixel : unmanaged, IPixel<TPixel>
+        static void CopyMipCubemapBufferToDevice<TPixel>(VkContext context, VkTextureBuffer textureBuffer, SixLabors.ImageSharp.Image<TPixel> img, Format format, uint mipLevels) where TPixel : unmanaged, IPixel<TPixel>
         {
             // TODO: Move command pool to context, bad to create for each mesh creating call
             uint graphicsQueueFamily = VulkanHelper.GetGraphicsQueueFamily(context);

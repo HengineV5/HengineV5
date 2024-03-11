@@ -431,7 +431,7 @@ namespace Engine
 				throw new Exception("Failed to submit draw command buffer!");
 		}
 
-		public static unsafe void QueuePresent(VkContext context, Queue queue, SwapchainKHR swapchain, uint imageIndex, Semaphore semaphore)
+		public static unsafe Result QueuePresent(VkContext context, Queue queue, SwapchainKHR swapchain, uint imageIndex, Semaphore semaphore)
 		{
 			PresentInfoKHR presentInfo = new();
 			presentInfo.SType = StructureType.PresentInfoKhr;
@@ -447,12 +447,7 @@ namespace Engine
 			presentInfo.PImageIndices = &imageIndex;
 			presentInfo.PResults = null;
 
-			var presentResult = context.swapchain.QueuePresent(queue, presentInfo);
-			if (presentResult == Result.ErrorOutOfDateKhr || presentResult == Result.SuboptimalKhr)
-			{
-				throw new Exception();
-				//recreateSwapChain();
-			}
+			return context.swapchain.QueuePresent(queue, presentInfo);
 		}
 
 		public static unsafe CommandBuffer BeginSingleShotCommands(VkContext context, CommandPool commandPool)

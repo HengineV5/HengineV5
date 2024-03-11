@@ -40,8 +40,8 @@ namespace Engine
             var uniformBufferBuilder = new UniformBufferBuilder(descriptorSet.descriptorSet, uniformBuffer)
                         .Variable<UniformBufferObject>(0)
                         //.Variable<Material>(2)
-                        .Variable<PbrMaterialInfo>(9)
-                        .Array<Light>(10, 4);
+                        .Variable<PbrMaterialInfo>(10)
+                        .Array<Light>(11, 4);
 
             descriptorSet.shaderInput.ubo = uniformBufferBuilder.GetElement<UniformBufferObject>(dataPtr, 0);
             //framesInFlight.Span[i].uboMemories[a].material = uniformBufferBuilder.GetElement<Material>(dataPtr, 1);
@@ -98,9 +98,9 @@ namespace Engine
         {
             DescriptorSetLayoutCreateInfo createInfo = new();
             createInfo.SType = StructureType.DescriptorSetLayoutCreateInfo;
-            createInfo.BindingCount = 11;
+            createInfo.BindingCount = 12;
 
-            DescriptorSetLayoutBinding* bindingsPtr = stackalloc DescriptorSetLayoutBinding[11];
+            DescriptorSetLayoutBinding* bindingsPtr = stackalloc DescriptorSetLayoutBinding[12];
             bindingsPtr[0] = CreateUniformBinding(0, ShaderStageFlags.VertexBit, 1);
             bindingsPtr[1] = CreateSamplerBinding(1, ShaderStageFlags.FragmentBit, 1);
             bindingsPtr[2] = CreateSamplerBinding(2, ShaderStageFlags.FragmentBit, 1);
@@ -110,8 +110,9 @@ namespace Engine
             bindingsPtr[6] = CreateSamplerBinding(6, ShaderStageFlags.FragmentBit, 1);
             bindingsPtr[7] = CreateSamplerBinding(7, ShaderStageFlags.FragmentBit, 1);
             bindingsPtr[8] = CreateSamplerBinding(8, ShaderStageFlags.FragmentBit, 1);
-            bindingsPtr[9] = CreateUniformBinding(9, ShaderStageFlags.FragmentBit, 1);
-            bindingsPtr[10] = CreateUniformBinding(10, ShaderStageFlags.FragmentBit, 4);
+            bindingsPtr[9] = CreateSamplerBinding(9, ShaderStageFlags.FragmentBit, 1);
+            bindingsPtr[10] = CreateUniformBinding(10, ShaderStageFlags.FragmentBit, 1);
+            bindingsPtr[11] = CreateUniformBinding(11, ShaderStageFlags.FragmentBit, 4);
 
             createInfo.PBindings = bindingsPtr;
 

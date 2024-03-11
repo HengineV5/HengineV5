@@ -6,6 +6,8 @@ using Silk.NET.SDL;
 using Silk.NET.Vulkan;
 using Silk.NET.Vulkan.Extensions.KHR;
 using Silk.NET.Windowing;
+using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.PixelFormats;
 using System.Buffers;
 using System.Runtime.InteropServices;
 using Image = Silk.NET.Vulkan.Image;
@@ -16,11 +18,9 @@ namespace Engine
 	{
 		VkContext context;
 
-		public SurfaceKHR surface;
 		public CommandPool commandPool;
-		public FixedArray8<Sampler> samplers;
+		public FixedArray16<Sampler> samplers;
 
-		//public RenderPipeline renderPipeline;
 		public RenderPipeline<SwapchainRenderTargetManager<DefaultDescriptorSet>, DefaultRenderPassInfo, DefaultPipelineInfo, DefaultDescriptorSet, PipelineContainer, PipelineContainerLayer, RenderPassContainer, RenderPassId> pipeline;
 		//public RenderPipeline<TextureRenderTargetManager<PbrDescriptorSet, Rgba32>, DefaultRenderPassInfo, DefaultPipelineInfo, PbrDescriptorSet, PbrPipelineContainer, PbrPipelineLayer, RenderPassContainer, PbrRenderPassId> texturePipeline;
 
@@ -43,26 +43,23 @@ namespace Engine
 
 		public void Setup()
 		{
-			samplers = new FixedArray8<Sampler>();
-			for (int i = 0; i < 8; i++)
+			samplers = new FixedArray16<Sampler>();
+			for (int i = 0; i < 16; i++)
 			{
 				samplers[i] = VulkanHelper.CreateSampler(context, 0);
 			}
 
-			samplers[7] = VulkanHelper.CreateSampler(context, 5);
+			samplers[8] = VulkanHelper.CreateSampler(context, 5);
 
 			uint graphicsQueueFamily = VulkanHelper.GetGraphicsQueueFamily(context);
 
-			surface = CreateSurface(context);
+			//surface = CreateSurface(context);
 			commandPool = VulkanHelper.CreateCommandPool(context, graphicsQueueFamily);
 
 			//renderPipeline = RenderPipeline.Create(context, surface, commandPool);
 
-			Swapchain swapchain = Swapchain.Create(context, surface, commandPool);
-			RenderPassContainer container = RenderPassContainer.Create(context, new DefaultRenderPassInfo(swapchain.GetSurfaceFormat().Format, Swapchain.GetDepthFormat(context)));
-
-			SwapchainRenderTargetManager<DefaultDescriptorSet> renderTargetManager = SwapchainRenderTargetManager<DefaultDescriptorSet>.Create(context, swapchain, container.skyboxRenderPass, commandPool);
-            pipeline = RenderPipeline<SwapchainRenderTargetManager<DefaultDescriptorSet>, DefaultRenderPassInfo, DefaultPipelineInfo, DefaultDescriptorSet, PipelineContainer, PipelineContainerLayer, RenderPassContainer, RenderPassId>.Create(context, renderTargetManager);
+			//SwapchainRenderTargetManager<DefaultDescriptorSet> renderTargetManager = SwapchainRenderTargetManager<DefaultDescriptorSet>.Create(context, commandPool);
+            pipeline = RenderPipeline<SwapchainRenderTargetManager<DefaultDescriptorSet>, DefaultRenderPassInfo, DefaultPipelineInfo, DefaultDescriptorSet, PipelineContainer, PipelineContainerLayer, RenderPassContainer, RenderPassId>.Create(context, commandPool);
 
 			/*
 			Extent2D extent = swapchain.GetExtent();
@@ -96,12 +93,7 @@ namespace Engine
 			*/
         }
 
-		static unsafe SurfaceKHR CreateSurface(VkContext context)
-		{
-			return context.window.VkSurface.Create<AllocationCallbacks>(context.instance.ToHandle(), null).ToSurface();
-		}
-
-		static void SaveImage(Image<Rgba32> img)
+		static void SaveImage(SixLabors.ImageSharp.Image<Rgba32> img)
 		{
             img.ProcessPixelRows(a => {
                 for (int y = 0; y < a.Height; y++)
@@ -119,7 +111,7 @@ namespace Engine
                 }
             });
 
-            img.Save("test.jpg");
+            //img.Save("test.jpg", new ImageEncoder());
         }
     }
 

@@ -2,6 +2,8 @@
 using Engine.Parsing;
 using Engine.Parsing.Gltf;
 using Silk.NET.OpenGL;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
 using System.IO;
 using System.Numerics;
 

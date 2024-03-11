@@ -11,6 +11,7 @@ layout(location = 0) out vec2 v_texCoord;
 layout(location = 1) out vec3 v_normal;
 layout(location = 2) out vec3 v_pos;
 layout(location = 3) out vec3 v_viewPos;
+layout(location = 4) out mat3 v_TBN;
 
 layout(binding = 0) uniform UniformBufferObject {
     mat4 translation;
@@ -26,13 +27,16 @@ void main() {
     gl_Position = u_Ubo.proj * u_Ubo.view * model * vec4(position, 1.0);
 
     mat3 normalMatrix = transpose(inverse(mat3(model)));
+
+    v_pos = vec3(model * vec4(position, 1));
+    v_viewPos = u_Ubo.viewPos;
+    v_texCoord = texCoord;
+    v_normal = normalMatrix * normal;
+
     vec3 T = normalize(normalMatrix * tangent);
     vec3 N = normalize(normalMatrix * normal);
     T = normalize(T - dot(T, N) * N);
     vec3 B = cross(N, T);
 
-    v_pos = vec3(model * vec4(position, 1));
-    v_viewPos = u_Ubo.viewPos;
-    v_texCoord = texCoord;
-    v_normal = mat3(transpose(inverse(model))) * normal;
+    v_TBN = mat3(T, B, N);
 }

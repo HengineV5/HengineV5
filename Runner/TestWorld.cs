@@ -9,13 +9,17 @@ namespace Runner
 		public static void Load(Main world)
 		{
 			//var meshBox = Mesh.LoadGltf("Box", "Models/Box/box.gltf");
-			var meshDuck = Mesh.LoadGltf("Duck", "Models/Duck/Duck.gltf", true);
-			var materialDuck = PbrMaterial.LoadGltf("Duck", "Models/Duck/Duck.gltf");
+			//var meshDuck = Mesh.LoadGltf("Duck", "Models/Duck/Duck.gltf", true);
+			//var materialDuck = PbrMaterial.LoadGltf("Duck", "Models/Duck/Duck.gltf");
 
 			//var meshMap = GetMapMesh();
 
 			//var meshBall = Mesh.LoadOBJ("Ball", "Models/Ball.obj");
-			var meshSphere = Mesh.LoadOBJ("Sphere", "Models/SphereSmooth.obj");
+			//var meshSphere = Mesh.LoadOBJ("Sphere", "Models/SphereSmooth.obj");
+
+			var meshPlane = Mesh.LoadGltf("Plane", "Models/Plane/plane.gltf");
+
+			var meshSphere = Mesh.LoadGltf("Sphere", "Models/Sphere/sphere.gltf");
 			//meshSphere.RecalculateNormals();
 			var materialSphere = GetMaterial();
 			//var meshBox = Mesh.LoadOBJ("Box", "Models/Box.obj");
@@ -23,8 +27,17 @@ namespace Runner
 			//var texture = ETexture.LoadImage("Haakon", "Images/image_2.png");
 			//var texture2 = ETexture.LoadImage("Statue", "Images/image.png");
 
-			world.CreateObject(new(3, 0, -10), Vector3.One, meshDuck, materialDuck, 1);
+			//world.CreateObject(new(3, 0, -10), Vector3.One, meshDuck, materialDuck, 1);
 			//world.CreateObject(new(3, 0, 10), meshMap, materialDuck, 1);
+
+			world.CreateObject(new(0, 3, -6), Vector3.One * 0.25f, meshSphere, materialSphere, 0);
+			world.CreateObject(new(10, 0, -2), Vector3.One * 0.25f, meshSphere, materialSphere, 0);
+			world.CreateObject(new(-10, 0, -2), Vector3.One * 0.25f, meshSphere, materialSphere, 0);
+			world.CreateObject(new(0, 10, -2), Vector3.One * 0.25f, meshSphere, materialSphere, 0);
+			/*
+			*/
+
+			world.CreateObject(new(0, -4, 0), Vector3.One * 4, meshPlane, materialSphere, 0);
 
 			float midX = 4 / 2f;
 			float midY = 4f / 2f;
@@ -49,6 +62,7 @@ namespace Runner
 			//var textureNormal = ETexture.LoadImage("PbrGoldNormal", "Images/Pbr/Gold/gold-scuffed_normal.png");
 			//var textureNormal = ETexture.LoadImage("PbrGoldNormal", "Images/Pbr/Iron/rustediron2_normal.png");
 			var textureNormal = ETexture.LoadImage("PbrGoldNormal", "Images/Pbr/Floor/wood_floor_worn_nor_gl_4k.png");
+			//var textureNormal = ETexture.LoadImage("PbrGoldNormal", "Images/Pbr/Default/Normal.png");
 
 			//var textureMetallic = ETexture.LoadImage("PbrGoldMetallic", "Images/Pbr/Gold/gold-scuffed_metallic.png");
 			//var textureMetallic = ETexture.LoadImage("PbrGoldMetallic", "Images/Pbr/Iron/rustediron2_metallic.png");
@@ -57,6 +71,8 @@ namespace Runner
 			//var textureRoughness = ETexture.LoadImage("PbrGoldRoughness", "Images/Pbr/Gold/gold-scuffed_roughness.png");
 			//var textureRoughness = ETexture.LoadImage("PbrGoldRoughness", "Images/Pbr/Iron/rustediron2_roughness.png");
 			var textureRoughness = ETexture.LoadImage("PbrGoldRoughness", "Images/Pbr/Floor/wood_floor_worn_rough_4k.png");
+
+			var textureDepth = ETexture.LoadImage("PbrGoldDepth", "Images/Pbr/Floor/wood_floor_worn_disp_4k_new.png");
 
 			var textureAo = ETexture.LoadImage("PbrGoldAo", "Images/Pbr/Default/Ao.png");
 
@@ -70,6 +86,7 @@ namespace Runner
 			material.roughnessMap = textureRoughness;
 			material.aoMap = textureAo;
 			material.normalMap = textureNormal;
+			material.depthMap = textureDepth;
 
 			return material;
 		}

@@ -1,15 +1,17 @@
 ﻿using Silk.NET.Vulkan;
 using EnCS;
+using SixLabors.ImageSharp.PixelFormats;
 using Image = Silk.NET.Vulkan.Image;
 using Buffer = Silk.NET.Vulkan.Buffer;
 
 namespace Engine
 {
+    /*
     public struct TextureRenderTargetManager<TDescriptorSet, TPixel> : IRenderTargetManager<TextureRenderTargetManager<TDescriptorSet, TPixel>, TDescriptorSet, DefaultRenderPassInfo, DefaultPipelineInfo>
         where TDescriptorSet : struct, IDescriptorSet<TDescriptorSet>
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        Action<Image<TPixel>> imgAction;
+        Action<SixLabors.ImageSharp.Image<TPixel>> imgAction;
 
         Extent2D extent;
         RenderPass compatibleRenderPass;
@@ -17,7 +19,7 @@ namespace Engine
         Framebuffer framebuffer;
         FrameInFlight<TDescriptorSet> frameInFlight;
 
-        public TextureRenderTargetManager(Action<Image<TPixel>> imgAction, Extent2D extent, RenderPass compatibleRenderPass, FixedArray2<(Image, Format)> images, Framebuffer framebuffer, FrameInFlight<TDescriptorSet> frameInFlight)
+        public TextureRenderTargetManager(Action<SixLabors.ImageSharp.Image<TPixel>> imgAction, Extent2D extent, RenderPass compatibleRenderPass, FixedArray2<(Image, Format)> images, Framebuffer framebuffer, FrameInFlight<TDescriptorSet> frameInFlight)
         {
             this.imgAction = imgAction;
             this.extent = extent;
@@ -62,7 +64,6 @@ namespace Engine
         public static void PresentTarget(VkContext context, ref TextureRenderTargetManager<TDescriptorSet, TPixel> self, ref RenderTarget<TDescriptorSet> renderTarget)
         {
             //context.vk.DeviceWaitIdle(context.device);
-            /*
             while (true)
             {
                 context.vk.GetSemaphoreCounterValue(context.device, renderTarget.frame.imageAvailable, out var value);
@@ -72,7 +73,6 @@ namespace Engine
                     return;
                 }
             }
-            */
 
             // TODO: Move command pool to context, bad to create for each mesh creating call
             uint graphicsQueueFamily = VulkanHelper.GetGraphicsQueueFamily(context);
@@ -114,7 +114,7 @@ namespace Engine
             }
         }
 
-        public static TextureRenderTargetManager<TDescriptorSet, TPixel> Create(Action<Image<TPixel>> imgAction, VkContext context, Extent2D extent, FixedArray2<Image> images, FixedArray2<ImageView> imageViews, FixedArray2<Format> formats, RenderPass compatibleRenderPass, CommandPool commandPool)
+        public static TextureRenderTargetManager<TDescriptorSet, TPixel> Create(Action<SixLabors.ImageSharp.Image<TPixel>> imgAction, VkContext context, Extent2D extent, FixedArray2<Image> images, FixedArray2<ImageView> imageViews, FixedArray2<Format> formats, RenderPass compatibleRenderPass, CommandPool commandPool)
         {
             Framebuffer framebuffer = VulkanHelper.CreateFrameBuffer(context, imageViews, compatibleRenderPass, extent);
             FixedArray2<(Image, Format)> imageFormats = new FixedArray2<(Silk.NET.Vulkan.Image, Format)>();
@@ -146,4 +146,5 @@ namespace Engine
             return new TextureRenderTargetManager<TDescriptorSet, TPixel>(imgAction, extent, compatibleRenderPass, imageFormats, framebuffer, frameInFlight);
         }
     }
+    */
 }

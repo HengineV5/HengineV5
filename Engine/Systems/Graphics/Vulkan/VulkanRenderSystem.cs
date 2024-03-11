@@ -239,17 +239,18 @@ namespace Engine
 	{
 		public static unsafe void UpdateMeshDescriptorSet(VkContext context, DescriptorSet descriptorSet, VkTextureBuffer texture, VkPbrMaterial material, VkSkybox skybox, Span<Sampler> samplers)
 		{
-			Span<DescriptorImageInfo> infos = stackalloc DescriptorImageInfo[8];
-			Span<WriteDescriptorSet> descriptorWrites = stackalloc WriteDescriptorSet[8];
+			Span<DescriptorImageInfo> infos = stackalloc DescriptorImageInfo[9];
+			Span<WriteDescriptorSet> descriptorWrites = stackalloc WriteDescriptorSet[9];
 
-            CreateDescriptorWrite(ref infos[0], ref descriptorWrites[0], 1, texture, samplers[0], descriptorSet);
-			CreateDescriptorWrite(ref infos[1], ref descriptorWrites[1], 2, material.albedoMap, samplers[1], descriptorSet);
-			CreateDescriptorWrite(ref infos[2], ref descriptorWrites[2], 3, material.normalMap, samplers[2], descriptorSet);
-			CreateDescriptorWrite(ref infos[3], ref descriptorWrites[3], 4, material.metallicMap, samplers[3], descriptorSet);
-			CreateDescriptorWrite(ref infos[4], ref descriptorWrites[4], 5, material.roughnessMap, samplers[4], descriptorSet);
-			CreateDescriptorWrite(ref infos[5], ref descriptorWrites[5], 6, skybox.skybox, samplers[5], descriptorSet);
-			CreateDescriptorWrite(ref infos[6], ref descriptorWrites[6], 7, skybox.irradiance, samplers[6], descriptorSet);
-			CreateDescriptorWrite(ref infos[7], ref descriptorWrites[7], 8, skybox.specular, samplers[7], descriptorSet);
+            CreateDescriptorWrite(ref infos[0], ref descriptorWrites[0], 1, texture,				samplers[0], descriptorSet);
+			CreateDescriptorWrite(ref infos[1], ref descriptorWrites[1], 2, material.albedoMap,		samplers[1], descriptorSet);
+			CreateDescriptorWrite(ref infos[2], ref descriptorWrites[2], 3, material.normalMap,		samplers[2], descriptorSet);
+			CreateDescriptorWrite(ref infos[3], ref descriptorWrites[3], 4, material.metallicMap,	samplers[3], descriptorSet);
+			CreateDescriptorWrite(ref infos[4], ref descriptorWrites[4], 5, material.roughnessMap,	samplers[4], descriptorSet);
+			CreateDescriptorWrite(ref infos[4], ref descriptorWrites[5], 6, material.depthMap,		samplers[5], descriptorSet);
+			CreateDescriptorWrite(ref infos[5], ref descriptorWrites[6], 7, skybox.skybox,			samplers[6], descriptorSet);
+			CreateDescriptorWrite(ref infos[6], ref descriptorWrites[7], 8, skybox.irradiance,		samplers[7], descriptorSet);
+			CreateDescriptorWrite(ref infos[7], ref descriptorWrites[8], 9, skybox.specular,		samplers[8], descriptorSet);
 
 			context.vk.UpdateDescriptorSets(context.device, descriptorWrites, 0, null);
 		}

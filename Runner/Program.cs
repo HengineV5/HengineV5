@@ -9,6 +9,8 @@ namespace Runner
 {
 	internal class Program
 	{
+		static EnCS.ArchRef<Cam> camRef;
+
 		static void Main(string[] args)
 		{
 			ImageFormatSetup.HdrSetup();
@@ -59,21 +61,38 @@ namespace Runner
 			var skybox = Skybox.LoadSkybox("Skybox", "Images/Skybox/Default");
 			Camera camera = new Camera
 			{
-				width = 800,
-				height = 600,
+				width = engine.argIWindow.Size.X,
+				height = engine.argIWindow.Size.Y,
 				fov = 1.22173f, // 70 degrees
 				zNear = 0.1f,
 				zFar = 1000
 			};
 
-			var meshDuck = Mesh.LoadGltf("Duck", "Models/Duck/Duck.gltf", true);
-			var materialDuck = PbrMaterial.LoadGltf("Duck", "Models/Duck/Duck.gltf");
+			//var meshDuck = Mesh.LoadGltf("Duck", "Models/Duck/Duck.gltf", true);
+			//var materialDuck = PbrMaterial.LoadGltf("Duck", "Models/Duck/Duck.gltf");
 
             Console.WriteLine(engineConfig.idx);
-            mainWorld.CreateObject(new(3, 0, -10), Vector3.One, meshDuck, materialDuck, engineConfig.idx == 10 ? 11 : 10);
-			mainWorld.CreateCamera(camera, Vector3.Zero, skybox, engineConfig.idx);
+            //mainWorld.CreateObject(new(3, 0, -10), Vector3.One, meshDuck, materialDuck, engineConfig.idx == 10 ? 11 : 10);
+			camRef = mainWorld.CreateCamera(camera, Vector3.Zero, skybox, engineConfig.idx);
 
-			//TestWorld.Load(mainWorld);
+			engine.argIWindow.FramebufferResize += x =>
+			{
+				Main mainWorld = ecs.GetMain();
+				var cam = mainWorld.Get(camRef);
+
+				Camera camera = new Camera
+				{
+					width = x.X,
+					height = x.Y,
+					fov = 1.22173f, // 70 degrees
+					zNear = 0.1f,
+					zFar = 1000
+				};
+
+				cam.Camera.Set(camera);
+			};
+
+			TestWorld.Load(mainWorld);
 			//MapWorld.Load(mainWorld);
 
 			engine.Start();

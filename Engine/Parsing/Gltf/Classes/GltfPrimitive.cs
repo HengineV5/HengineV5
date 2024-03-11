@@ -3,7 +3,7 @@
     public class GltfPrimitive
     {
         public GltfAttributes attributes;
-        public uint indicies;
+        public uint indices;
         public uint material;
         public GltfPrimitiveMode mode = GltfPrimitiveMode.Triangle;
     }

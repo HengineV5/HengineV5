@@ -23,23 +23,31 @@ namespace Engine
             this.wireframeLayer = wireframeLayer;
         }
 
-        public static PipelineContainer Create(VkContext context, DescriptorSetLayout descriptorSetLayout, in DefaultPipelineInfo info)
+        public static PipelineContainer Create(VkContext context, DescriptorSetLayout descriptorSetLayout, RenderPass compatibleRenderPass, in DefaultPipelineInfo info)
 		{
 			var pipelineLayout = CreatePipelineLayout(context, descriptorSetLayout);
 
             var skyboxShader = Shader.FromFiles("Shaders/Pbr/SkyboxVert.spv", "Shaders/Pbr/SkyboxFrag.spv");
-			var skyboxPipeline = RenderLayer.CreateSkybox(context, skyboxShader, pipelineLayout, info);
+			var skyboxPipeline = RenderLayer.CreateSkybox(context, skyboxShader, pipelineLayout, info.extent, compatibleRenderPass);
 
             var pbrShader = Shader.FromFiles("Shaders/Pbr/PbrVert.spv", "Shaders/Pbr/PbrFrag.spv");
-            var pbrPipeline = RenderLayer.CreatePbr(context, pbrShader, pipelineLayout, info);
+            var pbrPipeline = RenderLayer.CreatePbr(context, pbrShader, pipelineLayout, info.extent, compatibleRenderPass);
 
 			var wireframeShader = Shader.FromFiles("Shaders/Pbr/PbrVert.spv", "Shaders/Pbr/BlackFrag.spv");
-			var wireframePipeline = RenderLayer.CreateWireframe(context, wireframeShader, pipelineLayout, info);
+			var wireframePipeline = RenderLayer.CreateWireframe(context, wireframeShader, pipelineLayout, info.extent, compatibleRenderPass);
 
 			return new PipelineContainer(skyboxPipeline, pbrPipeline, wireframePipeline);
 		}
 
-        public static Pipeline Get(PipelineContainerLayer layer, ref PipelineContainer self)
+		public static void Dispose(VkContext context, ref PipelineContainer self)
+		{
+            // They share layout
+            self.skyboxLayer.Dispose(context, true);
+            self.pbrLayer.Dispose(context, false);
+            self.wireframeLayer.Dispose(context, false);
+		}
+
+		public static Pipeline Get(PipelineContainerLayer layer, ref PipelineContainer self)
         {
 			switch (layer)
 			{
@@ -99,7 +107,7 @@ namespace Engine
 
             return pipelineLayout;
         }
-    }
+	}
 
     public struct RenderLayer
     {
@@ -114,19 +122,27 @@ namespace Engine
             this.layout = layout;
         }
 
-        public static RenderLayer CreatePbr(VkContext context, Shader shader, PipelineLayout layout, in DefaultPipelineInfo info)
+        public unsafe void Dispose(VkContext context, bool disposeLayout)
         {
-            return new RenderLayer(shader, CreateGraphicsPipeline(context, info.extent, layout, info.compatibleRenderPass, shader, CullModeFlags.BackBit, PolygonMode.Fill, true), layout);
+            if (disposeLayout)
+                context.vk.DestroyPipelineLayout(context.device, layout, null);
+
+			context.vk.DestroyPipeline(context.device, pipeline, null);
+		}
+
+        public static RenderLayer CreatePbr(VkContext context, Shader shader, PipelineLayout layout, Extent2D extent, RenderPass compatibleRenderPass)
+        {
+            return new RenderLayer(shader, CreateGraphicsPipeline(context, extent, layout, compatibleRenderPass, shader, CullModeFlags.BackBit, PolygonMode.Fill, true), layout);
         }
 
-        public static RenderLayer CreateSkybox(VkContext context, Shader shader, PipelineLayout layout, in DefaultPipelineInfo info)
+        public static RenderLayer CreateSkybox(VkContext context, Shader shader, PipelineLayout layout, Extent2D extent, RenderPass compatibleRenderPass)
         {
-            return new RenderLayer(shader, CreateGraphicsPipeline(context, info.extent, layout, info.compatibleRenderPass, shader, CullModeFlags.FrontBit, PolygonMode.Fill, true), layout);
+            return new RenderLayer(shader, CreateGraphicsPipeline(context, extent, layout, compatibleRenderPass, shader, CullModeFlags.FrontBit, PolygonMode.Fill, true), layout);
         }
 
-        public static RenderLayer CreateWireframe(VkContext context, Shader shader, PipelineLayout layout, in DefaultPipelineInfo info)
+        public static RenderLayer CreateWireframe(VkContext context, Shader shader, PipelineLayout layout, Extent2D extent, RenderPass compatibleRenderPass)
         {
-            return new RenderLayer(shader, CreateGraphicsPipeline(context, info.extent, layout, info.compatibleRenderPass, shader, CullModeFlags.None, PolygonMode.Line, true), layout);
+            return new RenderLayer(shader, CreateGraphicsPipeline(context, extent, layout, compatibleRenderPass, shader, CullModeFlags.None, PolygonMode.Line, true), layout);
         }
 
 		static unsafe Pipeline CreateGraphicsPipeline(VkContext context, Extent2D extent, PipelineLayout pipelineLayout, RenderPass renderPass, Shader shader, CullModeFlags cullMode, PolygonMode polygonMode, bool depthTest)
@@ -311,21 +327,25 @@ namespace Engine
         static Memory<VertexInputAttributeDescription> GetAttributeDescription()
         {
             Memory<VertexInputAttributeDescription> description = new VertexInputAttributeDescription[4];
+            // Vertex Position
             description.Span[0].Binding = 0;
             description.Span[0].Location = 0;
             description.Span[0].Format = Format.R32G32B32Sfloat;
             description.Span[0].Offset = 0;
 
+            // Vertex UV
             description.Span[1].Binding = 0;
             description.Span[1].Location = 1;
             description.Span[1].Format = Format.R32G32B32Sfloat;
             description.Span[1].Offset = sizeof(float) * 3;
 
+            // Vertex Normal
             description.Span[2].Binding = 0;
             description.Span[2].Location = 2;
             description.Span[2].Format = Format.R32G32Sfloat;
             description.Span[2].Offset = sizeof(float) * 3 * 2;
 
+            // Vertex Tangent
 			description.Span[3].Binding = 0;
 			description.Span[3].Location = 3;
 			description.Span[3].Format = Format.R32G32B32Sfloat;
