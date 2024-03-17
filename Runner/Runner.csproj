@@ -577,16 +577,22 @@
     <None Update="Scripts\startTestServer.bat">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="Shaders\Gui\GuiFrag.spv">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Shaders\Gui\GuiVert.spv">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="Shaders\Pbr\Black.frag">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Shaders\Pbr\BlackFrag.spv">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Shaders\Pbr\Skybox.frag">
+    <None Update="Shaders\Skybox\Skybox.frag">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Shaders\Pbr\Skybox.vert">
+    <None Update="Shaders\Skybox\Skybox.vert">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Shaders\Pbr\Pbr.frag">
@@ -598,10 +604,10 @@
     <None Update="Shaders\Pbr\PbrVert.spv">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Shaders\Pbr\SkyboxFrag.spv">
+    <None Update="Shaders\Skybox\SkyboxFrag.spv">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Shaders\Pbr\SkyboxVert.spv">
+    <None Update="Shaders\Skybox\SkyboxVert.spv">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Shaders\Shader.frag">
@@ -630,6 +636,7 @@
   <ItemGroup>
     <Folder Include="Models\Plane\" />
     <Folder Include="Models\Sponza\" />
+    <Folder Include="Shaders\Gui\" />
   </ItemGroup>
 
   <ItemGroup>

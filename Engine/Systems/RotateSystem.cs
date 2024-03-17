@@ -2,6 +2,7 @@
 using Engine.Components;
 using Engine.Graphics;
 using Silk.NET.Input;
+using Silk.NET.Windowing;
 using System.Diagnostics;
 using System.Numerics;
 
@@ -76,6 +77,7 @@ namespace Engine
 	public partial class MoveSystem
 	{
 		IInputHandler inputHandler;
+		IWindow window;
 
 		bool mousePressed = false;
 
@@ -83,9 +85,10 @@ namespace Engine
 		//Vector2 cameraRotation = new Vector2(-MathF.PI / 2f, 0);
 		Vector2 cameraRotation = Vector2.Zero;
 
-		public MoveSystem(IInputHandler inputHandler)
+		public MoveSystem(IInputHandler inputHandler, IWindow window)
 		{
 			this.inputHandler = inputHandler;
+			this.window = window;
 		}
 
 		public void Init()
@@ -116,6 +119,8 @@ namespace Engine
 		[SystemUpdate]
 		public void Update(ref EngineContext context, Camera.Ref camera, Position.Ref position, Rotation.Ref rotation)
 		{
+			window.Title = $"Hengine v5: {context.dt}";
+
 			if (inputHandler.IsKeyDown(MouseButton.Left) && !mousePressed)
 			{
 				inputHandler.HideCursor();

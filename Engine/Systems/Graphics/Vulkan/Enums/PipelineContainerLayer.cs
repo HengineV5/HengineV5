@@ -4,6 +4,7 @@
 	{
 		Skybox,
 		Pbr,
-		Wireframe
+		Wireframe,
+		Gui
 	}
 }

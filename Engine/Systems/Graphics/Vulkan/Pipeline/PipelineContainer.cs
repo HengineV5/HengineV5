@@ -1,11 +1,10 @@
 ﻿using Engine.Graphics;
 using Silk.NET.Vulkan;
 using System.Numerics;
-using System.Runtime.InteropServices;
 
 namespace Engine
 {
-    public struct PipelineContainer : IPipelineContainer<PipelineContainer, DefaultPipelineInfo, PipelineContainerLayer>
+	public struct PipelineContainer : IPipelineContainer<PipelineContainer, DefaultPipelineInfo, PipelineContainerLayer>
 	{
         struct PushConstant
         {
@@ -15,19 +14,21 @@ namespace Engine
         public RenderLayer skyboxLayer;
 		public RenderLayer pbrLayer;
 		public RenderLayer wireframeLayer;
+        public RenderLayer guiLayer;
 
-        public PipelineContainer(RenderLayer skyboxLayer, RenderLayer pbrLayer, RenderLayer wireframeLayer)
+        public PipelineContainer(RenderLayer skyboxLayer, RenderLayer pbrLayer, RenderLayer wireframeLayer, RenderLayer guiLayer)
         {
             this.skyboxLayer = skyboxLayer;
             this.pbrLayer = pbrLayer;
             this.wireframeLayer = wireframeLayer;
+            this.guiLayer = guiLayer;
         }
 
         public static PipelineContainer Create(VkContext context, DescriptorSetLayout descriptorSetLayout, RenderPass compatibleRenderPass, in DefaultPipelineInfo info)
 		{
 			var pipelineLayout = CreatePipelineLayout(context, descriptorSetLayout);
 
-            var skyboxShader = Shader.FromFiles("Shaders/Pbr/SkyboxVert.spv", "Shaders/Pbr/SkyboxFrag.spv");
+            var skyboxShader = Shader.FromFiles("Shaders/Skybox/SkyboxVert.spv", "Shaders/Skybox/SkyboxFrag.spv");
 			var skyboxPipeline = RenderLayer.CreateSkybox(context, skyboxShader, pipelineLayout, info.extent, compatibleRenderPass);
 
             var pbrShader = Shader.FromFiles("Shaders/Pbr/PbrVert.spv", "Shaders/Pbr/PbrFrag.spv");
@@ -36,7 +37,10 @@ namespace Engine
 			var wireframeShader = Shader.FromFiles("Shaders/Pbr/PbrVert.spv", "Shaders/Pbr/BlackFrag.spv");
 			var wireframePipeline = RenderLayer.CreateWireframe(context, wireframeShader, pipelineLayout, info.extent, compatibleRenderPass);
 
-			return new PipelineContainer(skyboxPipeline, pbrPipeline, wireframePipeline);
+            var guiShader = Shader.FromFiles("Shaders/Gui/GuiVert.spv", "Shaders/Gui/GuiFrag.spv");
+            var guiPipeline = RenderLayer.CreateGui(context, guiShader, pipelineLayout, info.extent, compatibleRenderPass);
+
+			return new PipelineContainer(skyboxPipeline, pbrPipeline, wireframePipeline, guiPipeline);
 		}
 
 		public static void Dispose(VkContext context, ref PipelineContainer self)
@@ -57,6 +61,8 @@ namespace Engine
                     return self.pbrLayer.pipeline;
                 case PipelineContainerLayer.Wireframe:
                     return self.wireframeLayer.pipeline;
+                case PipelineContainerLayer.Gui:
+                    return self.guiLayer.pipeline;
                 default:
                     throw new Exception();
             }
@@ -72,6 +78,8 @@ namespace Engine
                     return self.pbrLayer.layout;
                 case PipelineContainerLayer.Wireframe:
                     return self.wireframeLayer.layout;
+                case PipelineContainerLayer.Gui:
+                    return self.guiLayer.layout;
                 default:
                     throw new Exception();
             }
@@ -132,226 +140,134 @@ namespace Engine
 
         public static RenderLayer CreatePbr(VkContext context, Shader shader, PipelineLayout layout, Extent2D extent, RenderPass compatibleRenderPass)
         {
-            return new RenderLayer(shader, CreateGraphicsPipeline(context, extent, layout, compatibleRenderPass, shader, CullModeFlags.BackBit, PolygonMode.Fill, true), layout);
+            var pipeline = new GraphicsPipelineBuilder()
+                .WithVertexInput(GetBindingDescription(), GetAttributeDescription())
+                .WithInputAssembly()
+                .WithViewport(extent)
+                .WithRasterization(PolygonMode.Fill, CullModeFlags.BackBit, 1)
+                .WithMultisample()
+                .WithDepthStencil(true)
+                .WithColorBlend()
+                .WithDynamicState()
+                .Build(context, layout, compatibleRenderPass, shader);
+
+            return new RenderLayer(shader, pipeline, layout);
         }
 
         public static RenderLayer CreateSkybox(VkContext context, Shader shader, PipelineLayout layout, Extent2D extent, RenderPass compatibleRenderPass)
         {
-            return new RenderLayer(shader, CreateGraphicsPipeline(context, extent, layout, compatibleRenderPass, shader, CullModeFlags.FrontBit, PolygonMode.Fill, true), layout);
-        }
+			var pipeline = new GraphicsPipelineBuilder()
+				.WithVertexInput(GetBindingDescription(), GetAttributeDescription())
+				.WithInputAssembly()
+				.WithViewport(extent)
+				.WithRasterization(PolygonMode.Fill, CullModeFlags.FrontBit, 1)
+				.WithMultisample()
+				.WithDepthStencil(true)
+				.WithColorBlend()
+				.WithDynamicState()
+				.Build(context, layout, compatibleRenderPass, shader);
+
+			return new RenderLayer(shader, pipeline, layout);
+		}
 
         public static RenderLayer CreateWireframe(VkContext context, Shader shader, PipelineLayout layout, Extent2D extent, RenderPass compatibleRenderPass)
         {
-            return new RenderLayer(shader, CreateGraphicsPipeline(context, extent, layout, compatibleRenderPass, shader, CullModeFlags.None, PolygonMode.Line, true), layout);
-        }
+			var pipeline = new GraphicsPipelineBuilder()
+				.WithVertexInput(GetBindingDescription(), GetAttributeDescription())
+				.WithInputAssembly()
+				.WithViewport(extent)
+				.WithRasterization(PolygonMode.Line, CullModeFlags.None, 1)
+				.WithMultisample()
+				.WithDepthStencil(true)
+				.WithColorBlend()
+				.WithDynamicState()
+				.Build(context, layout, compatibleRenderPass, shader);
 
-		static unsafe Pipeline CreateGraphicsPipeline(VkContext context, Extent2D extent, PipelineLayout pipelineLayout, RenderPass renderPass, Shader shader, CullModeFlags cullMode, PolygonMode polygonMode, bool depthTest)
-        {
-            var vertShader = CreateShaderModule(context.vk, shader.Vertex, context.device);
-            var fragShader = CreateShaderModule(context.vk, shader.Fragment, context.device);
-
-			Span<PipelineShaderStageCreateInfo> shaderStages = [CreateShaderStage(context, ShaderStageFlags.VertexBit, vertShader), CreateShaderStage(context, ShaderStageFlags.FragmentBit, fragShader)];
-
-            DynamicState* dynamicState = stackalloc DynamicState[2] { DynamicState.Viewport, DynamicState.Scissor };
-
-            PipelineDynamicStateCreateInfo dynamicStateCreateInfo = new();
-            dynamicStateCreateInfo.SType = StructureType.PipelineDynamicStateCreateInfo;
-            dynamicStateCreateInfo.DynamicStateCount = 2;
-            dynamicStateCreateInfo.PDynamicStates = &dynamicState[0];
-
-            VertexInputBindingDescription bindingDescription = GetBindingDescription();
-            Memory<VertexInputAttributeDescription> attributeDescription = GetAttributeDescription();
-
-            PipelineVertexInputStateCreateInfo vertexInputStateCreateInfo = new();
-            vertexInputStateCreateInfo.SType = StructureType.PipelineVertexInputStateCreateInfo;
-            vertexInputStateCreateInfo.VertexBindingDescriptionCount = 1;
-            vertexInputStateCreateInfo.PVertexBindingDescriptions = &bindingDescription;
-            vertexInputStateCreateInfo.VertexAttributeDescriptionCount = (uint)attributeDescription.Length;
-            fixed (VertexInputAttributeDescription* attributeDescriptionPtr = attributeDescription.Span)
-            {
-                vertexInputStateCreateInfo.PVertexAttributeDescriptions = attributeDescriptionPtr;
-            }
-
-            PipelineInputAssemblyStateCreateInfo inputAssemblyStateCreateInfo = new();
-            inputAssemblyStateCreateInfo.SType = StructureType.PipelineInputAssemblyStateCreateInfo;
-            inputAssemblyStateCreateInfo.Topology = PrimitiveTopology.TriangleList;
-            inputAssemblyStateCreateInfo.PrimitiveRestartEnable = false;
-
-            Viewport viewport = new();
-            viewport.X = 0;
-            viewport.Y = 0;
-            viewport.Width = extent.Width;
-            viewport.Height = extent.Height;
-            viewport.MinDepth = 0;
-            viewport.MaxDepth = 1;
-
-            Rect2D scissor = new();
-            scissor.Offset = new(0, 0);
-            scissor.Extent = extent;
-
-            PipelineViewportStateCreateInfo viewportStateCreateInfo = new();
-            viewportStateCreateInfo.SType = StructureType.PipelineViewportStateCreateInfo;
-            viewportStateCreateInfo.ViewportCount = 1;
-            viewportStateCreateInfo.PViewports = &viewport;
-            viewportStateCreateInfo.ScissorCount = 1;
-            viewportStateCreateInfo.PScissors = &scissor;
-
-            PipelineRasterizationStateCreateInfo rasterizationStateCreateInfo = new();
-            rasterizationStateCreateInfo.SType = StructureType.PipelineRasterizationStateCreateInfo;
-            rasterizationStateCreateInfo.DepthClampEnable = false;
-            rasterizationStateCreateInfo.RasterizerDiscardEnable = false;
-            rasterizationStateCreateInfo.PolygonMode = polygonMode;
-            rasterizationStateCreateInfo.LineWidth = polygonMode == PolygonMode.Fill ? 1.0f : 1.5f;
-			rasterizationStateCreateInfo.CullMode = cullMode;
-            rasterizationStateCreateInfo.FrontFace = FrontFace.CounterClockwise;
-            rasterizationStateCreateInfo.DepthBiasEnable = false;
-            rasterizationStateCreateInfo.DepthBiasConstantFactor = 0;
-            rasterizationStateCreateInfo.DepthBiasClamp = 0;
-            rasterizationStateCreateInfo.DepthBiasSlopeFactor = 0;
-
-            PipelineMultisampleStateCreateInfo multisampleStateCreateInfo = new();
-            multisampleStateCreateInfo.SType = StructureType.PipelineMultisampleStateCreateInfo;
-            multisampleStateCreateInfo.SampleShadingEnable = false;
-            multisampleStateCreateInfo.RasterizationSamples = SampleCountFlags.Count1Bit;
-            multisampleStateCreateInfo.MinSampleShading = 1;
-            multisampleStateCreateInfo.PSampleMask = null;
-            multisampleStateCreateInfo.AlphaToCoverageEnable = false;
-            multisampleStateCreateInfo.AlphaToOneEnable = false;
-
-            PipelineColorBlendAttachmentState colorBlendAttatchment = new();
-            colorBlendAttatchment.ColorWriteMask = ColorComponentFlags.RBit | ColorComponentFlags.GBit | ColorComponentFlags.BBit | ColorComponentFlags.ABit;
-            colorBlendAttatchment.BlendEnable = false;
-            colorBlendAttatchment.SrcColorBlendFactor = BlendFactor.One;
-            colorBlendAttatchment.DstColorBlendFactor = BlendFactor.Zero;
-            colorBlendAttatchment.ColorBlendOp = BlendOp.Add;
-            colorBlendAttatchment.SrcAlphaBlendFactor = BlendFactor.One;
-            colorBlendAttatchment.DstAlphaBlendFactor = BlendFactor.One;
-            colorBlendAttatchment.AlphaBlendOp = BlendOp.Add;
-
-            PipelineColorBlendStateCreateInfo colorBlendStateCreateInfo = new();
-            colorBlendStateCreateInfo.SType = StructureType.PipelineColorBlendStateCreateInfo;
-            colorBlendStateCreateInfo.LogicOpEnable = false;
-            colorBlendStateCreateInfo.LogicOp = LogicOp.Copy;
-            colorBlendStateCreateInfo.AttachmentCount = 1;
-            colorBlendStateCreateInfo.PAttachments = &colorBlendAttatchment;
-            colorBlendStateCreateInfo.BlendConstants[0] = 0;
-            colorBlendStateCreateInfo.BlendConstants[1] = 0;
-            colorBlendStateCreateInfo.BlendConstants[2] = 0;
-            colorBlendStateCreateInfo.BlendConstants[3] = 0;
-
-            PipelineDepthStencilStateCreateInfo depthStencilStateCreateInfo = new();
-            depthStencilStateCreateInfo.SType = StructureType.PipelineDepthStencilStateCreateInfo;
-            depthStencilStateCreateInfo.DepthTestEnable = depthTest;
-            depthStencilStateCreateInfo.DepthWriteEnable = depthTest;
-            depthStencilStateCreateInfo.DepthCompareOp = CompareOp.Less;
-            depthStencilStateCreateInfo.DepthBoundsTestEnable = false;
-            depthStencilStateCreateInfo.MinDepthBounds = 0.0f;
-            depthStencilStateCreateInfo.MaxDepthBounds = 1.0f;
-            depthStencilStateCreateInfo.StencilTestEnable = false;
-            depthStencilStateCreateInfo.Front = default;
-            depthStencilStateCreateInfo.Back = default;
-
-            GraphicsPipelineCreateInfo graphicsCreateInfo = new();
-            graphicsCreateInfo.SType = StructureType.GraphicsPipelineCreateInfo;
-            graphicsCreateInfo.StageCount = (uint)shaderStages.Length;
-            fixed (PipelineShaderStageCreateInfo* shaderStagesPtr = shaderStages)
-            {
-                graphicsCreateInfo.PStages = shaderStagesPtr;
-            }
-
-            graphicsCreateInfo.PVertexInputState = &vertexInputStateCreateInfo;
-            graphicsCreateInfo.PInputAssemblyState = &inputAssemblyStateCreateInfo;
-            graphicsCreateInfo.PViewportState = &viewportStateCreateInfo;
-            graphicsCreateInfo.PRasterizationState = &rasterizationStateCreateInfo;
-            graphicsCreateInfo.PMultisampleState = &multisampleStateCreateInfo;
-            graphicsCreateInfo.PDepthStencilState = null;
-            graphicsCreateInfo.PColorBlendState = &colorBlendStateCreateInfo;
-            graphicsCreateInfo.PDynamicState = &dynamicStateCreateInfo;
-            graphicsCreateInfo.Layout = pipelineLayout;
-            graphicsCreateInfo.RenderPass = renderPass;
-            graphicsCreateInfo.Subpass = 0;
-            graphicsCreateInfo.BasePipelineHandle = default;
-            graphicsCreateInfo.BasePipelineIndex = -1;
-            graphicsCreateInfo.PDepthStencilState = &depthStencilStateCreateInfo;
-
-            var result = context.vk.CreateGraphicsPipelines(context.device, default, 1, graphicsCreateInfo, null, out Pipeline pipeline);
-            if (result != Result.Success)
-                throw new Exception("Failed to create vkPipelineLayout");
-
-            context.vk.DestroyShaderModule(context.device, vertShader, null);
-            context.vk.DestroyShaderModule(context.device, fragShader, null);
-
-            return pipeline;
-        }
-
-		static unsafe PipelineShaderStageCreateInfo CreateShaderStage(VkContext context, ShaderStageFlags stage, ShaderModule shaderModule)
-		{
-			PipelineShaderStageCreateInfo createInfo = new();
-			createInfo.SType = StructureType.PipelineShaderStageCreateInfo;
-			createInfo.Stage = stage;
-
-			createInfo.Module = shaderModule;
-			createInfo.PName = (byte*)Marshal.StringToHGlobalAnsi("main");
-
-			return createInfo;
+			return new RenderLayer(shader, pipeline, layout);
 		}
 
-		static unsafe ShaderModule CreateShaderModule(Vk vk, Memory<byte> code, Device device)
-        {
-            ShaderModuleCreateInfo createInfo = new();
-            createInfo.SType = StructureType.ShaderModuleCreateInfo;
-            createInfo.CodeSize = (nuint)code.Length;
+		public static RenderLayer CreateGui(VkContext context, Shader shader, PipelineLayout layout, Extent2D extent, RenderPass compatibleRenderPass)
+		{
+			var pipeline = new GraphicsPipelineBuilder()
+				.WithVertexInput(GetGuiBindingDescription(), GetGuiAttributeDescription())
+				.WithInputAssembly()
+				.WithViewport(extent)
+				.WithRasterization(PolygonMode.Fill, CullModeFlags.BackBit, 1)
+				.WithMultisample()
+				.WithDepthStencil(true)
+				.WithColorBlend()
+				.WithDynamicState()
+				.Build(context, layout, compatibleRenderPass, shader);
 
-            fixed (byte* codePtr = code.Span)
-            {
-                createInfo.PCode = (uint*)codePtr;
-            }
+			return new RenderLayer(shader, pipeline, layout);
+		}
 
-            var result = vk.CreateShaderModule(device, createInfo, null, out ShaderModule shaderModule);
-            if (result != Result.Success)
-                throw new Exception("Failed to create vkShaderModule");
+		static VertexInputBindingDescription GetBindingDescription()
+		{
+			VertexInputBindingDescription description = new();
+			description.Binding = 0;
+			description.Stride = Vertex.SizeInBytes;
+			description.InputRate = VertexInputRate.Vertex;
 
-            return shaderModule;
-        }
+			return description;
+		}
 
-        static VertexInputBindingDescription GetBindingDescription()
-        {
-            VertexInputBindingDescription description = new();
-            description.Binding = 0;
-            description.Stride = Vertex.SizeInBytes;
-            description.InputRate = VertexInputRate.Vertex;
+		static Memory<VertexInputAttributeDescription> GetAttributeDescription()
+		{
+			Memory<VertexInputAttributeDescription> description = new VertexInputAttributeDescription[4];
+			// Vertex Position
+			description.Span[0].Binding = 0;
+			description.Span[0].Location = 0;
+			description.Span[0].Format = Format.R32G32B32Sfloat;
+			description.Span[0].Offset = 0;
 
-            return description;
-        }
+			// Vertex Normal
+			description.Span[1].Binding = 0;
+			description.Span[1].Location = 1;
+			description.Span[1].Format = Format.R32G32B32Sfloat;
+			description.Span[1].Offset = sizeof(float) * 3;
 
-        static Memory<VertexInputAttributeDescription> GetAttributeDescription()
-        {
-            Memory<VertexInputAttributeDescription> description = new VertexInputAttributeDescription[4];
-            // Vertex Position
-            description.Span[0].Binding = 0;
-            description.Span[0].Location = 0;
-            description.Span[0].Format = Format.R32G32B32Sfloat;
-            description.Span[0].Offset = 0;
+			// Vertex UV
+			description.Span[2].Binding = 0;
+			description.Span[2].Location = 2;
+			description.Span[2].Format = Format.R32G32Sfloat;
+			description.Span[2].Offset = sizeof(float) * 3 * 2;
 
-            // Vertex UV
-            description.Span[1].Binding = 0;
-            description.Span[1].Location = 1;
-            description.Span[1].Format = Format.R32G32B32Sfloat;
-            description.Span[1].Offset = sizeof(float) * 3;
-
-            // Vertex Normal
-            description.Span[2].Binding = 0;
-            description.Span[2].Location = 2;
-            description.Span[2].Format = Format.R32G32Sfloat;
-            description.Span[2].Offset = sizeof(float) * 3 * 2;
-
-            // Vertex Tangent
+			// Vertex Tangent
 			description.Span[3].Binding = 0;
 			description.Span[3].Location = 3;
 			description.Span[3].Format = Format.R32G32B32Sfloat;
 			description.Span[3].Offset = sizeof(float) * 3 * 2 + sizeof(float) * 2;
 
 			return description;
-        }
-    }
+		}
+
+		static VertexInputBindingDescription GetGuiBindingDescription()
+		{
+			VertexInputBindingDescription description = new();
+			description.Binding = 0;
+			description.Stride = GuiVertex.SizeInBytes;
+			description.InputRate = VertexInputRate.Vertex;
+
+			return description;
+		}
+
+		static Memory<VertexInputAttributeDescription> GetGuiAttributeDescription()
+		{
+			Memory<VertexInputAttributeDescription> description = new VertexInputAttributeDescription[2];
+			// Vertex Position
+			description.Span[0].Binding = 0;
+			description.Span[0].Location = 0;
+			description.Span[0].Format = Format.R32G32B32Sfloat;
+			description.Span[0].Offset = 0;
+
+			// Vertex UV
+			description.Span[1].Binding = 0;
+			description.Span[1].Location = 1;
+			description.Span[1].Format = Format.R32G32B32Sfloat;
+			description.Span[1].Offset = sizeof(float) * 3;
+
+			return description;
+		}
+	}
 }

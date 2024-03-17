@@ -3,6 +3,7 @@
     public enum RenderPassId
 	{
 		Skybox,
-		Mesh
+		Mesh,
+		Gui
 	}
 }

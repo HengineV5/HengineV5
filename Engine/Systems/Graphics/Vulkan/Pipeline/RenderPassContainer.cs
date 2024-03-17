@@ -7,19 +7,22 @@ namespace Engine
     {
 		public RenderPass skyboxRenderPass;
 		public RenderPass meshRenderPass;
+        public RenderPass guiRenderPass;
 
-        public RenderPassContainer(RenderPass skyboxRenderPass, RenderPass meshRenderPass)
+        public RenderPassContainer(RenderPass skyboxRenderPass, RenderPass meshRenderPass, RenderPass guiRenderPass)
         {
             this.skyboxRenderPass = skyboxRenderPass;
             this.meshRenderPass = meshRenderPass;
+            this.guiRenderPass = guiRenderPass;
         }
 
         public static RenderPassContainer Create(VkContext context, in DefaultRenderPassInfo renderPassInfo)
         {
             var skyboxRenderPass = CreateSkyboxRenderPass(context, renderPassInfo.colorFormat, renderPassInfo.depthFormat);
             var meshRenderPass = CreateMeshRenderPass(context, renderPassInfo.colorFormat, renderPassInfo.depthFormat);
+            var guiRenderPass = CreateSkyboxRenderPass(context, renderPassInfo.colorFormat, renderPassInfo.depthFormat);
 
-			return new RenderPassContainer(skyboxRenderPass, meshRenderPass);
+			return new RenderPassContainer(skyboxRenderPass, meshRenderPass, guiRenderPass);
         }
 
 		public static unsafe void Dispose(VkContext context, ref RenderPassContainer self)
@@ -36,6 +39,8 @@ namespace Engine
 					return self.skyboxRenderPass;
 				case RenderPassId.Mesh:
 					return self.meshRenderPass;
+				case RenderPassId.Gui:
+					return self.guiRenderPass;
 				default:
 					throw new Exception();
 			}
