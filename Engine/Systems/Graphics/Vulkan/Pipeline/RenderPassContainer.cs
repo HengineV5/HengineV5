@@ -20,7 +20,7 @@ namespace Engine
         {
             var skyboxRenderPass = CreateSkyboxRenderPass(context, renderPassInfo.colorFormat, renderPassInfo.depthFormat);
             var meshRenderPass = CreateMeshRenderPass(context, renderPassInfo.colorFormat, renderPassInfo.depthFormat);
-            var guiRenderPass = CreateSkyboxRenderPass(context, renderPassInfo.colorFormat, renderPassInfo.depthFormat);
+            var guiRenderPass = CreateGuiRenderPass(context, renderPassInfo.colorFormat, renderPassInfo.depthFormat);
 
 			return new RenderPassContainer(skyboxRenderPass, meshRenderPass, guiRenderPass);
         }
@@ -114,7 +114,71 @@ namespace Engine
             return renderPass;
         }
 
-        static unsafe RenderPass CreateMeshRenderPass(VkContext context, Format colorFormat, Format depthFormat)
+		static unsafe RenderPass CreateGuiRenderPass(VkContext context, Format colorFormat, Format depthFormat)
+		{
+			AttachmentDescription colorAttachment = new();
+			colorAttachment.Format = colorFormat;
+			colorAttachment.Samples = SampleCountFlags.Count1Bit;
+			colorAttachment.LoadOp = AttachmentLoadOp.Load;
+			colorAttachment.StoreOp = AttachmentStoreOp.Store;
+			colorAttachment.StencilLoadOp = AttachmentLoadOp.DontCare;
+			colorAttachment.StencilStoreOp = AttachmentStoreOp.DontCare;
+			colorAttachment.InitialLayout = ImageLayout.Undefined;
+			colorAttachment.FinalLayout = ImageLayout.PresentSrcKhr;
+
+			AttachmentDescription depthAttatchment = new();
+			depthAttatchment.Format = depthFormat;
+			depthAttatchment.Samples = SampleCountFlags.Count1Bit;
+			depthAttatchment.LoadOp = AttachmentLoadOp.Load;
+			depthAttatchment.StoreOp = AttachmentStoreOp.None;
+			depthAttatchment.StencilLoadOp = AttachmentLoadOp.DontCare;
+			depthAttatchment.StencilStoreOp = AttachmentStoreOp.DontCare;
+			depthAttatchment.InitialLayout = ImageLayout.Undefined;
+			depthAttatchment.FinalLayout = ImageLayout.DepthStencilAttachmentOptimal;
+
+			AttachmentReference colorAttachmentRef = new();
+			colorAttachmentRef.Attachment = 0;
+			colorAttachmentRef.Layout = ImageLayout.ColorAttachmentOptimal;
+
+			AttachmentReference depthAttachmentRef = new();
+			depthAttachmentRef.Attachment = 1;
+			depthAttachmentRef.Layout = ImageLayout.DepthStencilAttachmentOptimal;
+
+			SubpassDescription subpass = new();
+			subpass.PipelineBindPoint = PipelineBindPoint.Graphics;
+			subpass.ColorAttachmentCount = 1;
+			subpass.PColorAttachments = &colorAttachmentRef;
+			subpass.PDepthStencilAttachment = &depthAttachmentRef;
+
+			SubpassDependency dependency = new();
+			dependency.SrcSubpass = Vk.SubpassExternal;
+			dependency.DstSubpass = 0;
+			dependency.SrcStageMask = PipelineStageFlags.ColorAttachmentOutputBit | PipelineStageFlags.EarlyFragmentTestsBit;
+			dependency.SrcAccessMask = 0;
+			dependency.DstStageMask = PipelineStageFlags.ColorAttachmentOutputBit | PipelineStageFlags.EarlyFragmentTestsBit;
+			dependency.DstAccessMask = AccessFlags.ColorAttachmentWriteBit | AccessFlags.DepthStencilAttachmentWriteBit;
+
+			AttachmentDescription* attachments = stackalloc AttachmentDescription[2];
+			attachments[0] = colorAttachment;
+			attachments[1] = depthAttatchment;
+
+			RenderPassCreateInfo createInfo = new();
+			createInfo.SType = StructureType.RenderPassCreateInfo;
+			createInfo.AttachmentCount = 2;
+			createInfo.PAttachments = attachments;
+			createInfo.SubpassCount = 1;
+			createInfo.PSubpasses = &subpass;
+			createInfo.DependencyCount = 1;
+			createInfo.PDependencies = &dependency;
+
+			var result = context.vk.CreateRenderPass(context.device, createInfo, null, out RenderPass renderPass);
+			if (result != Result.Success)
+				throw new Exception("Failed to create vkRenderPass");
+
+			return renderPass;
+		}
+
+		static unsafe RenderPass CreateMeshRenderPass(VkContext context, Format colorFormat, Format depthFormat)
         {
             AttachmentDescription colorAttachment = new();
             colorAttachment.Format = colorFormat;

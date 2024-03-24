@@ -34,25 +34,21 @@ namespace Engine.Generator
 			var usings = GetUsings(node);
 			model.Set("usings".AsSpan(), Parameter.CreateEnum<IModel<ReturnType>>(usings.Select(x => x.GetModel())));
 
-			var resourceManagers = GetResourceManagers(compilation, resourceStep);
-			model.Set("resourceManagers".AsSpan(), Parameter.CreateEnum<IModel<ReturnType>>(resourceManagers.Select(x => x.GetModel())));
+			var engineSuccess = TryGetEngine(compilation, layoutStep, configStep, resourceStep, out EcsEngine engine);
 
-			var pipelines = PipelineGenerator.GetPipelines(compilation, layoutStep);
-			model.Set("pipelines".AsSpan(), Parameter.CreateEnum<IModel<ReturnType>>(pipelines.Select(x => x.GetModel())));
+			model.Set("resourceManagers".AsSpan(), Parameter.CreateEnum<IModel<ReturnType>>(engine.resourceManagers.Select(x => x.GetModel())));
+			model.Set("pipelines".AsSpan(), Parameter.CreateEnum<IModel<ReturnType>>(engine.pipelines.Select(x => x.GetModel())));
+			model.Set("worlds".AsSpan(), Parameter.CreateEnum<IModel<ReturnType>>(engine.worlds.Select(x => x.GetModel())));
+			model.Set("config".AsSpan(), Parameter.CreateEnum<IModel<ReturnType>>(engine.configSteps.Select(x => x.GetModel())));
 
-			var configSteps = GetConfigSteps(configStep);
-			model.Set("config".AsSpan(), Parameter.CreateEnum<IModel<ReturnType>>(configSteps.Select(x => x.GetModel())));
-
-			var setupSteps = GetSetupSteps(compilation, configStep, configSteps);
-			var uniqueSystemArgs = pipelines.SelectMany(x => x.systems).SelectMany(x => x.arguments).GroupBy(x => x.type).Select(x => x.First());
-			var uniqueSetupArgs = setupSteps.SelectMany(x => x.nonConfigArgumentTypes).GroupBy(x => x.type).Select(x => x.First());
-
+			var uniqueSetupArgs = engine.setupSteps.SelectMany(x => x.nonConfigArgumentTypes).GroupBy(x => x.type).Select(x => x.First());
+			var uniqueSystemArgs = engine.pipelines.SelectMany(x => x.systems).SelectMany(x => x.arguments).GroupBy(x => x.type).Select(x => x.First());
 			var uniqueArgs = uniqueSystemArgs.Concat(uniqueSetupArgs.Select(x => new SystemArgument() { type = x.type })).GroupBy(x => x.type).Select(x => x.First());
 
 			model.Set("uniqueArgs".AsSpan(), Parameter.CreateEnum<IModel<ReturnType>>(uniqueArgs.Select(x => x.GetModel())));
-			model.Set("setup".AsSpan(), Parameter.CreateEnum<IModel<ReturnType>>(setupSteps.Select(x => x.GetModel(uniqueSystemArgs, uniqueSetupArgs))));
+			model.Set("setup".AsSpan(), Parameter.CreateEnum<IModel<ReturnType>>(engine.setupSteps.Select(x => x.GetModel(uniqueSystemArgs, uniqueSetupArgs))));
 
-			return true;
+			return engineSuccess;
 		}
 
 		public bool Filter(IdentifierNameSyntax node)
@@ -123,11 +119,97 @@ namespace Engine.Generator
 			return models;
 		}
 
-		static List<SetupStep> GetSetupSteps(Compilation compilation, MemberAccessExpressionSyntax step, List<ConfigStep> configSteps)
+		static bool TryGetEngine(Compilation compilation, MemberAccessExpressionSyntax layoutStep, MemberAccessExpressionSyntax configStep, MemberAccessExpressionSyntax resourceStep, out EcsEngine engine)
+		{
+			bool configSuccess = TryGetConfigSteps(configStep, out List<ConfigStep> configSteps);
+			bool setupSuccess = TryGetSetupSteps(compilation, configStep, configSteps, out List<SetupStep> setupSteps);
+			bool resourceSuccess = TryGetResourceManagers(compilation, resourceStep, out List<ResourceManager> resourceManagers);
+
+			bool pipelineSuccess = PipelineGenerator.TryGetPipelines(compilation, layoutStep, out List<Pipeline> pipelines);
+			bool worldSuccess = TryGetWorlds(layoutStep, pipelines, out  List<World> worlds);
+
+			engine = new EcsEngine()
+			{
+				configSteps = configSteps,
+				setupSteps = setupSteps,
+				resourceManagers = resourceManagers,
+				pipelines = pipelines,
+				worlds = worlds
+			};
+
+
+			return resourceSuccess && configSuccess && setupSuccess && worldSuccess && pipelineSuccess;
+		}
+
+		static bool TryGetWorlds(MemberAccessExpressionSyntax step, List<Pipeline> pipelines, out List<World> worlds)
+		{
+			worlds = new();
+
+			var parentExpression = step.Parent as InvocationExpressionSyntax;
+			var lambda = parentExpression.ArgumentList.Arguments.Single().Expression as SimpleLambdaExpressionSyntax;
+
+			foreach (var pipeline in lambda.Block.Statements.Where(x => x is ExpressionStatementSyntax).Cast<ExpressionStatementSyntax>())
+			{
+				if (pipeline.Expression is not InvocationExpressionSyntax invocation)
+					continue;
+
+				if (invocation.Expression is not MemberAccessExpressionSyntax memberAccess)
+					continue;
+
+				if (memberAccess.Name is not GenericNameSyntax genericName)
+					continue;
+
+				if (genericName.Identifier.Text != "World")
+					continue;
+
+				var worldName = genericName.TypeArgumentList.Arguments.First() as QualifiedNameSyntax;
+				var layoutLambda = invocation.ArgumentList.Arguments.First();
+
+				if (!TryGetWorldPipelines(layoutLambda.Expression as SimpleLambdaExpressionSyntax, pipelines, out List<Pipeline> worldPipelines))
+					continue;
+
+				worlds.Add(new World()
+				{
+					name = worldName.ToString(),
+					pipelines = worldPipelines
+				});
+			}
+
+			return true;
+		}
+
+		static bool TryGetWorldPipelines(SimpleLambdaExpressionSyntax lambda, List<Pipeline> pipelines, out List<Pipeline> worldPipelines)
+		{
+			worldPipelines = new();
+			
+			foreach (var pipeline in lambda.Block.Statements.Where(x => x is ExpressionStatementSyntax).Cast<ExpressionStatementSyntax>())
+			{
+				if (pipeline.Expression is not InvocationExpressionSyntax invocation)
+					continue;
+
+				if (invocation.Expression is not MemberAccessExpressionSyntax memberAccess)
+					continue;
+
+				if (memberAccess.Name is not GenericNameSyntax genericName)
+					continue;
+
+				if (genericName.Identifier.Text != "Pipeline")
+					continue;
+
+				var qualifiedName = genericName.TypeArgumentList.Arguments.First() as QualifiedNameSyntax;
+				var systemName = qualifiedName.Right.GetName();
+
+				worldPipelines.AddRange(pipelines.Where(x => $"{x.name}Pipeline" == systemName));
+			}
+
+			return worldPipelines.Count > 0;
+		}
+
+		static bool TryGetSetupSteps(Compilation compilation, MemberAccessExpressionSyntax step, List<ConfigStep> configSteps, out List<SetupStep> setupSteps)
 		{
 			var nodes = compilation.SyntaxTrees.SelectMany(x => x.GetRoot().DescendantNodesAndSelf());
 
-			List<SetupStep> models = new();
+			setupSteps = new();
 
 			var parentExpression = step.Parent as InvocationExpressionSyntax;
 			var lambda = parentExpression.ArgumentList.Arguments.Single().Expression as SimpleLambdaExpressionSyntax;
@@ -151,7 +233,7 @@ namespace Engine.Generator
 
 				var methodDeclaration = nodes.FindNode<MethodDeclarationSyntax>(x => x.Identifier.Text == methodAccess.Name.Identifier.Text);
 
-				models.Add(new SetupStep()
+				setupSteps.Add(new SetupStep()
 				{
 					method = configMethod.ToFullString(),
 					returnTypes = GetMethodReturnTypes(methodDeclaration),
@@ -160,12 +242,12 @@ namespace Engine.Generator
 				});
 			}
 
-			return models;
+			return true;
 		}
 
-		static List<ConfigStep> GetConfigSteps(MemberAccessExpressionSyntax step)
+		static bool TryGetConfigSteps(MemberAccessExpressionSyntax step, out List<ConfigStep> configSteps)
 		{
-			List<ConfigStep> models = new();
+			configSteps = new();
 
 			var parentExpression = step.Parent as InvocationExpressionSyntax;
 			var lambda = parentExpression.ArgumentList.Arguments.Single().Expression as SimpleLambdaExpressionSyntax;
@@ -191,19 +273,19 @@ namespace Engine.Generator
 				var nameArg = genericName.TypeArgumentList.Arguments[0] as IdentifierNameSyntax;
 				var nameToken = nameArg.Identifier.Text;
 
-				models.Add(new ConfigStep()
+				configSteps.Add(new ConfigStep()
 				{
 					name = nameToken
 				});
 			}
 
-			return models;
+			return true;
 		}
 
-		static List<ResourceManager> GetResourceManagers(Compilation compilation, MemberAccessExpressionSyntax step)
+		static bool TryGetResourceManagers(Compilation compilation, MemberAccessExpressionSyntax step, out List<ResourceManager> resourceManagers)
 		{
 			var nodes = compilation.SyntaxTrees.SelectMany(x => x.GetRoot().DescendantNodesAndSelf());
-			List<ResourceManager> models = new();
+			resourceManagers = new();
 
 			var parentExpression = step.Parent as InvocationExpressionSyntax;
 			var lambda = parentExpression.ArgumentList.Arguments.Single().Expression as SimpleLambdaExpressionSyntax;
@@ -244,7 +326,7 @@ namespace Engine.Generator
 					}
 				}
 
-				models.Add(new ResourceManager()
+				resourceManagers.Add(new ResourceManager()
 				{
 					name = nameToken,
 					arguments = arguments,
@@ -252,7 +334,7 @@ namespace Engine.Generator
 				});
 			}
 
-			return models;
+			return true;
 		}
 
 		static string GetMethodName(MemberAccessExpressionSyntax methodAccess)
@@ -331,6 +413,30 @@ namespace Engine.Generator
 			}
 
 			return models;
+		}
+	}
+
+	struct EcsEngine
+	{
+		public List<ConfigStep> configSteps;
+		public List<SetupStep> setupSteps;
+		public List<ResourceManager> resourceManagers;
+		public List<Pipeline> pipelines;
+		public List<World> worlds;
+	}
+
+	struct World
+	{
+		public string name;
+		public List<Pipeline> pipelines;
+
+		public Model<ReturnType> GetModel()
+		{
+			var model = new Model<ReturnType>();
+			model.Set("worldName".AsSpan(), Parameter.Create(name));
+			model.Set("worldPipelines".AsSpan(), Parameter.CreateEnum<IModel<ReturnType>>(pipelines.Select(x => x.GetModel())));
+
+			return model;
 		}
 	}
 

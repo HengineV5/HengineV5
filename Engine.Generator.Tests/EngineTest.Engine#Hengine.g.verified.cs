@@ -86,10 +86,11 @@ namespace Test
 				engineContext.dt = sw.ElapsedMilliseconds / 1000f;
 				sw.Restart();
 
-				var mainWorld = ecs.GetMain();
-
-				_GraphicsPipeline.Run(ref engineContext, mainWorld);
-				_PhysicsPipeline.Run(ref engineContext, mainWorld);
+				{ // Ecs.Main.Interface
+					_PhysicsPipeline.Run<Ecs.Main.Interface>(ref engineContext, ecs);
+				}{ // Ecs.World2.Interface
+					_GraphicsPipeline.Run<Ecs.World2.Interface>(ref engineContext, ecs);
+				}
 
 				if (ShouldExit())
 				{

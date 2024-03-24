@@ -17,7 +17,7 @@ namespace Engine
 				return this;
 			}
 
-			public HengineLayout World(string name, WorldAction world)
+			public HengineLayout World<T>(WorldAction world)
 			{
 				return this;
 			}

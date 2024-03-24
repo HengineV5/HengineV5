@@ -26,13 +26,14 @@ namespace $namespace
 
 			}
 
-			public void Run(ref EngineContext argEngineContext, |$ecsName|.Main world)
+			public void Run<TWorldInterface>(ref EngineContext argEngineContext, $ecsName ecs)
+				where TWorldInterface : $pipelineSystems~>IWorld<$ecsName, |$systemName|$systemContextArgs~>, $argType<~><~~>, <~
 			{
 				$pipelineSystems|$hasPreRun == true|~>_|$systemName|.PreRun();<~~>\n				<~
 
 				$pipelineContextArguments~>$argType arg$argType = new $argType();<~~>\n				<~
 
-				$pipelineSystems~>world.Loop(_|$systemName|$systemContextArgs~>, ref $argName<~);<~~>\n				<~
+				$pipelineSystems~>TWorldInterface.Loop(ecs, _|$systemName|$systemContextArgs~>, ref $argName<~);<~~>\n				<~
 
 				$pipelineSystems|$hasPostRun == true|~>_|$systemName|.PostRun();<~~>\n				<~
 

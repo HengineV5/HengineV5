@@ -32,10 +32,10 @@ namespace Engine.Generator
 			var usings = EngineGenerator.GetUsings(node);
 			model.Set("usings".AsSpan(), Parameter.CreateEnum<IModel<ReturnType>>(usings.Select(x => x.GetModel())));
 
-			var pipelines = GetPipelines(compilation, layoutStep);
+			var pipelineSuccess = TryGetPipelines(compilation, layoutStep, out List<Pipeline> pipelines);
 			model.Set("pipelines".AsSpan(), Parameter.CreateEnum<IModel<ReturnType>>(pipelines.Select(x => x.GetModel())));
 
-			return true;
+			return pipelineSuccess;
 		}
 
 		public bool Filter(IdentifierNameSyntax node)
@@ -54,9 +54,9 @@ namespace Engine.Generator
 			return $"{EngineGenerator.GetEngineName(node)}_Pipeline";
 		}
 
-		public static List<Pipeline> GetPipelines(Compilation compilation, MemberAccessExpressionSyntax step)
+		public static bool TryGetPipelines(Compilation compilation, MemberAccessExpressionSyntax step, out List<Pipeline> pipelines)
 		{
-			List<Pipeline> models = new();
+			pipelines = new();
 
 			var parentExpression = step.Parent as InvocationExpressionSyntax;
 			var lambda = parentExpression.ArgumentList.Arguments.Single().Expression as SimpleLambdaExpressionSyntax;
@@ -81,9 +81,10 @@ namespace Engine.Generator
 				if (nameArgument.Expression is not LiteralExpressionSyntax nameExpression)
 					continue;
 
-				var systems = GetPipelineSystems(compilation, layoutLambda.Expression as SimpleLambdaExpressionSyntax);
+				if (!TryGetPipelineSystems(compilation, layoutLambda.Expression as SimpleLambdaExpressionSyntax, out List<PipelineSystem> systems))
+					continue;
 
-				models.Add(new Pipeline()
+				pipelines.Add(new Pipeline()
 				{
 					name = nameExpression.Token.Value.ToString(),
 					systems = systems,
@@ -91,12 +92,12 @@ namespace Engine.Generator
 				});
 			}
 
-			return models;
+			return pipelines.Count > 0;
 		}
 
-		static List<PipelineSystem> GetPipelineSystems(Compilation compilation, SimpleLambdaExpressionSyntax lambda)
+		static bool TryGetPipelineSystems(Compilation compilation, SimpleLambdaExpressionSyntax lambda, out List<PipelineSystem> pipelineSystems)
 		{
-			List<PipelineSystem> models = new();
+			pipelineSystems = new();
 
 			foreach (var pipeline in lambda.Block.Statements.Where(x => x is ExpressionStatementSyntax).Cast<ExpressionStatementSyntax>())
 			{
@@ -124,9 +125,10 @@ namespace Engine.Generator
 				bool hasPreRun = methods.Any(x => x.Identifier.Text == "PreRun");
 				bool hasPostRun = methods.Any(x => x.Identifier.Text == "PostRun");
 
-				TryGetSystemContexts(systemClass, new List<Diagnostic>(), out List<SystemArgument> contextArguments);
+				if (!TryGetSystemContexts(systemClass, new List<Diagnostic>(), out List<SystemArgument> contextArguments))
+					continue;
 
-				models.Add(new PipelineSystem()
+				pipelineSystems.Add(new PipelineSystem()
 				{
 					name = systemName.Identifier.Text,
 					arguments = GetSystemConstructorArguments(systemClass),
@@ -138,7 +140,7 @@ namespace Engine.Generator
 				});
 			}
 
-			return models;
+			return pipelineSystems.Count > 0;
 		}
 
 		static List<SystemArgument> GetSystemConstructorArguments(ClassDeclarationSyntax system)

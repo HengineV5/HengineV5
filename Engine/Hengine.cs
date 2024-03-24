@@ -6,7 +6,6 @@ using Silk.NET.GLFW;
 using Silk.NET.Windowing;
 using Silk.NET.Vulkan;
 using Silk.NET.OpenGL;
-using System.Drawing;
 using System.Runtime.InteropServices;
 using Engine.Graphics;
 using Engine.Parsing;
@@ -65,6 +64,7 @@ namespace Engine
 					x.ArchType<Position, Rotation, Scale, HexCell, Mesh, PbrMaterial, Networked>("Hex");
 					x.ArchType<Position, Rotation, Camera, Skybox, Networked>("Cam");
 					x.ArchType<Position, Rotation, Scale, GizmoComp>("Gizmo");
+					x.ArchType<Position, Size>("GuiElement");
 				})
 				.System(x =>
 				{
@@ -78,6 +78,7 @@ namespace Engine
 					x.System<VulkanPbrRenderSystem>();
 					x.System<VulkanWireframeRenderSystem>();
 					x.System<VulkanPresentSystem>();
+					x.System<VulkanGuiRenderSystem>();
 
 					x.System<ClientSendSystem>();
 					x.System<ClientReceiveSystem>();
@@ -85,6 +86,7 @@ namespace Engine
 				.World(x =>
 				{
 					x.World<HengineEcs.NEntity, HengineEcs.Cam, HengineEcs.Hex>("Main");
+					x.World<HengineEcs.GuiElement>("Overlay");
 				})
 				.Resource(x =>
 				{
@@ -145,6 +147,11 @@ namespace Engine
 						x.Sequential<VulkanPresentSystem>();
 					});
 
+					x.Pipeline("Overlay", x =>
+					{
+						x.Sequential<VulkanGuiRenderSystem>();
+					});
+
 					x.Pipeline("Rotate", x =>
 					{
 						//x.Sequential<RotateSystem>();
@@ -154,9 +161,16 @@ namespace Engine
 						//x.Sequential<ClientReceiveSystem>();
 					});
 
-					x.World("Main", x =>
+					x.World<HengineEcs.Main.Interface>(x =>
 					{
 						x.Pipeline<Hengine.GraphicsPipeline>();
+
+						x.Pipeline<Hengine.RotatePipeline>();
+					});
+
+					x.World<HengineEcs.Overlay.Interface>(x =>
+					{
+						x.Pipeline<Hengine.OverlayPipeline>();
 					});
 				})
 				.Build<Hengine, HengineEcs>();
@@ -217,7 +231,7 @@ namespace Engine
 						x.Sequential<ServerSystem>();
 					});
 
-					x.World("Main", x =>
+					x.World<HengineEcs.Main.Interface>(x =>
 					{
 					});
 				})

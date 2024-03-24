@@ -72,9 +72,9 @@ namespace $namespace
 				engineContext.dt = sw.ElapsedMilliseconds / 1000f;
 				sw.Restart();
 
-				var mainWorld = ecs.GetMain();
-
-				$pipelines~>_|$pipelineName|.Run(ref engineContext, mainWorld);<~~>\n				<~
+				$worlds~>{ // $worldName
+					$worldPipelines~>_|$pipelineName|.Run<|$worldName|>(ref engineContext, ecs);<~~>\n					<~
+				}<~
 
 				if (ShouldExit())
 				{

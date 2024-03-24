@@ -171,13 +171,13 @@ namespace Test
 					x.Sequential<System2>();
 				});
 
-				x.World(""Main"", x =>
+				x.World<Ecs.Main.Interface>(x =>
 				{
 					x.Pipeline<Hengine.GraphicsPipeline>();
 					x.Pipeline<Hengine.PhysicsPipeline>();
 				});
 
-				x.World(""World2"", x =>
+				x.World<Ecs.World2.Interface>(x =>
 				{
 					x.Pipeline<Hengine.GraphicsPipeline>();
 				});
