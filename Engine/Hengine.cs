@@ -137,19 +137,29 @@ namespace Engine
                 })
 				.Layout(x =>
 				{
+					x.Pipeline("Camera", x =>
+					{
+						x.Sequential<VulkanCameraSystem>();
+					});
+
 					x.Pipeline("Graphics", x =>
 					{
 						//x.Sequential<OpenGLRenderSystem>();
 
-						x.Sequential<VulkanCameraSystem>();
+						//x.Sequential<VulkanCameraSystem>();
 						x.Sequential<VulkanPbrRenderSystem>();
 						x.Sequential<VulkanWireframeRenderSystem>();
-						x.Sequential<VulkanPresentSystem>();
+						//x.Sequential<VulkanPresentSystem>();
 					});
 
 					x.Pipeline("Overlay", x =>
 					{
 						x.Sequential<VulkanGuiRenderSystem>();
+					});
+
+					x.Pipeline("Present", x =>
+					{
+						x.Sequential<VulkanPresentSystem>();
 					});
 
 					x.Pipeline("Rotate", x =>
@@ -163,6 +173,11 @@ namespace Engine
 
 					x.World<HengineEcs.Main.Interface>(x =>
 					{
+						x.Pipeline<Hengine.CameraPipeline>();
+					});
+
+					x.World<HengineEcs.Main.Interface>(x =>
+					{
 						x.Pipeline<Hengine.GraphicsPipeline>();
 
 						x.Pipeline<Hengine.RotatePipeline>();
@@ -171,6 +186,11 @@ namespace Engine
 					x.World<HengineEcs.Overlay.Interface>(x =>
 					{
 						x.Pipeline<Hengine.OverlayPipeline>();
+					});
+
+					x.World<HengineEcs.Main.Interface>(x =>
+					{
+						x.Pipeline<Hengine.PresentPipeline>();
 					});
 				})
 				.Build<Hengine, HengineEcs>();

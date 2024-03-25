@@ -7,7 +7,8 @@ namespace Engine
 		where TPipelineInfo : struct
 		where TEnum : Enum
     {
-        static abstract TSelf Create(VkContext context, DescriptorSetLayout descriptorSetLayout, RenderPass compatibleRenderPass, in TPipelineInfo pipelineInfo);
+        static abstract TSelf Create<TDescriptorContainer>(VkContext context, RenderPass compatibleRenderPass, in TPipelineInfo pipelineInfo)
+            where TDescriptorContainer : struct, IDescriptorContainer<TDescriptorContainer, TEnum>;
 
         static abstract void Dispose(VkContext context, ref TSelf self);
 

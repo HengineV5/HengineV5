@@ -18,14 +18,6 @@ using System.Text;
 
 namespace Engine
 {
-	public struct VulkanShaderInput
-	{
-		public MappedMemory<UniformBufferObject> ubo;
-		//public MappedMemory<Material> material;
-		public MappedMemory<PbrMaterialInfo> material;
-		public FixedArray4<MappedMemory<Light>> lights;
-	}
-
 	public unsafe struct MappedMemory<T> where T : unmanaged
 	{
 		public ref T Value

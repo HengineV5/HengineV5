@@ -21,7 +21,7 @@ namespace Engine
 		public CommandPool commandPool;
 		public FixedArray16<Sampler> samplers;
 
-		public RenderPipeline<SwapchainRenderTargetManager<DefaultDescriptorSet>, DefaultRenderPassInfo, DefaultPipelineInfo, DefaultDescriptorSet, PipelineContainer, PipelineContainerLayer, RenderPassContainer, RenderPassId> pipeline;
+		public RenderPipeline<SwapchainRenderTargetManager, DefaultRenderPassInfo, DefaultPipelineInfo, DescriptorSetContainer, PipelineContainer, PipelineContainerLayer, RenderPassContainer, RenderPassId> pipeline;
 		//public RenderPipeline<TextureRenderTargetManager<PbrDescriptorSet, Rgba32>, DefaultRenderPassInfo, DefaultPipelineInfo, PbrDescriptorSet, PbrPipelineContainer, PbrPipelineLayer, RenderPassContainer, PbrRenderPassId> texturePipeline;
 
         public VkRenderContext(VkContext context)
@@ -59,7 +59,7 @@ namespace Engine
 			//renderPipeline = RenderPipeline.Create(context, surface, commandPool);
 
 			//SwapchainRenderTargetManager<DefaultDescriptorSet> renderTargetManager = SwapchainRenderTargetManager<DefaultDescriptorSet>.Create(context, commandPool);
-            pipeline = RenderPipeline<SwapchainRenderTargetManager<DefaultDescriptorSet>, DefaultRenderPassInfo, DefaultPipelineInfo, DefaultDescriptorSet, PipelineContainer, PipelineContainerLayer, RenderPassContainer, RenderPassId>.Create(context, commandPool);
+            pipeline = RenderPipeline<SwapchainRenderTargetManager, DefaultRenderPassInfo, DefaultPipelineInfo, DescriptorSetContainer, PipelineContainer, PipelineContainerLayer, RenderPassContainer, RenderPassId>.Create(context, commandPool);
 
 			/*
 			Extent2D extent = swapchain.GetExtent();

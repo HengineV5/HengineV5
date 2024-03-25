@@ -57,6 +57,7 @@ namespace Runner
 
 			var ecs = engine.GetEcs();
 			Main mainWorld = ecs.GetMain();
+			Overlay overlayWorld = ecs.GetOverlay();
 
 			var skybox = Skybox.LoadSkybox("Skybox", "Images/Skybox/Default");
 			Camera camera = new Camera
@@ -91,6 +92,8 @@ namespace Runner
 
 				cam.Camera.Set(camera);
 			};
+
+			overlayWorld.CreateGuiElement(Vector3.Zero, new Engine.Components.Size(10, 10));
 
 			TestWorld.Load(mainWorld);
 			//MapWorld.Load(mainWorld);

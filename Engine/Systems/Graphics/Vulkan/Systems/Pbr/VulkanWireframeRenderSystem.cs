@@ -58,8 +58,8 @@ namespace Engine
 			{
 				UpdateEntityUbo(ref context.ubo, position, rotation, scale);
 
-				ref DefaultDescriptorSet set = ref renderContext.pipeline.GetDescriptor(this.context, bufferIdx);
-				set.shaderInput.ubo.Value = context.ubo;
+				ref PbrShaderInput shaderInput = ref renderContext.pipeline.GetUbo<PbrShaderInput>(bufferIdx);
+				shaderInput.ubo.Value = context.ubo;
 			}
 
 

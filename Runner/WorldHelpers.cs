@@ -71,5 +71,15 @@ namespace Runner
 				idx = idx
 			});
 		}
+
+		public static EnCS.ArchRef<GuiElement> CreateGuiElement(this HengineEcs.Overlay world, Vector3 position, Size size)
+		{
+			var objRef = world.Create(new GuiElement());
+			GuiElement.Ref entRef = world.Get(objRef);
+			entRef.Position.Set(position);
+			entRef.Size.Set(size);
+
+			return objRef;
+		}
 	}
 }

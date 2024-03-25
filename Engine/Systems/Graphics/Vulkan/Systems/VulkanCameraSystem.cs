@@ -36,29 +36,15 @@ namespace Engine
 			context.ubo.cameraPos = new Vector3(position.x, position.y, position.z);
 			context.skybox = skybox;
 
-			// SkyboxTexture
-			/*
-            renderContext.texturePipeline.StartRender(this.context);
-            renderContext.texturePipeline.StartRenderPass(this.context, RenderPassId.Skybox, PipelineContainerLayer.Skybox);
-
-            ref DefaultDescriptorSet set2 = ref renderContext.texturePipeline.GetDescriptor(this.context, 0);
-            set2.shaderInput.ubo.Value = context.ubo;
-            UpdateFrameDescriptorSet(this.context, set.descriptorSet, skyboxTextureBuffer);
-
-            renderContext.texturePipeline.Render(this.context, PipelineContainerLayer.Pbr, skyboxBuffer.vertexBuffer, skyboxBuffer.indexBuffer, skyboxBuffer.indicies, 0);
-            renderContext.texturePipeline.EndRenderPass(this.context);
-            renderContext.texturePipeline.PresentRender(this.context);
-			*/
-
 			// Skybox render
 			renderContext.pipeline.StartRender(this.context);
 			renderContext.pipeline.StartRenderPass(this.context, RenderPassId.Skybox, PipelineContainerLayer.Skybox);
 
-			ref DefaultDescriptorSet set = ref renderContext.pipeline.GetDescriptor(this.context, 0);
-			set.shaderInput.ubo.Value = context.ubo;
-			VulkanRenderHelpers.UpdateSkyboxDescriptorSet(this.context, set.descriptorSet, skybox.skybox, renderContext.samplers);
+			ref PbrShaderInput shaderInput = ref renderContext.pipeline.GetUbo<PbrShaderInput>(0);
+			shaderInput.ubo.Value = context.ubo;
+			VulkanRenderHelpers.UpdateSkyboxDescriptorSet(this.context, renderContext.pipeline.GetDescriptorSet(PipelineContainerLayer.Skybox, 0), skybox.skybox, renderContext.samplers);
 
-			renderContext.pipeline.Render(this.context, PipelineContainerLayer.Skybox, skyboxBuffer.vertexBuffer, skyboxBuffer.indexBuffer, skyboxBuffer.indicies, 0);
+            renderContext.pipeline.Render(this.context, PipelineContainerLayer.Skybox, skyboxBuffer.vertexBuffer, skyboxBuffer.indexBuffer, skyboxBuffer.indicies, 0);
 			renderContext.pipeline.ClearDepthBuffer(this.context); // Clear depth buffer because mesh rendering might go over multiple render passes, so depth buffer is loaded for each pass.
 			renderContext.pipeline.EndRenderPass(this.context);
 

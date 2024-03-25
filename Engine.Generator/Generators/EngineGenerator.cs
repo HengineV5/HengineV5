@@ -42,10 +42,12 @@ namespace Engine.Generator
 			model.Set("config".AsSpan(), Parameter.CreateEnum<IModel<ReturnType>>(engine.configSteps.Select(x => x.GetModel())));
 
 			var uniqueSetupArgs = engine.setupSteps.SelectMany(x => x.nonConfigArgumentTypes).GroupBy(x => x.type).Select(x => x.First());
+			var uniqueContextArgs = engine.pipelines.SelectMany(x => x.contextArguments).GroupBy(x => x.type).Select(x => x.First());
 			var uniqueSystemArgs = engine.pipelines.SelectMany(x => x.systems).SelectMany(x => x.arguments).GroupBy(x => x.type).Select(x => x.First());
 			var uniqueArgs = uniqueSystemArgs.Concat(uniqueSetupArgs.Select(x => new SystemArgument() { type = x.type })).GroupBy(x => x.type).Select(x => x.First());
 
 			model.Set("uniqueArgs".AsSpan(), Parameter.CreateEnum<IModel<ReturnType>>(uniqueArgs.Select(x => x.GetModel())));
+			model.Set("uniqueContextArgs".AsSpan(), Parameter.CreateEnum<IModel<ReturnType>>(uniqueContextArgs.Select(x => x.GetModel())));
 			model.Set("setup".AsSpan(), Parameter.CreateEnum<IModel<ReturnType>>(engine.setupSteps.Select(x => x.GetModel(uniqueSystemArgs, uniqueSetupArgs))));
 
 			return engineSuccess;

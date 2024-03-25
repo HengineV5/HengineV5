@@ -72,8 +72,10 @@ namespace $namespace
 				engineContext.dt = sw.ElapsedMilliseconds / 1000f;
 				sw.Restart();
 
+				$uniqueContextArgs~>$argType arg$argType = new $argType();<~~>\n				<~
+
 				$worlds~>{ // $worldName
-					$worldPipelines~>_|$pipelineName|.Run<|$worldName|>(ref engineContext, ecs);<~~>\n					<~
+					$worldPipelines~>_|$pipelineName|.Run<|$worldName|>(ref engineContext, ecs$pipelineContextArguments~>, ref arg$argType<~);<~~>\n					<~
 				}<~
 
 				if (ShouldExit())

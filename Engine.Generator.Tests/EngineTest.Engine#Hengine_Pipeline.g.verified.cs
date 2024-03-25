@@ -31,12 +31,10 @@ namespace Test
 				_OpenGLRenderSystem.Init();
 			}
 
-			public void Run<TWorldInterface>(ref EngineContext argEngineContext, HengineEcs ecs)
+			public void Run<TWorldInterface>(ref EngineContext argEngineContext, HengineEcs ecs, ref TestContext argTestContext)
 				where TWorldInterface : IWorld<HengineEcs, OpenGLRenderSystem, TestContext>, IWorld<HengineEcs, System2>, IWorld<HengineEcs, System3>
 			{
 				_OpenGLRenderSystem.PreRun();
-				TestContext argTestContext = new TestContext();
-
 				TWorldInterface.Loop(ecs, _OpenGLRenderSystem, ref argTestContext);
 				TWorldInterface.Loop(ecs, _System2);
 				TWorldInterface.Loop(ecs, _System3);
@@ -68,8 +66,6 @@ namespace Test
 				where TWorldInterface : IWorld<HengineEcs, System2>
 			{
 				
-				
-
 				TWorldInterface.Loop(ecs, _System2);
 
 				

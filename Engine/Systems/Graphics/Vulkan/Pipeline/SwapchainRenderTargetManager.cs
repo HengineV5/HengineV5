@@ -3,11 +3,11 @@ using EnCS;
 using Silk.NET.Vulkan.Video;
 using System.Buffers;
 using Silk.NET.SDL;
+using System.Runtime.CompilerServices;
 
 namespace Engine
 {
-    public struct SwapchainRenderTargetManager<TDescriptorSet> : IRenderTargetManager<SwapchainRenderTargetManager<TDescriptorSet>, TDescriptorSet, DefaultRenderPassInfo, DefaultPipelineInfo>
-		where TDescriptorSet : struct, IDescriptorSet<TDescriptorSet>
+	public struct SwapchainRenderTargetManager : IRenderTargetManager<SwapchainRenderTargetManager, DefaultRenderPassInfo, DefaultPipelineInfo>
 	{
         const int MAX_FRAMES_IN_FLIGHT = 3;
 
@@ -15,7 +15,7 @@ namespace Engine
 
 		Memory<ImageView> imageViews;
 		Memory<Framebuffer> frameBuffers;
-		Memory<FrameInFlight<TDescriptorSet>> framesInFlight;
+		Memory<FrameInFlight> framesInFlight;
 
 		int currentFrame;
 
@@ -25,9 +25,9 @@ namespace Engine
 			this.currentFrame = 0;
         }
 
-        public static RenderTarget<TDescriptorSet> AquireRenderTarget(VkContext context, ref SwapchainRenderTargetManager<TDescriptorSet> self)
+        public static RenderTarget AquireRenderTarget(VkContext context, ref SwapchainRenderTargetManager self)
         {
-            var renderTarget = new RenderTarget<TDescriptorSet>()
+            var renderTarget = new RenderTarget()
 			{
 				frame = self.framesInFlight.Span[self.currentFrame],
 			};
@@ -45,7 +45,7 @@ namespace Engine
             return renderTarget;
         }
 
-        public static bool PresentTarget(VkContext context, ref SwapchainRenderTargetManager<TDescriptorSet> self, ref RenderTarget<TDescriptorSet> renderTarget)
+        public static bool PresentTarget(VkContext context, ref SwapchainRenderTargetManager self, ref RenderTarget renderTarget)
         {
             var presentResult = VulkanHelper.QueuePresent(context, self.swapchain.GetPresentQueue(), self.swapchain.GetSwapchain(), renderTarget.imageIndex, renderTarget.frame.imageAvailable);
 			if (presentResult == Result.ErrorOutOfDateKhr || presentResult == Result.SuboptimalKhr)
@@ -61,30 +61,30 @@ namespace Engine
 			return true;
         }
 
-        public static DefaultPipelineInfo GetPipelineInfo(VkContext context, ref SwapchainRenderTargetManager<TDescriptorSet> self)
+        public static DefaultPipelineInfo GetPipelineInfo(VkContext context, ref SwapchainRenderTargetManager self)
         {
 			return new DefaultPipelineInfo(self.swapchain.GetExtent());
         }
 
-        public static DefaultRenderPassInfo GetRendePassInfo(VkContext context, ref SwapchainRenderTargetManager<TDescriptorSet> self)
+        public static DefaultRenderPassInfo GetRendePassInfo(VkContext context, ref SwapchainRenderTargetManager self)
         {
 			return new DefaultRenderPassInfo(self.swapchain.GetSurfaceFormat().Format, Swapchain.GetDepthFormat(context));
         }
 
-        public static Rect2D GetRenderArea(ref SwapchainRenderTargetManager<TDescriptorSet> self)
+        public static Rect2D GetRenderArea(ref SwapchainRenderTargetManager self)
         {
 			return new(new(), self.swapchain.GetExtent());
         }
 
-        public static SwapchainRenderTargetManager<TDescriptorSet> Create(VkContext context, CommandPool commandPool)
+        public static SwapchainRenderTargetManager Create(VkContext context, CommandPool commandPool)
         {
 			SurfaceKHR surface = CreateSurface(context);
 			Swapchain swapchain = Swapchain.Create(context, surface, commandPool);
 
-            return new SwapchainRenderTargetManager<TDescriptorSet>(swapchain);
+            return new SwapchainRenderTargetManager(swapchain);
         }
 
-		public static void Init(VkContext context, ref SwapchainRenderTargetManager<TDescriptorSet> self, RenderPass compatibleRenderPass, CommandPool commandPool)
+		public static void Init(VkContext context, ref SwapchainRenderTargetManager self, RenderPass compatibleRenderPass, CommandPool commandPool)
 		{
 			self.imageViews = new ImageView[self.swapchain.GetImageCount()];
 			self.swapchain.GetImages(context, self.imageViews.Span);
@@ -95,29 +95,19 @@ namespace Engine
 				self.frameBuffers.Span[i] = VulkanHelper.CreateFrameBuffer(context, [self.imageViews.Span[i], self.swapchain.GetDepthImage()], compatibleRenderPass, self.swapchain.GetExtent());
 			}
 
-			DescriptorPool descriptorPool = TDescriptorSet.GetPool(context, MAX_FRAMES_IN_FLIGHT * 16);
-
-			self.framesInFlight = new FrameInFlight<TDescriptorSet>[MAX_FRAMES_IN_FLIGHT];
+			self.framesInFlight = new FrameInFlight[MAX_FRAMES_IN_FLIGHT];
 			for (int i = 0; i < self.framesInFlight.Span.Length; i++)
 			{
-				FixedArray16<TDescriptorSet> descriptorSets = new FixedArray16<TDescriptorSet>();
-
-				for (int a = 0; a < 16; a++)
-				{
-					descriptorSets[a] = TDescriptorSet.Create(context, descriptorPool);
-				}
-
-				self.framesInFlight.Span[i] = new FrameInFlight<TDescriptorSet>(
+				self.framesInFlight.Span[i] = new FrameInFlight(
 					VulkanHelper.CreateSemaphore(context),
 					VulkanHelper.CreateSemaphore(context),
 					VulkanHelper.CreateFence(context, FenceCreateFlags.SignaledBit),
-					VulkanHelper.CreateCommandBuffer(context, commandPool),
-					descriptorSets
+					VulkanHelper.CreateCommandBuffer(context, commandPool)
 				);
 			}
 		}
 
-		public static unsafe void Dispose(VkContext context, ref SwapchainRenderTargetManager<TDescriptorSet> self, CommandPool commandPool)
+		public static unsafe void Dispose(VkContext context, ref SwapchainRenderTargetManager self, CommandPool commandPool)
 		{
 			self.swapchain.Dispose(context);
 
@@ -140,6 +130,25 @@ namespace Engine
 		static unsafe SurfaceKHR CreateSurface(VkContext context)
 		{
 			return context.window.VkSurface.Create<AllocationCallbacks>(context.instance.ToHandle(), null).ToSurface();
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static uint GetFramesInFlight()
+		 => MAX_FRAMES_IN_FLIGHT;
+
+		public static DescriptorSet GetDescriptorSet<TDescriptorContainer, TPipelineEnum>(TPipelineEnum layer, ref TDescriptorContainer descriptorContainer, uint idx, ref SwapchainRenderTargetManager self)
+			where TDescriptorContainer : struct, IDescriptorContainer<TDescriptorContainer, TPipelineEnum>
+			where TPipelineEnum : Enum
+		{
+			return TDescriptorContainer.GetDescriptorSet(layer, (uint)self.currentFrame, idx, ref descriptorContainer);
+		}
+
+		public static ref TUbo GetUbo<TUbo, TDescriptorContainer, TPipelineEnum>(uint idx, scoped ref SwapchainRenderTargetManager self)
+			where TUbo : struct, IUniformBufferObject<TUbo>
+			where TDescriptorContainer : struct, IDescriptorContainer<TDescriptorContainer, TPipelineEnum>
+			where TPipelineEnum : Enum
+		{
+			return ref TDescriptorContainer.GetUbo<TUbo>((uint)self.currentFrame, idx);
 		}
 
 		/*

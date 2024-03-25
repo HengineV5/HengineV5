@@ -32,7 +32,7 @@ namespace Engine
 		[SystemPreLoop, SystemLayer(0, 2)]
 		public void PreRenderPass()
 		{
-			renderContext.pipeline.StartRender(this.context);
+			//renderContext.pipeline.StartRender(this.context);
 			renderContext.pipeline.StartRenderPass(context, RenderPassId.Gui, PipelineContainerLayer.Gui);
 
 			bufferIdx = 0;
@@ -42,7 +42,7 @@ namespace Engine
 		[SystemUpdate, SystemLayer(0, 2)]
 		public void BufferUpdate(ref VulkanRenderContext context, Position.Ref position, Size.Ref size)
 		{
-			bufferIdx++;
+            bufferIdx++;
 		}
 
 		[SystemUpdate, SystemLayer(0, 2)]
@@ -55,7 +55,7 @@ namespace Engine
 		public void PostRenderPass()
 		{
 			renderContext.pipeline.EndRenderPass(context);
-			renderContext.pipeline.PresentRender(context);
+			//renderContext.pipeline.PresentRender(context);
 		}
 	}
 }

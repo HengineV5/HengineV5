@@ -26,12 +26,10 @@ namespace $namespace
 
 			}
 
-			public void Run<TWorldInterface>(ref EngineContext argEngineContext, $ecsName ecs)
+			public void Run<TWorldInterface>(ref EngineContext argEngineContext, $ecsName ecs$pipelineContextArguments~>, ref $argType arg$argType<~)
 				where TWorldInterface : $pipelineSystems~>IWorld<$ecsName, |$systemName|$systemContextArgs~>, $argType<~><~~>, <~
 			{
 				$pipelineSystems|$hasPreRun == true|~>_|$systemName|.PreRun();<~~>\n				<~
-
-				$pipelineContextArguments~>$argType arg$argType = new $argType();<~~>\n				<~
 
 				$pipelineSystems~>TWorldInterface.Loop(ecs, _|$systemName|$systemContextArgs~>, ref $argName<~);<~~>\n				<~
 

@@ -123,7 +123,7 @@ namespace Engine
 			colorAttachment.StoreOp = AttachmentStoreOp.Store;
 			colorAttachment.StencilLoadOp = AttachmentLoadOp.DontCare;
 			colorAttachment.StencilStoreOp = AttachmentStoreOp.DontCare;
-			colorAttachment.InitialLayout = ImageLayout.Undefined;
+			colorAttachment.InitialLayout = ImageLayout.PresentSrcKhr;
 			colorAttachment.FinalLayout = ImageLayout.PresentSrcKhr;
 
 			AttachmentDescription depthAttatchment = new();
@@ -133,7 +133,7 @@ namespace Engine
 			depthAttatchment.StoreOp = AttachmentStoreOp.None;
 			depthAttatchment.StencilLoadOp = AttachmentLoadOp.DontCare;
 			depthAttatchment.StencilStoreOp = AttachmentStoreOp.DontCare;
-			depthAttatchment.InitialLayout = ImageLayout.Undefined;
+			depthAttatchment.InitialLayout = ImageLayout.DepthStencilAttachmentOptimal;
 			depthAttatchment.FinalLayout = ImageLayout.DepthStencilAttachmentOptimal;
 
 			AttachmentReference colorAttachmentRef = new();

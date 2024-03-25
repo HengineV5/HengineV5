@@ -68,16 +68,16 @@ namespace Engine
 		{
 			UpdateEntityUbo(ref context.ubo, position, rotation, scale);
 
-			ref DefaultDescriptorSet set = ref renderContext.pipeline.GetDescriptor(this.context, bufferIdx);
-			set.shaderInput.ubo.Value = context.ubo;
+			ref PbrShaderInput shaderInput = ref renderContext.pipeline.GetUbo<PbrShaderInput>(bufferIdx);
+			shaderInput.ubo.Value = context.ubo;
 
-			set.shaderInput.material.Value = PbrMaterialInfo.FromMaterial(material);
+			shaderInput.material.Value = PbrMaterialInfo.FromMaterial(material);
 			for (int i = 0; i < 4; i++)
 			{
-				set.shaderInput.lights[i].Value = defaultLights[i];
+				shaderInput.lights[i].Value = defaultLights[i];
 			}
 
-			VulkanRenderHelpers.UpdateMeshDescriptorSet(this.context, set.descriptorSet, skyboxHdrTextureBuffer, material, context.skybox, renderContext.samplers);
+			VulkanRenderHelpers.UpdateMeshDescriptorSet(this.context, renderContext.pipeline.GetDescriptorSet(PipelineContainerLayer.Pbr, bufferIdx), skyboxHdrTextureBuffer, material, context.skybox, renderContext.samplers);
 
 			bufferIdx++;
 		}
@@ -85,7 +85,7 @@ namespace Engine
 		[SystemUpdate, SystemLayer(0, 2)]
 		public void RenderUpdate(ref VulkanRenderContext context, Position.Ref position, Rotation.Ref rotation, Scale.Ref scale, ref VkMeshBuffer mesh, ref VkPbrMaterial material)
 		{
-			renderContext.pipeline.Render(this.context, PipelineContainerLayer.Pbr, mesh.vertexBuffer, mesh.indexBuffer, mesh.indicies, updateIdx);
+            renderContext.pipeline.Render(this.context, PipelineContainerLayer.Pbr, mesh.vertexBuffer, mesh.indexBuffer, mesh.indicies, updateIdx);
 			updateIdx++;
 		}
 

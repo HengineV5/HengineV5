@@ -6,37 +6,34 @@ using Semaphore = Silk.NET.Vulkan.Semaphore;
 
 namespace Engine
 {
-    public struct FrameInFlight<TDescriptorSet>
-        where TDescriptorSet : struct, IDescriptorSet<TDescriptorSet>
+    public struct FrameInFlight
     {
         public Semaphore imageAvailable;
         public Semaphore renderFinished;
         public Fence inFlight;
         public CommandBuffer commandBuffer;
-        public FixedArray16<TDescriptorSet> descriptorData;
 
-        public FrameInFlight(Semaphore imageAvailable, Semaphore renderFinished, Fence inFlight, CommandBuffer commandBuffer, FixedArray16<TDescriptorSet> descriptorData)
+        public FrameInFlight(Semaphore imageAvailable, Semaphore renderFinished, Fence inFlight, CommandBuffer commandBuffer)
         {
             this.imageAvailable = imageAvailable;
             this.renderFinished = renderFinished;
             this.inFlight = inFlight;
             this.commandBuffer = commandBuffer;
-            this.descriptorData = descriptorData;
         }
     }
 
-    public struct RenderTarget<TDescriptorSet> where TDescriptorSet : struct, IDescriptorSet<TDescriptorSet>
+    public struct RenderTarget
     {
-        public FrameInFlight<TDescriptorSet> frame;
+        public FrameInFlight frame;
         public Framebuffer framebuffer;
         public uint imageIndex; // TODO: Remove
     }
 
-    public struct RenderPipeline<TRenderTargetManager, TRenderPassInfo, TPipelineInfo, TDescriptorSet, TPipelineContainer, TPipelineEnum, TRenderPassContainer, TRenderPassEnum>
-		where TRenderTargetManager : struct, IRenderTargetManager<TRenderTargetManager, TDescriptorSet, TRenderPassInfo, TPipelineInfo>
+    public struct RenderPipeline<TRenderTargetManager, TRenderPassInfo, TPipelineInfo, TDescriptorContainer, TPipelineContainer, TPipelineEnum, TRenderPassContainer, TRenderPassEnum>
+		where TRenderTargetManager : struct, IRenderTargetManager<TRenderTargetManager, TRenderPassInfo, TPipelineInfo>
 		where TRenderPassInfo : struct
 		where TPipelineInfo : struct
-		where TDescriptorSet : struct, IDescriptorSet<TDescriptorSet>
+		where TDescriptorContainer : struct, IDescriptorContainer<TDescriptorContainer, TPipelineEnum>
 		where TPipelineContainer : IPipelineContainer<TPipelineContainer, TPipelineInfo, TPipelineEnum>
 		where TRenderPassContainer : IRenderPassContainer<TRenderPassContainer, TRenderPassInfo, TRenderPassEnum>
 		where TPipelineEnum : Enum
@@ -47,17 +44,19 @@ namespace Engine
         CommandPool commandPool;
 		Queue graphicsQueue;
 
-        TPipelineContainer pipelines;
+        TDescriptorContainer descriptorSets;
+		TPipelineContainer pipelines;
         TRenderPassContainer renderPasses;
 
 		ClearColorValue clearColor;
-		RenderTarget<TDescriptorSet> renderTarget;
+		RenderTarget renderTarget;
 
-        public RenderPipeline(Queue graphicsQueue, CommandPool commandPool, TRenderTargetManager renderTargetManager, TPipelineContainer layers, TRenderPassContainer renderPasses)
+        public RenderPipeline(Queue graphicsQueue, CommandPool commandPool, TRenderTargetManager renderTargetManager, TDescriptorContainer descriptorSets, TPipelineContainer layers, TRenderPassContainer renderPasses)
         {
 			this.graphicsQueue = graphicsQueue;
             this.commandPool = commandPool;
             this.renderTargetManager = renderTargetManager;
+            this.descriptorSets = descriptorSets;
             this.pipelines = layers;
             this.renderPasses = renderPasses;
 
@@ -88,7 +87,8 @@ namespace Engine
 
         public unsafe void Render(VkContext context, TPipelineEnum pipeline, Buffer vertexBuffer, Buffer indexBuffer, uint indicies, int idx)
         {
-            context.vk.CmdBindDescriptorSets(renderTarget.frame.commandBuffer, PipelineBindPoint.Graphics, TPipelineContainer.GetLayout(pipeline, ref pipelines), 0, 1, TDescriptorSet.GetDescriptorSet(ref renderTarget.frame.descriptorData[idx]), 0, null);
+            //context.vk.CmdBindDescriptorSets(renderTarget.frame.commandBuffer, PipelineBindPoint.Graphics, TPipelineContainer.GetLayout(pipeline, ref pipelines), 0, 1, TDescriptorSet.GetDescriptorSet(ref renderTarget.frame.descriptorData[idx]), 0, null);
+            context.vk.CmdBindDescriptorSets(renderTarget.frame.commandBuffer, PipelineBindPoint.Graphics, TPipelineContainer.GetLayout(pipeline, ref pipelines), 0, 1, TRenderTargetManager.GetDescriptorSet(pipeline, ref descriptorSets, (uint)idx, ref renderTargetManager), 0, null);
 
             context.vk.CmdBindVertexBuffers(renderTarget.frame.commandBuffer, 0, [vertexBuffer], [0]);
             context.vk.CmdBindIndexBuffer(renderTarget.frame.commandBuffer, indexBuffer, 0, IndexType.Uint16);
@@ -119,7 +119,7 @@ namespace Engine
 				renderPasses = TRenderPassContainer.Create(context, TRenderTargetManager.GetRendePassInfo(context, ref renderTargetManager));
 
 				RenderPass compatibleRenderPass = TRenderPassContainer.GetCompatibleRenderPass(ref renderPasses);
-				pipelines = TPipelineContainer.Create(context, TDescriptorSet.GetLayout(context), TRenderPassContainer.GetCompatibleRenderPass(ref renderPasses), TRenderTargetManager.GetPipelineInfo(context, ref renderTargetManager));
+				pipelines = TPipelineContainer.Create<TDescriptorContainer>(context, TRenderPassContainer.GetCompatibleRenderPass(ref renderPasses), TRenderTargetManager.GetPipelineInfo(context, ref renderTargetManager));
 
 				TRenderTargetManager.Init(context, ref renderTargetManager, compatibleRenderPass, commandPool);
 			}
@@ -144,25 +144,31 @@ namespace Engine
             context.vk.CmdClearAttachments(renderTarget.frame.commandBuffer, [clearInfo], [clearArea]);
         }
 
-        // TODO: Improve
-        public unsafe ref TDescriptorSet GetDescriptor(VkContext context, int idx)
+        public ref TUbo GetUbo<TUbo>(int idx)
+            where TUbo : struct, IUniformBufferObject<TUbo>
         {
-			return ref renderTarget.frame.descriptorData[idx];
+            return ref TRenderTargetManager.GetUbo<TUbo, TDescriptorContainer, TPipelineEnum>((uint)idx, ref renderTargetManager);
         }
 
-        public static RenderPipeline<TRenderTargetManager, TRenderPassInfo, TPipelineInfo, TDescriptorSet, TPipelineContainer, TPipelineEnum, TRenderPassContainer, TRenderPassEnum> Create(VkContext context, CommandPool commandPool)
+        public DescriptorSet GetDescriptorSet(TPipelineEnum pipeline, int idx)
+        {
+            return TRenderTargetManager.GetDescriptorSet(pipeline, ref descriptorSets, (uint)idx, ref renderTargetManager);
+		}
+
+        public static RenderPipeline<TRenderTargetManager, TRenderPassInfo, TPipelineInfo, TDescriptorContainer, TPipelineContainer, TPipelineEnum, TRenderPassContainer, TRenderPassEnum> Create(VkContext context, CommandPool commandPool)
 		{
             uint graphicsQueueFamily = VulkanHelper.GetGraphicsQueueFamily(context);
             Queue graphicsQueue = VulkanHelper.GetQueue(context, graphicsQueueFamily);
 
+            var descriptorSets = TDescriptorContainer.Create<TRenderTargetManager, TRenderPassInfo, TPipelineInfo>(context);
 			var renderTargetManager = TRenderTargetManager.Create(context, commandPool);
             var renderPassContainer = TRenderPassContainer.Create(context, TRenderTargetManager.GetRendePassInfo(context, ref renderTargetManager));
 
             RenderPass compatibleRenderPass = TRenderPassContainer.GetCompatibleRenderPass(ref renderPassContainer);
-            var pipelineContainer = TPipelineContainer.Create(context, TDescriptorSet.GetLayout(context), TRenderPassContainer.GetCompatibleRenderPass(ref renderPassContainer), TRenderTargetManager.GetPipelineInfo(context, ref renderTargetManager));
+            var pipelineContainer = TPipelineContainer.Create<TDescriptorContainer>(context, TRenderPassContainer.GetCompatibleRenderPass(ref renderPassContainer), TRenderTargetManager.GetPipelineInfo(context, ref renderTargetManager));
 
             TRenderTargetManager.Init(context, ref renderTargetManager, compatibleRenderPass, commandPool);
-			return new(graphicsQueue, commandPool, renderTargetManager, pipelineContainer, renderPassContainer);
+			return new(graphicsQueue, commandPool, renderTargetManager, descriptorSets, pipelineContainer, renderPassContainer);
         }
 
         unsafe void BeginRenderCommand(VkContext context, CommandBuffer commandBuffer, RenderPass renderPass, Framebuffer framebuffer, ClearColorValue clearColor, Rect2D renderArea)

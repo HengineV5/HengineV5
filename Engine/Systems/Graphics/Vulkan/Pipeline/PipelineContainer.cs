@@ -24,9 +24,10 @@ namespace Engine
             this.guiLayer = guiLayer;
         }
 
-        public static PipelineContainer Create(VkContext context, DescriptorSetLayout descriptorSetLayout, RenderPass compatibleRenderPass, in DefaultPipelineInfo info)
+        public static PipelineContainer Create<TDescriptorContainer>(VkContext context, RenderPass compatibleRenderPass, in DefaultPipelineInfo info)
+			where TDescriptorContainer : struct, IDescriptorContainer<TDescriptorContainer, PipelineContainerLayer>
 		{
-			var pipelineLayout = CreatePipelineLayout(context, descriptorSetLayout);
+			var pipelineLayout = CreatePipelineLayout(context, TDescriptorContainer.GetDescriptorSetLayout(context, PipelineContainerLayer.Pbr));
 
             var skyboxShader = Shader.FromFiles("Shaders/Skybox/SkyboxVert.spv", "Shaders/Skybox/SkyboxFrag.spv");
 			var skyboxPipeline = RenderLayer.CreateSkybox(context, skyboxShader, pipelineLayout, info.extent, compatibleRenderPass);

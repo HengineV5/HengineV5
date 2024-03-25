@@ -86,10 +86,13 @@ namespace Test
 				engineContext.dt = sw.ElapsedMilliseconds / 1000f;
 				sw.Restart();
 
+				TestContext argTestContext = new TestContext();
+
 				{ // Ecs.Main.Interface
+					_GraphicsPipeline.Run<Ecs.Main.Interface>(ref engineContext, ecs, ref argTestContext);
 					_PhysicsPipeline.Run<Ecs.Main.Interface>(ref engineContext, ecs);
 				}{ // Ecs.World2.Interface
-					_GraphicsPipeline.Run<Ecs.World2.Interface>(ref engineContext, ecs);
+					_GraphicsPipeline.Run<Ecs.World2.Interface>(ref engineContext, ecs, ref argTestContext);
 				}
 
 				if (ShouldExit())
