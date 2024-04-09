@@ -38,12 +38,13 @@ namespace Engine
 
 	public struct VulkanRenderContext
 	{
-		public UniformBufferObject ubo;
+		public PbrUniformBufferObject pbrUbo;
+		public GuiUniformBufferObject guiUbo;
 		public VkSkybox skybox;
 
         public VulkanRenderContext()
         {
-			this.ubo = new UniformBufferObject();
+			this.pbrUbo = new PbrUniformBufferObject();
         }
     }
 

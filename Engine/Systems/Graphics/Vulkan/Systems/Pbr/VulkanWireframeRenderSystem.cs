@@ -56,10 +56,10 @@ namespace Engine
 		{
 			if (wireframeEnabled)
 			{
-				UpdateEntityUbo(ref context.ubo, position, rotation, scale);
+				UpdateEntityUbo(ref context.pbrUbo, position, rotation, scale);
 
 				ref PbrShaderInput shaderInput = ref renderContext.pipeline.GetUbo<PbrShaderInput>(bufferIdx);
-				shaderInput.ubo.Value = context.ubo;
+				shaderInput.ubo.Value = context.pbrUbo;
 			}
 
 
@@ -81,7 +81,7 @@ namespace Engine
 				renderContext.pipeline.EndRenderPass(context);
 		}
 
-		static void UpdateEntityUbo(ref UniformBufferObject ubo, Position.Ref position, Rotation.Ref rotation, Scale.Ref scale)
+		static void UpdateEntityUbo(ref PbrUniformBufferObject ubo, Position.Ref position, Rotation.Ref rotation, Scale.Ref scale)
 		{
 			ubo.translation = Matrix4x4.CreateTranslation(new Vector3(position.x, position.y, position.z));
 			ubo.rotation = Matrix4x4.CreateFromQuaternion(new Quaternion(rotation.x, rotation.y, rotation.z, rotation.w));

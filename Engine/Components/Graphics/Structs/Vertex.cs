@@ -23,12 +23,12 @@ namespace Engine.Graphics
 
 	public struct GuiVertex
 	{
-		public static readonly uint SizeInBytes = sizeof(float) * 5; // Byte size of vertex
+		public static readonly uint SizeInBytes = sizeof(float) * 6; // Byte size of vertex
 
-		public Vector3 position;
+		public Vector4 position;
 		public Vector2 textureCoordinate;
 
-		public GuiVertex(Vector3 position, Vector2 textureCoordinate)
+		public GuiVertex(Vector4 position, Vector2 textureCoordinate)
 		{
 			this.position = position;
 			this.textureCoordinate = textureCoordinate;

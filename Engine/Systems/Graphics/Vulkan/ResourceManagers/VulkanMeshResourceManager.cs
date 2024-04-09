@@ -48,7 +48,7 @@ namespace Engine.Graphics
 			return idx++;
 		}
 
-		// TODO: Make private
+		// TODO: Make private, -1
 		public static VkMeshBuffer CreateMeshBuffer(VkContext context, Graphics.Mesh mesh)
 		{
 			// Convert mesh data to correct format
@@ -81,6 +81,40 @@ namespace Engine.Graphics
 
 			VulkanHelper.CopyToBuffer(context, stagingBuffer, stagingBufferMemory, indicies.Span);
 			VulkanHelper.CopyBuffer(context, commandPool, graphicsQueue, stagingBuffer, meshBuffer.indexBuffer, (uint)indicies.Span.Length * sizeof(ushort));
+
+			unsafe
+			{
+				context.vk.DestroyBuffer(context.device, stagingBuffer, null);
+				context.vk.FreeMemory(context.device, stagingBufferMemory, null);
+				context.vk.DestroyCommandPool(context.device, commandPool, null);
+			}
+
+			return meshBuffer;
+		}
+
+		public static VkMeshBuffer CreateGuiMeshBuffer(VkContext context, Span<GuiVertex> verticies, Span<ushort> indicies)
+		{
+			// TODO: Move command pool to context, bad to create for each mesh creating call
+			uint graphicsQueueFamily = VulkanHelper.GetGraphicsQueueFamily(context);
+			Queue graphicsQueue = VulkanHelper.GetQueue(context, graphicsQueueFamily);
+			CommandPool commandPool = VulkanHelper.CreateCommandPool(context, graphicsQueueFamily);
+
+			VkMeshBuffer meshBuffer = new VkMeshBuffer();
+			meshBuffer.indicies = (uint)indicies.Length;
+
+			meshBuffer.vertexBuffer = VulkanHelper.CreateBuffer<Vertex>(context, BufferUsageFlags.TransferDstBit | BufferUsageFlags.VertexBufferBit, (uint)verticies.Length);
+			meshBuffer.vertexBufferMemory = VulkanHelper.CreateBufferMemory(context, meshBuffer.vertexBuffer, MemoryPropertyFlags.DeviceLocalBit);
+			meshBuffer.indexBuffer = VulkanHelper.CreateBuffer<ushort>(context, BufferUsageFlags.TransferDstBit | BufferUsageFlags.IndexBufferBit, (uint)indicies.Length);
+			meshBuffer.indexBufferMemory = VulkanHelper.CreateBufferMemory(context, meshBuffer.indexBuffer, MemoryPropertyFlags.DeviceLocalBit);
+
+			Buffer stagingBuffer = VulkanHelper.CreateBuffer<Vertex>(context, BufferUsageFlags.TransferSrcBit, (uint)verticies.Length);
+			DeviceMemory stagingBufferMemory = VulkanHelper.CreateBufferMemory(context, stagingBuffer, MemoryPropertyFlags.HostVisibleBit | MemoryPropertyFlags.HostCoherentBit);
+
+			VulkanHelper.CopyToBuffer(context, stagingBuffer, stagingBufferMemory, verticies);
+			VulkanHelper.CopyBuffer(context, commandPool, graphicsQueue, stagingBuffer, meshBuffer.vertexBuffer, (uint)verticies.Length * GuiVertex.SizeInBytes);
+
+			VulkanHelper.CopyToBuffer(context, stagingBuffer, stagingBufferMemory, indicies);
+			VulkanHelper.CopyBuffer(context, commandPool, graphicsQueue, stagingBuffer, meshBuffer.indexBuffer, (uint)indicies.Length * sizeof(ushort));
 
 			unsafe
 			{

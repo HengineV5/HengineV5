@@ -27,19 +27,20 @@ namespace Engine
         public static PipelineContainer Create<TDescriptorContainer>(VkContext context, RenderPass compatibleRenderPass, in DefaultPipelineInfo info)
 			where TDescriptorContainer : struct, IDescriptorContainer<TDescriptorContainer, PipelineContainerLayer>
 		{
-			var pipelineLayout = CreatePipelineLayout(context, TDescriptorContainer.GetDescriptorSetLayout(context, PipelineContainerLayer.Pbr));
+			var pbrDescriptorLayout = CreatePipelineLayout(context, TDescriptorContainer.GetDescriptorSetLayout(context, PipelineContainerLayer.Pbr));
+			var guiDescriptorLayout = CreatePipelineLayout(context, TDescriptorContainer.GetDescriptorSetLayout(context, PipelineContainerLayer.Gui));
 
             var skyboxShader = Shader.FromFiles("Shaders/Skybox/SkyboxVert.spv", "Shaders/Skybox/SkyboxFrag.spv");
-			var skyboxPipeline = RenderLayer.CreateSkybox(context, skyboxShader, pipelineLayout, info.extent, compatibleRenderPass);
+			var skyboxPipeline = RenderLayer.CreateSkybox(context, skyboxShader, pbrDescriptorLayout, info.extent, compatibleRenderPass);
 
             var pbrShader = Shader.FromFiles("Shaders/Pbr/PbrVert.spv", "Shaders/Pbr/PbrFrag.spv");
-            var pbrPipeline = RenderLayer.CreatePbr(context, pbrShader, pipelineLayout, info.extent, compatibleRenderPass);
+            var pbrPipeline = RenderLayer.CreatePbr(context, pbrShader, pbrDescriptorLayout, info.extent, compatibleRenderPass);
 
 			var wireframeShader = Shader.FromFiles("Shaders/Pbr/PbrVert.spv", "Shaders/Pbr/BlackFrag.spv");
-			var wireframePipeline = RenderLayer.CreateWireframe(context, wireframeShader, pipelineLayout, info.extent, compatibleRenderPass);
+			var wireframePipeline = RenderLayer.CreateWireframe(context, wireframeShader, pbrDescriptorLayout, info.extent, compatibleRenderPass);
 
             var guiShader = Shader.FromFiles("Shaders/Gui/GuiVert.spv", "Shaders/Gui/GuiFrag.spv");
-            var guiPipeline = RenderLayer.CreateGui(context, guiShader, pipelineLayout, info.extent, compatibleRenderPass);
+            var guiPipeline = RenderLayer.CreateGui(context, guiShader, guiDescriptorLayout, info.extent, compatibleRenderPass);
 
 			return new PipelineContainer(skyboxPipeline, pbrPipeline, wireframePipeline, guiPipeline);
 		}
@@ -142,7 +143,7 @@ namespace Engine
         public static RenderLayer CreatePbr(VkContext context, Shader shader, PipelineLayout layout, Extent2D extent, RenderPass compatibleRenderPass)
         {
             var pipeline = new GraphicsPipelineBuilder()
-                .WithVertexInput(GetBindingDescription(), GetAttributeDescription())
+                .WithVertexInput(GetPbrBindingDescription(), GetPbrAttributeDescription())
                 .WithInputAssembly()
                 .WithViewport(extent)
                 .WithRasterization(PolygonMode.Fill, CullModeFlags.BackBit, 1)
@@ -158,7 +159,7 @@ namespace Engine
         public static RenderLayer CreateSkybox(VkContext context, Shader shader, PipelineLayout layout, Extent2D extent, RenderPass compatibleRenderPass)
         {
 			var pipeline = new GraphicsPipelineBuilder()
-				.WithVertexInput(GetBindingDescription(), GetAttributeDescription())
+				.WithVertexInput(GetPbrBindingDescription(), GetPbrAttributeDescription())
 				.WithInputAssembly()
 				.WithViewport(extent)
 				.WithRasterization(PolygonMode.Fill, CullModeFlags.FrontBit, 1)
@@ -174,7 +175,7 @@ namespace Engine
         public static RenderLayer CreateWireframe(VkContext context, Shader shader, PipelineLayout layout, Extent2D extent, RenderPass compatibleRenderPass)
         {
 			var pipeline = new GraphicsPipelineBuilder()
-				.WithVertexInput(GetBindingDescription(), GetAttributeDescription())
+				.WithVertexInput(GetPbrBindingDescription(), GetPbrAttributeDescription())
 				.WithInputAssembly()
 				.WithViewport(extent)
 				.WithRasterization(PolygonMode.Line, CullModeFlags.None, 1)
@@ -195,7 +196,7 @@ namespace Engine
 				.WithViewport(extent)
 				.WithRasterization(PolygonMode.Fill, CullModeFlags.BackBit, 1)
 				.WithMultisample()
-				.WithDepthStencil(true)
+				.WithDepthStencil(false)
 				.WithColorBlend()
 				.WithDynamicState()
 				.Build(context, layout, compatibleRenderPass, shader);
@@ -203,7 +204,7 @@ namespace Engine
 			return new RenderLayer(shader, pipeline, layout);
 		}
 
-		static VertexInputBindingDescription GetBindingDescription()
+		static VertexInputBindingDescription GetPbrBindingDescription()
 		{
 			VertexInputBindingDescription description = new();
 			description.Binding = 0;
@@ -213,7 +214,7 @@ namespace Engine
 			return description;
 		}
 
-		static Memory<VertexInputAttributeDescription> GetAttributeDescription()
+		static Memory<VertexInputAttributeDescription> GetPbrAttributeDescription()
 		{
 			Memory<VertexInputAttributeDescription> description = new VertexInputAttributeDescription[4];
 			// Vertex Position
@@ -259,14 +260,14 @@ namespace Engine
 			// Vertex Position
 			description.Span[0].Binding = 0;
 			description.Span[0].Location = 0;
-			description.Span[0].Format = Format.R32G32B32Sfloat;
+			description.Span[0].Format = Format.R32G32B32A32Sfloat;
 			description.Span[0].Offset = 0;
 
 			// Vertex UV
 			description.Span[1].Binding = 0;
 			description.Span[1].Location = 1;
-			description.Span[1].Format = Format.R32G32B32Sfloat;
-			description.Span[1].Offset = sizeof(float) * 3;
+			description.Span[1].Format = Format.R32G32Sfloat;
+			description.Span[1].Offset = sizeof(float) * 4;
 
 			return description;
 		}
