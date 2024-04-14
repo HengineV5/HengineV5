@@ -70,6 +70,7 @@ namespace Engine
 	public struct GuiShaderInput : IUniformBufferObject<GuiShaderInput>
 	{
 		public MappedMemory<GuiUniformBufferObject> ubo;
+		public MappedMemory<GuiStateBufferObject> guiState;
 
 		public unsafe static DescriptorSet Create(VkContext context, DescriptorPool descriptorPool)
 		{
@@ -100,9 +101,11 @@ namespace Engine
 
 			// TODO: Convert this builder to source generator
 			var uniformBufferBuilder = new UniformBufferBuilder(descriptorSet, uniformBuffer)
-						.Variable<PbrUniformBufferObject>(0);
+						.Variable<GuiUniformBufferObject>(0)
+						.Variable<GuiStateBufferObject>(2);
 
 			shaderInput.ubo = uniformBufferBuilder.GetElement<GuiUniformBufferObject>(dataPtr, 0);
+			shaderInput.guiState = uniformBufferBuilder.GetElement<GuiStateBufferObject>(dataPtr, 1);
 
             uniformBufferBuilder.UpdateDescriptorSet(context);
 			return shaderInput;
@@ -112,6 +115,8 @@ namespace Engine
 		{
 			return new DescriptorSetLayoutBuilder()
 				.Uniform(ShaderStageFlags.VertexBit, 1)         // UBO
+				.Samplers(ShaderStageFlags.FragmentBit, 1, 1)   // UI Atlas map
+				.Uniform(ShaderStageFlags.FragmentBit, 1)       // GUI State
 				.Build(context);
 		}
 	}

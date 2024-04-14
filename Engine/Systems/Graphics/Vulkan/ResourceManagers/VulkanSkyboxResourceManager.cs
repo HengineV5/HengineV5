@@ -4,7 +4,7 @@ using Silk.NET.Vulkan;
 
 namespace Engine.Graphics
 {
-    public struct VkSkybox
+	public struct VkSkybox
     {
         public VkTextureBuffer skybox;
         public VkTextureBuffer irradiance;

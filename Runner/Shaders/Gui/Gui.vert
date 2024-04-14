@@ -11,16 +11,19 @@ layout(location = 1) out vec3 v_pos;
 layout(binding = 0) uniform UniformBufferObject {
     mat4 proj;
     vec2 screenSize;
+
+    vec4 position;
+    vec4 size;
 } u_Ubo;
 
 vec2 size = vec2(1024, 1024);
 
 void main() {
-    vec2 sizeToPercent = vec2(size.x / u_Ubo.screenSize.x, size.y / u_Ubo.screenSize.y);
-    
-    vec2 guiPos = vec2((position.x / size.x) * sizeToPercent.x + position.y, (position.z / size.y) * sizeToPercent.y + position.w);
+    vec2 relativePosition = vec2(position.x * u_Ubo.size.x + u_Ubo.position.x + position.y, position.z * u_Ubo.size.z + u_Ubo.position.z + position.w);
 
-    vec2 screenPos = guiPos * 2 - 1;
+    vec2 guiPos = relativePosition / u_Ubo.screenSize + vec2(position.x * u_Ubo.size.y, position.z * u_Ubo.size.w);
+
+    vec2 screenPos = guiPos * 2 - 1; // Convert from [0-1] -> [-1, 1]
     vec3 worldPos = vec3(screenPos, 1.0);
     //worldPos.y = -worldPos.y;
     worldPos.z = -worldPos.z;
@@ -29,5 +32,7 @@ void main() {
     gl_Position = pos;
 
     v_pos = vec3(0.0, 0.0, 0.0);
-    v_texCoord = vec2(pos.xy);
+
+    vec2 screenTexCoor = guiPos * u_Ubo.screenSize;
+    v_texCoord = vec2(texCoord);
 }

@@ -1,6 +1,6 @@
 ﻿namespace Engine.Graphics
 {
-    public struct Skybox
+	public struct Skybox
     {
         public string name;
 

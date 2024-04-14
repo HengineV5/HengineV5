@@ -3,6 +3,8 @@ using Engine.Graphics;
 using Engine.Parsing;
 using System.Net;
 using System.Numerics;
+using System.Runtime.InteropServices;
+using System.Runtime.Serialization;
 using static Engine.HengineEcs;
 
 namespace Runner
@@ -13,6 +15,18 @@ namespace Runner
 
 		static void Main(string[] args)
 		{
+			unsafe
+			{
+				GuiUniformBufferObject gubo = new();
+				byte* addr = (byte*)&gubo;
+
+				Console.WriteLine("Size:      {0}", sizeof(GuiUniformBufferObject));
+				Console.WriteLine("Proj Offset: {0}", (byte*)&gubo.proj - addr);
+				Console.WriteLine("Screen Offset: {0}", (byte*)&gubo.screenSize - addr);
+				Console.WriteLine("Position Offset: {0}", (byte*)&gubo.position - addr);
+				Console.WriteLine("Size Offset: {0}", (byte*)&gubo.size - addr);
+            }
+
 			ImageFormatSetup.HdrSetup();
 
 			var engineConfig = new EngineConfig()
@@ -93,7 +107,9 @@ namespace Runner
 				cam.Camera.Set(camera);
 			};
 
-			overlayWorld.CreateGuiElement(Vector3.Zero, new Engine.Components.Size(10, 10));
+			var buttonAtlas = TextureAtlas.LoadAtlas("ButtonAtlas", 3, "Images/Gui/Button/Button.png");
+
+			overlayWorld.CreateGuiElement(new(10, 0, 10, 0), new(150 * 4, 0, 50 * 4, 0), buttonAtlas);
 
 			TestWorld.Load(mainWorld);
 			//MapWorld.Load(mainWorld);

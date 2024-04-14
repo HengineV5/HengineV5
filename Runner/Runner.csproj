@@ -6,6 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
 	<PublishAot>true</PublishAot>
+	<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>
@@ -14,6 +15,9 @@
 
   <ItemGroup>
     <None Update="Images\AlbedoMap.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Images\Gui\Button\Button.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Images\Hakon.png">
@@ -634,6 +638,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Images\Gui\Button\" />
     <Folder Include="Models\Plane\" />
     <Folder Include="Models\Sponza\" />
     <Folder Include="Shaders\Gui\" />

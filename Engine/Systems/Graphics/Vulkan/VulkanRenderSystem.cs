@@ -230,6 +230,16 @@ namespace Engine
 
 	static class VulkanRenderHelpers
 	{
+		public static unsafe void UpdateGuiDescriptorSet(VkContext context, DescriptorSet descriptorSet, VkTextureBuffer textureMap, Sampler sampler)
+		{
+			Span<DescriptorImageInfo> infos = stackalloc DescriptorImageInfo[1];
+			Span<WriteDescriptorSet> descriptorWrites = stackalloc WriteDescriptorSet[1];
+
+			CreateDescriptorWrite(ref infos[0], ref descriptorWrites[0], 1, textureMap, sampler, descriptorSet);
+
+			context.vk.UpdateDescriptorSets(context.device, descriptorWrites, 0, null);
+		}
+
 		public static unsafe void UpdateMeshDescriptorSet(VkContext context, DescriptorSet descriptorSet, VkTextureBuffer texture, VkPbrMaterial material, VkSkybox skybox, Span<Sampler> samplers)
 		{
 			Span<DescriptorImageInfo> infos = stackalloc DescriptorImageInfo[9];

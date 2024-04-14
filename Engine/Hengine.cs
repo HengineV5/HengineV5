@@ -64,7 +64,7 @@ namespace Engine
 					x.ArchType<Position, Rotation, Scale, HexCell, Mesh, PbrMaterial, Networked>("Hex");
 					x.ArchType<Position, Rotation, Camera, Skybox, Networked>("Cam");
 					x.ArchType<Position, Rotation, Scale, GizmoComp>("Gizmo");
-					x.ArchType<Position, Size>("GuiElement");
+					x.ArchType<GuiPosition, GuiSize, TextureAtlas>("GuiElement");
 				})
 				.System(x =>
 				{
@@ -94,6 +94,7 @@ namespace Engine
 					x.ResourceManager<VulkanTextureResourceManager>();
 					x.ResourceManager<VulkanMaterialResourceManager>();
 					x.ResourceManager<VulkanSkyboxResourceManager>();
+					x.ResourceManager<VulkanTextureAtlasResourceManager>();
 
 					//x.ResourceManager<OpenGLMeshResourceManager>();
 					//x.ResourceManager<OpenGLTextureResourceManager>();
@@ -131,10 +132,11 @@ namespace Engine
 					x.ResourceManager<VulkanTextureResourceManager>();
                     x.ResourceManager<VulkanMaterialResourceManager>();
                     x.ResourceManager<VulkanSkyboxResourceManager>();
+					x.ResourceManager<VulkanTextureAtlasResourceManager>();
 
-                    //x.ResourceManager<OpenGLMeshResourceManager>();
-                    //x.ResourceManager<OpenGLTextureResourceManager>();
-                })
+					//x.ResourceManager<OpenGLMeshResourceManager>();
+					//x.ResourceManager<OpenGLTextureResourceManager>();
+				})
 				.Layout(x =>
 				{
 					x.Pipeline("Camera", x =>
