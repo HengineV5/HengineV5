@@ -2,13 +2,15 @@
 using EnCS.Attributes;
 using Engine.Components;
 using Engine.Graphics;
+using Engine.Parsing;
 using Silk.NET.Vulkan;
 using Silk.NET.Windowing;
 using System.Numerics;
 
 namespace Engine
 {
-	[System<VulkanRenderContext>]
+	[System]
+	[SystemContext<VulkanRenderContext>]
 	[UsingResource<VulkanTextureAtlasResourceManager>]
 	public partial class VulkanGuiRenderSystem
 	{
@@ -18,7 +20,7 @@ namespace Engine
 		VkContext context;
 		VkRenderContext renderContext;
 
-		VkMeshBuffer meshBuffer;
+		VkMeshBuffer boxBuffer;
 		Sampler sampler;
 
 		public VulkanGuiRenderSystem(VkContext context, VkRenderContext renderContext, IWindow window, IInputHandler inputHandler)
@@ -33,105 +35,8 @@ namespace Engine
 		{
 			sampler = VulkanHelper.CreateSampler(context, 5);
 
-			float borderSize = 20;
-
-			Memory<GuiVertex> verticies = new GuiVertex[16];
-			verticies.Span[0] = new(new(0, 0, 0, 0),			new Vector2(0, 0));
-			verticies.Span[1] = new(new(0, 0, 0, borderSize),	new Vector2(0, 0.33f));
-
-			verticies.Span[2] = new(new(0, 0, 1, -borderSize),	new Vector2(0, 0.66f));
-			verticies.Span[3] = new(new(0, 0, 1, 0),			new Vector2(0, 1));
-			verticies.Span[4] = new(new(0, borderSize, 1, 0),	new Vector2(0.33f, 1));
-
-			verticies.Span[5] = new(new(1, -borderSize, 1, 0),	new Vector2(0.77f, 1));
-			verticies.Span[6] = new(new(1, 0, 1, 0),			new Vector2(1, 1));
-			verticies.Span[7] = new(new(1, 0, 1, -borderSize),	new Vector2(1, 0.77f));
-
-			verticies.Span[8] = new(new(1, 0, 0, borderSize),	new Vector2(1, 0.33f));
-			verticies.Span[9] = new(new(1, 0, 0, 0),			new Vector2(1, 0));
-			verticies.Span[10] = new(new(1, -borderSize, 0, 0), new Vector2(0.77f, 0));
-
-			verticies.Span[11] = new(new(0, borderSize, 0, 0),	new Vector2(0.33f, 0));
-
-			verticies.Span[12] = new(new(0, borderSize, 0, borderSize), new Vector2(0.33f, 0.33f));
-			verticies.Span[13] = new(new(0, borderSize, 1, -borderSize), new Vector2(0.33f, 0.66f));
-			verticies.Span[14] = new(new(1, -borderSize, 1, -borderSize), new Vector2(0.66f, 0.66f));
-			verticies.Span[15] = new(new(1, -borderSize, 0, borderSize), new Vector2(0.66f, 0.33f));
-
-			Memory<ushort> indicies = new ushort[54];
-			indicies.Span[0] = 0;
-			indicies.Span[1] = 1;
-			indicies.Span[2] = 12;
-
-			indicies.Span[3] = 0;
-			indicies.Span[4] = 12;
-			indicies.Span[5] = 11;
-
-			indicies.Span[6] = 1;
-			indicies.Span[7] = 2;
-			indicies.Span[8] = 13;
-
-			indicies.Span[9] = 1;
-			indicies.Span[10] = 13;
-			indicies.Span[11] = 12;
-
-			indicies.Span[12] = 2;
-			indicies.Span[13] = 3;
-			indicies.Span[14] = 4;
-
-			indicies.Span[15] = 2;
-			indicies.Span[16] = 4;
-			indicies.Span[17] = 13;
-
-			indicies.Span[18] = 13;
-			indicies.Span[19] = 4;
-			indicies.Span[20] = 5;
-
-			indicies.Span[21] = 13;
-			indicies.Span[22] = 5;
-			indicies.Span[23] = 14;
-
-			indicies.Span[24] = 14;
-			indicies.Span[25] = 5;
-			indicies.Span[26] = 6;
-
-			indicies.Span[27] = 14;
-			indicies.Span[28] = 6;
-			indicies.Span[29] = 7;
-
-			indicies.Span[30] = 14;
-			indicies.Span[31] = 7;
-			indicies.Span[32] = 8;
-
-			indicies.Span[33] = 14;
-			indicies.Span[34] = 8;
-			indicies.Span[35] = 15;
-
-			indicies.Span[36] = 15;
-			indicies.Span[37] = 8;
-			indicies.Span[38] = 9;
-
-			indicies.Span[39] = 15;
-			indicies.Span[40] = 9;
-			indicies.Span[41] = 10;
-
-			indicies.Span[42] = 15;
-			indicies.Span[43] = 10;
-			indicies.Span[44] = 11;
-
-			indicies.Span[45] = 15;
-			indicies.Span[46] = 11;
-			indicies.Span[47] = 12;
-
-			indicies.Span[48] = 12;
-			indicies.Span[49] = 14;
-			indicies.Span[50] = 15;
-
-			indicies.Span[51] = 12;
-			indicies.Span[52] = 13;
-			indicies.Span[53] = 14;
-
-			meshBuffer = VulkanMeshResourceManager.CreateGuiMeshBuffer(context, verticies.Span, indicies.Span);
+			var boxMesh = GuiMeshes.Glyph;
+			boxBuffer = VulkanMeshResourceManager.CreateGuiMeshBuffer(context, boxMesh.verticies, boxMesh.indicies);
 		}
 
 		// TODO: Refactor out
@@ -150,7 +55,7 @@ namespace Engine
 		}
 
 		[SystemUpdate, SystemLayer(0, 2)]
-		public void BufferUpdate(ref VulkanRenderContext context, GuiPosition.Ref position, GuiSize.Ref size, ref VkTextureAtlas textureAtlas)
+		public void BufferUpdate(ref VulkanRenderContext context, GuiProperties.Ref properties, GuiPosition.Ref position, GuiSize.Ref size, ref VkTextureAtlas textureAtlas)
 		{
             ref GuiShaderInput shaderInput = ref renderContext.pipeline.GetUbo<GuiShaderInput>(bufferIdx);
 			shaderInput.ubo.Value = context.guiUbo;
@@ -180,9 +85,17 @@ namespace Engine
 		}
 
 		[SystemUpdate, SystemLayer(0, 2)]
-		public void RenderUpdate(ref VulkanRenderContext context, GuiPosition.Ref position, GuiSize.Ref size, ref VkTextureAtlas textureAtlas)
+		public void RenderUpdate(ref VulkanRenderContext context, GuiProperties.Ref properties, GuiPosition.Ref position, GuiSize.Ref size, ref VkTextureAtlas textureAtlas)
 		{
-			renderContext.pipeline.Render(this.context, PipelineContainerLayer.Gui, meshBuffer.vertexBuffer, meshBuffer.indexBuffer, meshBuffer.indicies, updateIdx);
+			switch(properties.shape)
+			{
+				case GuiShape.Box:
+					RenderMesh(boxBuffer);
+					break;
+				default:
+					throw new Exception("Shape not supported");
+			}
+
 			updateIdx++;
 		}
 
@@ -191,5 +104,170 @@ namespace Engine
 		{
 			renderContext.pipeline.EndRenderPass(context);
 		}
+
+		void RenderMesh(VkMeshBuffer meshBuffer)
+		{
+			renderContext.pipeline.Render(this.context, PipelineContainerLayer.Gui, meshBuffer.vertexBuffer, meshBuffer.indexBuffer, meshBuffer.indicies, updateIdx);
+		}
+	}
+
+	public static class GuiMeshes
+	{
+		public static GuiMesh Box => BoxMesh();
+
+		public static GuiMesh Glyph => GlyphMesh();
+
+		static GuiMesh BoxMesh()
+		{
+			float borderSize = 1;
+
+			GuiVertex[] verticies = new GuiVertex[16];
+			verticies[0] = new(new(0, 0, 0, 0), new Vector2(0, 0));
+			verticies[1] = new(new(0, 0, 0, borderSize), new Vector2(0, 0.33f));
+
+			verticies[2] = new(new(0, 0, 1, -borderSize), new Vector2(0, 0.66f));
+			verticies[3] = new(new(0, 0, 1, 0), new Vector2(0, 1));
+			verticies[4] = new(new(0, borderSize, 1, 0), new Vector2(0.33f, 1));
+
+			verticies[5] = new(new(1, -borderSize, 1, 0), new Vector2(0.77f, 1));
+			verticies[6] = new(new(1, 0, 1, 0), new Vector2(1, 1));
+			verticies[7] = new(new(1, 0, 1, -borderSize), new Vector2(1, 0.77f));
+
+			verticies[8] = new(new(1, 0, 0, borderSize), new Vector2(1, 0.33f));
+			verticies[9] = new(new(1, 0, 0, 0), new Vector2(1, 0));
+			verticies[10] = new(new(1, -borderSize, 0, 0), new Vector2(0.77f, 0));
+
+			verticies[11] = new(new(0, borderSize, 0, 0), new Vector2(0.33f, 0));
+
+			verticies[12] = new(new(0, borderSize, 0, borderSize), new Vector2(0.33f, 0.33f));
+			verticies[13] = new(new(0, borderSize, 1, -borderSize), new Vector2(0.33f, 0.66f));
+			verticies[14] = new(new(1, -borderSize, 1, -borderSize), new Vector2(0.66f, 0.66f));
+			verticies[15] = new(new(1, -borderSize, 0, borderSize), new Vector2(0.66f, 0.33f));
+
+			ushort[] indicies = new ushort[54];
+			indicies[0] = 0;
+			indicies[1] = 1;
+			indicies[2] = 12;
+
+			indicies[3] = 0;
+			indicies[4] = 12;
+			indicies[5] = 11;
+
+			indicies[6] = 1;
+			indicies[7] = 2;
+			indicies[8] = 13;
+
+			indicies[9] = 1;
+			indicies[10] = 13;
+			indicies[11] = 12;
+
+			indicies[12] = 2;
+			indicies[13] = 3;
+			indicies[14] = 4;
+
+			indicies[15] = 2;
+			indicies[16] = 4;
+			indicies[17] = 13;
+
+			indicies[18] = 13;
+			indicies[19] = 4;
+			indicies[20] = 5;
+
+			indicies[21] = 13;
+			indicies[22] = 5;
+			indicies[23] = 14;
+
+			indicies[24] = 14;
+			indicies[25] = 5;
+			indicies[26] = 6;
+
+			indicies[27] = 14;
+			indicies[28] = 6;
+			indicies[29] = 7;
+
+			indicies[30] = 14;
+			indicies[31] = 7;
+			indicies[32] = 8;
+
+			indicies[33] = 14;
+			indicies[34] = 8;
+			indicies[35] = 15;
+
+			indicies[36] = 15;
+			indicies[37] = 8;
+			indicies[38] = 9;
+
+			indicies[39] = 15;
+			indicies[40] = 9;
+			indicies[41] = 10;
+
+			indicies[42] = 15;
+			indicies[43] = 10;
+			indicies[44] = 11;
+
+			indicies[45] = 15;
+			indicies[46] = 11;
+			indicies[47] = 12;
+
+			indicies[48] = 12;
+			indicies[49] = 14;
+			indicies[50] = 15;
+
+			indicies[51] = 12;
+			indicies[52] = 13;
+			indicies[53] = 14;
+
+			return new GuiMesh()
+			{
+				verticies = verticies,
+				indicies = indicies
+			};
+		}
+
+		static GuiMesh GlyphMesh()
+		{
+			var font = TtfLoader.LoadFont("Fonts/arial.ttf");
+
+			var g = font.GetGlyphIndex('H');
+			Vector2[] coords = new Vector2[g.xCoords.Length];
+			Vector2 delta = new Vector2(g.glyphDescription.xMax - g.glyphDescription.xMin, g.glyphDescription.yMax - g.glyphDescription.yMin);
+			for (int i = 0; i < coords.Length; i++)
+			{
+				coords[i] = new Vector2(g.xCoords[i] / delta.X, g.yCoords[i] / delta.Y);
+				Console.WriteLine(coords[i]);
+            }
+
+			var indicies = Triangulation.Triangulate(coords.AsSpan().Slice(0, g.endPtsOfContours[0]));
+			/*
+			for (int i = 0; i < indicies.Length; i++)
+			{
+				if (i != 0 && i % 3 == 0)
+					Console.WriteLine();
+
+				Console.WriteLine(indicies.Span[i]);
+			}
+			*/
+
+			GuiMesh guiMesh = new GuiMesh();
+			guiMesh.verticies = coords.Select(x => new GuiVertex(new Vector4(x.X, 0, x.Y, 0), Vector2.Zero)).ToArray();
+			guiMesh.indicies = indicies.Span.ToArray().Select(x => (ushort)x).ToArray();
+
+			return guiMesh;
+		}
+
+		/*
+		static GuiMesh CircleMesh()
+		{
+			GuiVertex[] verticies = new GuiVertex[32];
+
+			float stepSize = MathF.PI * 2 / verticies.Length;	
+            for (int i = 0; i < verticies.Length; i++)
+            {
+				verticies[i] = new GuiVertex(new(0, MathF.Cos(i * stepSize), 0, MathF.Sin(i * stepSize)), new(0.5f, 0.5f));
+            }
+
+
+        }
+		*/
 	}
 }

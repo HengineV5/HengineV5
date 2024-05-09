@@ -1,4 +1,5 @@
-﻿using Engine;
+﻿using CommunityToolkit.HighPerformance;
+using Engine;
 using Engine.Graphics;
 using Engine.Parsing;
 using System.Net;
@@ -15,6 +16,7 @@ namespace Runner
 
 		static void Main(string[] args)
 		{
+			/*
 			unsafe
 			{
 				GuiUniformBufferObject gubo = new();
@@ -26,6 +28,7 @@ namespace Runner
 				Console.WriteLine("Position Offset: {0}", (byte*)&gubo.position - addr);
 				Console.WriteLine("Size Offset: {0}", (byte*)&gubo.size - addr);
             }
+			*/
 
 			ImageFormatSetup.HdrSetup();
 
@@ -86,7 +89,6 @@ namespace Runner
 			//var meshDuck = Mesh.LoadGltf("Duck", "Models/Duck/Duck.gltf", true);
 			//var materialDuck = PbrMaterial.LoadGltf("Duck", "Models/Duck/Duck.gltf");
 
-            Console.WriteLine(engineConfig.idx);
             //mainWorld.CreateObject(new(3, 0, -10), Vector3.One, meshDuck, materialDuck, engineConfig.idx == 10 ? 11 : 10);
 			camRef = mainWorld.CreateCamera(camera, Vector3.Zero, skybox, engineConfig.idx);
 
@@ -107,11 +109,41 @@ namespace Runner
 				cam.Camera.Set(camera);
 			};
 
-			var buttonAtlas = TextureAtlas.LoadAtlas("ButtonAtlas", 3, "Images/Gui/Button/Button.png");
+			var font = TtfLoader.LoadFont("Fonts/arial.ttf");
+
+            var buttonAtlas = TextureAtlas.LoadAtlas("ButtonAtlas", 3, "Images/Gui/Button/Button.png");
 
 			overlayWorld.CreateGuiElement(new(10, 0, 10, 0), new(150 * 4, 0, 50 * 4, 0), buttonAtlas);
 
-			TestWorld.Load(mainWorld);
+			/*
+			string str = "AaEeCc";
+
+            for (int a = 0; a < str.Length; a++)
+            {
+				//var glyph = font.glyphData[a];
+				var glyph = font.GetGlyphIndex(str[a]);
+				Vector2 pos = new Vector2(50, 50) + Vector2.UnitX * a * 100;
+
+                Console.WriteLine($"{str[a]}");
+				for (int i = 0; i < glyph.endPtsOfContours.Length; i++)
+				{
+                    Console.WriteLine($"	{glyph.endPtsOfContours[i]}");
+                }
+
+                for (int i = 0; i < glyph.xCoords.Length; i++)
+				{
+					//Console.WriteLine($"X: {glyph.xCoords[i]}, Y: {glyph.yCoords[i]}");
+					// Invert Y axis as Vulkan y points down.
+					Vector2 xy = new Vector2(glyph.glyphDescription.xMax - glyph.xCoords[i], glyph.glyphDescription.yMax - glyph.yCoords[i]);
+					xy /= 20f;
+					xy += pos;
+
+					overlayWorld.CreateGuiElement(new(xy.X, 0, xy.Y, 0), new(5, 0, 5, 0), buttonAtlas);
+				}
+			}
+			*/
+
+            TestWorld.Load(mainWorld);
 			//MapWorld.Load(mainWorld);
 
 			engine.Start();

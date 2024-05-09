@@ -133,4 +133,10 @@ namespace Engine.Graphics
 			return mesh;
 		}
 	}
+
+	public struct GuiMesh
+	{
+		public ushort[] indicies;
+		public GuiVertex[] verticies;
+	}
 }

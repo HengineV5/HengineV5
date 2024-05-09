@@ -11,7 +11,8 @@ using System.Threading.Tasks;
 
 namespace Engine
 {
-	[System<EngineContext>]
+	[System]
+	[SystemContext<EngineContext>]
 	public partial class ServerSystem
 	{
 		IServer server;

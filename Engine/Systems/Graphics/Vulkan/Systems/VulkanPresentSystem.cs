@@ -4,7 +4,8 @@ using Silk.NET.Windowing;
 
 namespace Engine
 {
-	[System<VulkanRenderContext>]
+	[System]
+	[SystemContext<VulkanRenderContext>]
 	public partial class VulkanPresentSystem
 	{
 		IWindow window;

@@ -9,13 +9,74 @@ using TemplateGenerator;
 
 namespace Engine.Generator
 {
-	class PipelineGenerator : ITemplateSourceGenerator<IdentifierNameSyntax>
+	struct PipelineGeneratorData : IEquatable<PipelineGeneratorData>
+	{
+		public string ecsName;
+		public string engineName;
+		public string ns;
+		public Location location;
+
+		public EquatableArray<Pipeline> pipelines;
+		public EquatableArray<FileUsing> usings;
+
+		public PipelineGeneratorData(string ecsName, string engineName, string ns, Location location, EquatableArray<Pipeline> pipelines, EquatableArray<FileUsing> usings)
+		{
+			this.ecsName = ecsName;
+			this.engineName = engineName;
+			this.ns = ns;
+			this.location = location;
+			this.pipelines = pipelines;
+			this.usings = usings;
+		}
+
+		public bool Equals(PipelineGeneratorData other)
+		{
+			return pipelines.Equals(other.pipelines);
+		}
+	}
+
+	class PipelineGenerator : ITemplateSourceGenerator<IdentifierNameSyntax, PipelineGeneratorData>
 	{
 		public string Template => ResourceReader.GetResource("Pipeline.tcs");
 
-		public bool TryCreateModel(Compilation compilation, IdentifierNameSyntax node, out Model<ReturnType> model, out List<Diagnostic> diagnostics)
+		public bool TryCreateModel(PipelineGeneratorData data, out Model<ReturnType> model, out List<Diagnostic> diagnostics)
 		{
 			diagnostics = new List<Diagnostic>();
+			/*
+			var builderRoot = EngineGenerator.GetBuilderRoot(node);
+
+			var builderSteps = builderRoot.DescendantNodes()
+				.Where(x => x is MemberAccessExpressionSyntax)
+				.Cast<MemberAccessExpressionSyntax>();
+
+			var layoutStep = builderSteps.Single(x => x.Name.Identifier.Text == "Layout");
+			*/
+
+			model = new Model<ReturnType>();
+			model.Set("namespace".AsSpan(), Parameter.Create(data.ns));
+			model.Set("engineName".AsSpan(), Parameter.Create(data.engineName));
+			model.Set("ecsName".AsSpan(), Parameter.Create(data.ecsName));
+
+			//var usings = EngineGenerator.GetUsings(node);
+			model.Set("usings".AsSpan(), Parameter.CreateEnum<IModel<ReturnType>>(data.usings.Select(x => x.GetModel())));
+
+			//var pipelineSuccess = TryGetPipelines(compilation, layoutStep, out List<Pipeline> pipelines);
+			model.Set("pipelines".AsSpan(), Parameter.CreateEnum<IModel<ReturnType>>(data.pipelines.Select(x => x.GetModel())));
+
+			return true;
+		}
+
+		public PipelineGeneratorData? Filter(IdentifierNameSyntax node, SemanticModel semanticModel)
+		{
+			if (node?.Parent is ClassDeclarationSyntax)
+				return null;
+
+			if (node?.Parent is MethodDeclarationSyntax)
+				return null;
+
+			if (node.Identifier.Text != "HengineBuilder")
+				return null;
+
 			var builderRoot = EngineGenerator.GetBuilderRoot(node);
 
 			var builderSteps = builderRoot.DescendantNodes()
@@ -24,37 +85,21 @@ namespace Engine.Generator
 
 			var layoutStep = builderSteps.Single(x => x.Name.Identifier.Text == "Layout");
 
-			model = new Model<ReturnType>();
-			model.Set("namespace".AsSpan(), Parameter.Create(node.GetNamespace()));
-			model.Set("engineName".AsSpan(), Parameter.Create(EngineGenerator.GetEngineName(node)));
-			model.Set("ecsName".AsSpan(), Parameter.Create(EngineGenerator.GetEcsName(node)));
+			if (!TryGetPipelines(semanticModel, layoutStep, out List<Pipeline> pipelines))
+				return null;
 
 			var usings = EngineGenerator.GetUsings(node);
-			model.Set("usings".AsSpan(), Parameter.CreateEnum<IModel<ReturnType>>(usings.Select(x => x.GetModel())));
 
-			var pipelineSuccess = TryGetPipelines(compilation, layoutStep, out List<Pipeline> pipelines);
-			model.Set("pipelines".AsSpan(), Parameter.CreateEnum<IModel<ReturnType>>(pipelines.Select(x => x.GetModel())));
-
-			return pipelineSuccess;
+			return new PipelineGeneratorData(EngineGenerator.GetEcsName(node), EngineGenerator.GetEngineName(node), builderRoot.GetNamespace(), builderRoot.GetLocation(), new(pipelines.ToArray()), new(usings.ToArray()));
 		}
 
-		public bool Filter(IdentifierNameSyntax node)
-		{
-			if (node?.Parent is ClassDeclarationSyntax)
-				return false;
+		public string GetName(PipelineGeneratorData data)
+			=> $"{data.engineName}_Pipeline";
 
-			if (node?.Parent is MethodDeclarationSyntax)
-				return false;
+		public Location GetLocation(PipelineGeneratorData data)
+			=> data.location;
 
-			return node.Identifier.Text == "HengineBuilder";
-		}
-
-		public string GetName(IdentifierNameSyntax node)
-		{
-			return $"{EngineGenerator.GetEngineName(node)}_Pipeline";
-		}
-
-		public static bool TryGetPipelines(Compilation compilation, MemberAccessExpressionSyntax step, out List<Pipeline> pipelines)
+		public static bool TryGetPipelines(SemanticModel semanticModel, MemberAccessExpressionSyntax step, out List<Pipeline> pipelines)
 		{
 			pipelines = new();
 
@@ -81,21 +126,21 @@ namespace Engine.Generator
 				if (nameArgument.Expression is not LiteralExpressionSyntax nameExpression)
 					continue;
 
-				if (!TryGetPipelineSystems(compilation, layoutLambda.Expression as SimpleLambdaExpressionSyntax, out List<PipelineSystem> systems))
+				if (!TryGetPipelineSystems(semanticModel, layoutLambda.Expression as SimpleLambdaExpressionSyntax, out List<PipelineSystem> systems))
 					continue;
 
 				pipelines.Add(new Pipeline()
 				{
 					name = nameExpression.Token.Value.ToString(),
-					systems = systems,
-					contextArguments = systems.SelectMany(x => x.contextArguments).Where(x => x.type != "EngineContext").GroupBy(x => x.type).Select(x => x.First()).ToList()
+					systems = new(systems.ToArray()),
+					contextArguments = new(systems.SelectMany(x => x.contextArguments).Where(x => x.type != "EngineContext").GroupBy(x => x.type).Select(x => x.First()).ToArray())
 				});
 			}
 
 			return pipelines.Count > 0;
 		}
 
-		static bool TryGetPipelineSystems(Compilation compilation, SimpleLambdaExpressionSyntax lambda, out List<PipelineSystem> pipelineSystems)
+		static bool TryGetPipelineSystems(SemanticModel semanticModel, SimpleLambdaExpressionSyntax lambda, out List<PipelineSystem> pipelineSystems)
 		{
 			pipelineSystems = new();
 
@@ -114,25 +159,26 @@ namespace Engine.Generator
 					continue;
 
 				var systemName = genericName.TypeArgumentList.Arguments.First() as IdentifierNameSyntax;
-				var nodes = compilation.SyntaxTrees.SelectMany(x => x.GetRoot().DescendantNodesAndSelf());
 
-				var systemClass = nodes.FindNode<ClassDeclarationSyntax>(x => x.Identifier.Text == systemName.Identifier.Text);
+				var foundSymbol = semanticModel.Compilation.GetSymbolsWithName(systemName.Identifier.ToFullString(), SymbolFilter.Type).Single();
+				if (foundSymbol is not INamedTypeSymbol typeSymbol)
+					throw new Exception();
 
-				var methods = systemClass.Members.Where(x => x is MethodDeclarationSyntax).Cast<MethodDeclarationSyntax>();
+				var methods = typeSymbol.GetMembers().Where(x => x is IMethodSymbol).Cast<IMethodSymbol>();
 
-				bool hasInit = methods.Any(x => x.Identifier.Text == "Init");
-				bool hasDispose = methods.Any(x => x.Identifier.Text == "Dispose");
-				bool hasPreRun = methods.Any(x => x.Identifier.Text == "PreRun");
-				bool hasPostRun = methods.Any(x => x.Identifier.Text == "PostRun");
+				bool hasInit = methods.Any(x => x.Name == "Init");
+				bool hasDispose = methods.Any(x => x.Name == "Dispose");
+				bool hasPreRun = methods.Any(x => x.Name == "PreRun");
+				bool hasPostRun = methods.Any(x => x.Name == "PostRun");
 
-				if (!TryGetSystemContexts(systemClass, new List<Diagnostic>(), out List<SystemArgument> contextArguments))
+				if (!TryGetSystemContexts(typeSymbol, new List<Diagnostic>(), out List<SystemArgument> contextArguments))
 					continue;
 
 				pipelineSystems.Add(new PipelineSystem()
 				{
 					name = systemName.Identifier.Text,
-					arguments = GetSystemConstructorArguments(systemClass),
-					contextArguments = contextArguments,
+					arguments = new(GetSystemConstructorArguments(typeSymbol).ToArray()),
+					contextArguments = new(contextArguments.ToArray()),
 					hasInit = hasInit,
 					hasDispose = hasDispose,
 					hasPreRun = hasPreRun,
@@ -143,56 +189,67 @@ namespace Engine.Generator
 			return pipelineSystems.Count > 0;
 		}
 
-		static List<SystemArgument> GetSystemConstructorArguments(ClassDeclarationSyntax system)
+		static List<SystemArgument> GetSystemConstructorArguments(INamedTypeSymbol system)
 		{
 			List<SystemArgument> args = new();
 
-			var constructor = system.Members.Where(x => x is ConstructorDeclarationSyntax).Cast<ConstructorDeclarationSyntax>().FirstOrDefault();
-			if (constructor is null)
+			if (system.Constructors.Length == 0)
 				return args;
 
-			var constructorArguments = constructor.ParameterList.Parameters;
+			var constructor = system.Constructors[0];
 
-			foreach (var arg in constructorArguments)
+			foreach (var arg in constructor.Parameters)
 			{
-				var argName = (arg.Type as IdentifierNameSyntax).Identifier.Text;
 				args.Add(new SystemArgument()
 				{
-					type = argName
+					type = arg.Type.Name
 				});
 			}
 
 			return args;
 		}
 
-		static bool TryGetSystemContexts(ClassDeclarationSyntax node, List<Diagnostic> diagnostics, out List<SystemArgument> contexts)
+		static bool TryGetSystemContexts(INamedTypeSymbol node, List<Diagnostic> diagnostics, out List<SystemArgument> contexts)
 		{
-			var attribute = node.AttributeLists.SelectMany(x => x.Attributes).First(x => x.Name.GetName() == "System" || x.Name.GetName() == "SystemAttribute");
 			contexts = new List<SystemArgument>();
 
-			if (attribute.Name is not GenericNameSyntax g)
-				return true;
-
-			foreach (TypeSyntax type in g.TypeArgumentList.Arguments)
+			foreach (var attribute in node.GetAttributes())
 			{
-				if (type is not IdentifierNameSyntax i)
+				var attribName = attribute.AttributeClass.Name;
+				if (attribName != "SystemContext" && attribName != "SystemContextAttribute") // TODO: Might not need reduncancy check for shorform
 					continue;
 
-				contexts.Add(new SystemArgument()
+				if (attribute.AttributeClass is null)
+					continue;
+
+				if (attribute.AttributeClass.TypeArguments.Length == 0)
+					continue;
+
+				foreach (var type in attribute.AttributeClass.TypeArguments)
 				{
-					type = i.Identifier.Text
-				});
+					contexts.Add(new SystemArgument()
+					{
+						type = type.Name
+					});
+				}
 			}
 
 			return true;
 		}
 	}
 
-	struct Pipeline
+	struct Pipeline : IEquatable<Pipeline>
 	{
 		public string name;
-		public List<PipelineSystem> systems;
-		public List<SystemArgument> contextArguments;
+		public EquatableArray<PipelineSystem> systems;
+		public EquatableArray<SystemArgument> contextArguments;
+
+        public Pipeline()
+        {
+			name = "";
+			systems = EquatableArray<PipelineSystem>.Empty;
+			contextArguments = EquatableArray<SystemArgument>.Empty;
+		}
 
 		public Model<ReturnType> GetModel()
 		{
@@ -207,18 +264,32 @@ namespace Engine.Generator
 
 			return model;
 		}
+
+		public bool Equals(Pipeline other)
+		{
+			return name.Equals(other.name) &&
+				systems.Equals(other.systems) &&
+				contextArguments.Equals(other.contextArguments);
+		}
 	}
 
-	struct PipelineSystem
+	struct PipelineSystem : IEquatable<PipelineSystem>
 	{
 		public string name;
-		public List<SystemArgument> arguments;
-		public List<SystemArgument> contextArguments;
+		public EquatableArray<SystemArgument> arguments;
+		public EquatableArray<SystemArgument> contextArguments;
 
 		public bool hasInit;
 		public bool hasDispose;
 		public bool hasPreRun;
 		public bool hasPostRun;
+
+        public PipelineSystem()
+        {
+			name = "";
+			arguments = EquatableArray<SystemArgument>.Empty;
+			contextArguments = EquatableArray<SystemArgument>.Empty;
+		}
 
 		public Model<ReturnType> GetModel()
 		{
@@ -234,11 +305,27 @@ namespace Engine.Generator
 
 			return model;
 		}
+
+		public bool Equals(PipelineSystem other)
+		{
+			return name.Equals(other.name) &&
+				arguments.Equals(other.arguments) &&
+				contextArguments.Equals(other.contextArguments) &&
+				hasInit.Equals(other.hasInit) &&
+				hasDispose.Equals(other.hasDispose) &&
+				hasPreRun.Equals(other.hasPreRun) &&
+				hasPostRun.Equals(other.hasPostRun);
+		}
 	}
 
-	struct SystemArgument
+	struct SystemArgument : IEquatable<SystemArgument>
 	{
 		public string type;
+
+        public SystemArgument()
+        {
+			type = "";
+        }
 
 		public Model<ReturnType> GetModel()
 		{
@@ -248,6 +335,11 @@ namespace Engine.Generator
 			model.Set("argType".AsSpan(), Parameter.Create(type));
 
 			return model;
+		}
+
+		public bool Equals(SystemArgument other)
+		{
+			return type.Equals(other.type);
 		}
 	}
 }

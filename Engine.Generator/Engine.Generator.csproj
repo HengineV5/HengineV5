@@ -8,7 +8,7 @@
 		<!-- Nuget -->
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<PackageId>Engine.Generator</PackageId>
-		<Version>0.0.34</Version>
+		<Version>0.0.37</Version>
 		
 		<!-- We don't want to reference the source generator dll directly in consuming projects -->
 		<IncludeBuildOutput>false</IncludeBuildOutput>
@@ -34,7 +34,7 @@
 	<ItemGroup>
 		<PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.4" Pack="true" PrivateAssets="all" />
 		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.6.0" Pack="true" PrivateAssets="all" />
-		<PackageReference Include="TemplateGen" Version="1.0.58" Pack="true" GeneratePathProperty="true" />
+		<PackageReference Include="TemplateGen" Version="1.0.63" Pack="true" GeneratePathProperty="true" />
 	</ItemGroup>
 
 	<Target Name="GetDependencyTargetPaths" AfterTargets="ResolvePackageDependenciesForBuild">

@@ -64,7 +64,7 @@ namespace Engine
 					x.ArchType<Position, Rotation, Scale, HexCell, Mesh, PbrMaterial, Networked>("Hex");
 					x.ArchType<Position, Rotation, Camera, Skybox, Networked>("Cam");
 					x.ArchType<Position, Rotation, Scale, GizmoComp>("Gizmo");
-					x.ArchType<GuiPosition, GuiSize, TextureAtlas>("GuiElement");
+					x.ArchType<GuiProperties, GuiPosition, GuiSize, TextureAtlas>("GuiElement");
 				})
 				.System(x =>
 				{

@@ -9,13 +9,75 @@ using TemplateGenerator;
 
 namespace Engine.Generator
 {
-	class EngineGenerator : ITemplateSourceGenerator<IdentifierNameSyntax>
+	struct EngineGeneratorData : IEquatable<EngineGeneratorData>
+	{
+		public string ecsName;
+		public string engineName;
+		public string ns;
+		public Location location;
+
+		public EcsEngine engine;
+		public EquatableArray<FileUsing> usings;
+
+		public EngineGeneratorData(string ecsName, string engineName, string ns, Location location, EcsEngine engine, EquatableArray<FileUsing> usings)
+		{
+			this.ecsName = ecsName;
+			this.engineName = engineName;
+			this.ns = ns;
+			this.location = location;
+			this.engine = engine;
+			this.usings = usings;
+		}
+
+		public bool Equals(EngineGeneratorData other)
+		{
+			return engine.Equals(other.engine);
+		}
+	}
+
+	class EngineGenerator : ITemplateSourceGenerator<IdentifierNameSyntax, EngineGeneratorData>
 	{
 		public string Template => ResourceReader.GetResource("Engine.tcs");
 
-		public bool TryCreateModel(Compilation compilation, IdentifierNameSyntax node, out Model<ReturnType> model, out List<Diagnostic> diagnostics)
+		public bool TryCreateModel(EngineGeneratorData data, out Model<ReturnType> model, out List<Diagnostic> diagnostics)
 		{
 			diagnostics = new List<Diagnostic>();
+
+			model = new Model<ReturnType>();
+			model.Set("namespace".AsSpan(), Parameter.Create(data.ns));
+			model.Set("engineName".AsSpan(), Parameter.Create(data.engineName));
+			model.Set("ecsName".AsSpan(), Parameter.Create(data.ecsName));
+
+			model.Set("usings".AsSpan(), Parameter.CreateEnum<IModel<ReturnType>>(data.usings.Select(x => x.GetModel())));
+
+			model.Set("resourceManagers".AsSpan(), Parameter.CreateEnum<IModel<ReturnType>>(data.engine.resourceManagers.Select(x => x.GetModel())));
+			model.Set("pipelines".AsSpan(), Parameter.CreateEnum<IModel<ReturnType>>(data.engine.pipelines.Select(x => x.GetModel())));
+			model.Set("worlds".AsSpan(), Parameter.CreateEnum<IModel<ReturnType>>(data.engine.worlds.Select(x => x.GetModel())));
+			model.Set("config".AsSpan(), Parameter.CreateEnum<IModel<ReturnType>>(data.engine.configSteps.Select(x => x.GetModel())));
+
+			var uniqueSetupArgs = data.engine.setupSteps.SelectMany(x => x.nonConfigArgumentTypes).GroupBy(x => x.type).Select(x => x.First());
+			var uniqueContextArgs = data.engine.pipelines.SelectMany(x => x.contextArguments).GroupBy(x => x.type).Select(x => x.First());
+			var uniqueSystemArgs = data.engine.pipelines.SelectMany(x => x.systems).SelectMany(x => x.arguments).GroupBy(x => x.type).Select(x => x.First());
+			var uniqueArgs = uniqueSystemArgs.Concat(uniqueSetupArgs.Select(x => new SystemArgument() { type = x.type })).GroupBy(x => x.type).Select(x => x.First());
+
+			model.Set("uniqueArgs".AsSpan(), Parameter.CreateEnum<IModel<ReturnType>>(uniqueArgs.Select(x => x.GetModel())));
+			model.Set("uniqueContextArgs".AsSpan(), Parameter.CreateEnum<IModel<ReturnType>>(uniqueContextArgs.Select(x => x.GetModel())));
+			model.Set("setup".AsSpan(), Parameter.CreateEnum<IModel<ReturnType>>(data.engine.setupSteps.Select(x => x.GetModel(uniqueSystemArgs, uniqueSetupArgs))));
+
+			return true;
+		}
+
+		public EngineGeneratorData? Filter(IdentifierNameSyntax node, SemanticModel semanticModel)
+		{
+			if (node?.Parent is ClassDeclarationSyntax)
+				return null;
+
+			if (node?.Parent is MethodDeclarationSyntax)
+				return null;
+
+			if (node.Identifier.Text != "HengineBuilder")
+				return null;
+
 			var builderRoot = GetBuilderRoot(node);
 
 			var builderSteps = builderRoot.DescendantNodes()
@@ -26,48 +88,19 @@ namespace Engine.Generator
 			var configStep = builderSteps.Single(x => x.Name.Identifier.Text == "Config");
 			var resourceStep = builderSteps.Single(x => x.Name.Identifier.Text == "Resource");
 
-			model = new Model<ReturnType>();
-			model.Set("namespace".AsSpan(), Parameter.Create(node.GetNamespace()));
-			model.Set("engineName".AsSpan(), Parameter.Create(GetEngineName(node)));
-			model.Set("ecsName".AsSpan(), Parameter.Create(GetEcsName(node)));
+			if (!TryGetEngine(semanticModel, layoutStep, configStep, resourceStep, out EcsEngine engine))
+				return null;
 
 			var usings = GetUsings(node);
-			model.Set("usings".AsSpan(), Parameter.CreateEnum<IModel<ReturnType>>(usings.Select(x => x.GetModel())));
 
-			var engineSuccess = TryGetEngine(compilation, layoutStep, configStep, resourceStep, out EcsEngine engine);
-
-			model.Set("resourceManagers".AsSpan(), Parameter.CreateEnum<IModel<ReturnType>>(engine.resourceManagers.Select(x => x.GetModel())));
-			model.Set("pipelines".AsSpan(), Parameter.CreateEnum<IModel<ReturnType>>(engine.pipelines.Select(x => x.GetModel())));
-			model.Set("worlds".AsSpan(), Parameter.CreateEnum<IModel<ReturnType>>(engine.worlds.Select(x => x.GetModel())));
-			model.Set("config".AsSpan(), Parameter.CreateEnum<IModel<ReturnType>>(engine.configSteps.Select(x => x.GetModel())));
-
-			var uniqueSetupArgs = engine.setupSteps.SelectMany(x => x.nonConfigArgumentTypes).GroupBy(x => x.type).Select(x => x.First());
-			var uniqueContextArgs = engine.pipelines.SelectMany(x => x.contextArguments).GroupBy(x => x.type).Select(x => x.First());
-			var uniqueSystemArgs = engine.pipelines.SelectMany(x => x.systems).SelectMany(x => x.arguments).GroupBy(x => x.type).Select(x => x.First());
-			var uniqueArgs = uniqueSystemArgs.Concat(uniqueSetupArgs.Select(x => new SystemArgument() { type = x.type })).GroupBy(x => x.type).Select(x => x.First());
-
-			model.Set("uniqueArgs".AsSpan(), Parameter.CreateEnum<IModel<ReturnType>>(uniqueArgs.Select(x => x.GetModel())));
-			model.Set("uniqueContextArgs".AsSpan(), Parameter.CreateEnum<IModel<ReturnType>>(uniqueContextArgs.Select(x => x.GetModel())));
-			model.Set("setup".AsSpan(), Parameter.CreateEnum<IModel<ReturnType>>(engine.setupSteps.Select(x => x.GetModel(uniqueSystemArgs, uniqueSetupArgs))));
-
-			return engineSuccess;
+			return new EngineGeneratorData(GetEcsName(node), GetEngineName(node), builderRoot.GetNamespace(), node.GetLocation(), engine, new(usings.ToArray()));
 		}
 
-		public bool Filter(IdentifierNameSyntax node)
-		{
-			if (node?.Parent is ClassDeclarationSyntax)
-				return false;
+		public string GetName(EngineGeneratorData data)
+		 => data.engineName;
 
-			if (node?.Parent is MethodDeclarationSyntax)
-				return false;
-
-			return node.Identifier.Text == "HengineBuilder";
-		}
-
-		public string GetName(IdentifierNameSyntax node)
-		{
-			return GetEngineName(node);
-		}
+		public Location GetLocation(EngineGeneratorData data)
+			=> data.location;
 
 		public static SyntaxNode GetBuilderRoot(SyntaxNode node)
 		{
@@ -121,22 +154,22 @@ namespace Engine.Generator
 			return models;
 		}
 
-		static bool TryGetEngine(Compilation compilation, MemberAccessExpressionSyntax layoutStep, MemberAccessExpressionSyntax configStep, MemberAccessExpressionSyntax resourceStep, out EcsEngine engine)
+		static bool TryGetEngine(SemanticModel semanticModel, MemberAccessExpressionSyntax layoutStep, MemberAccessExpressionSyntax configStep, MemberAccessExpressionSyntax resourceStep, out EcsEngine engine)
 		{
 			bool configSuccess = TryGetConfigSteps(configStep, out List<ConfigStep> configSteps);
-			bool setupSuccess = TryGetSetupSteps(compilation, configStep, configSteps, out List<SetupStep> setupSteps);
-			bool resourceSuccess = TryGetResourceManagers(compilation, resourceStep, out List<ResourceManager> resourceManagers);
+			bool setupSuccess = TryGetSetupSteps(semanticModel, configStep, configSteps, out List<SetupStep> setupSteps);
+			bool resourceSuccess = TryGetResourceManagers(semanticModel, resourceStep, out List<ResourceManager> resourceManagers);
 
-			bool pipelineSuccess = PipelineGenerator.TryGetPipelines(compilation, layoutStep, out List<Pipeline> pipelines);
+			bool pipelineSuccess = PipelineGenerator.TryGetPipelines(semanticModel, layoutStep, out List<Pipeline> pipelines);
 			bool worldSuccess = TryGetWorlds(layoutStep, pipelines, out  List<World> worlds);
 
 			engine = new EcsEngine()
 			{
-				configSteps = configSteps,
-				setupSteps = setupSteps,
-				resourceManagers = resourceManagers,
-				pipelines = pipelines,
-				worlds = worlds
+				configSteps = new(configSteps.ToArray()),
+				setupSteps = new(setupSteps.ToArray()),
+				resourceManagers = new(resourceManagers.ToArray()),
+				pipelines = new(pipelines.ToArray()),
+				worlds = new(worlds.ToArray())
 			};
 
 
@@ -173,7 +206,7 @@ namespace Engine.Generator
 				worlds.Add(new World()
 				{
 					name = worldName.ToString(),
-					pipelines = worldPipelines
+					pipelines = new(worldPipelines.ToArray())
 				});
 			}
 
@@ -207,10 +240,8 @@ namespace Engine.Generator
 			return worldPipelines.Count > 0;
 		}
 
-		static bool TryGetSetupSteps(Compilation compilation, MemberAccessExpressionSyntax step, List<ConfigStep> configSteps, out List<SetupStep> setupSteps)
+		static bool TryGetSetupSteps(SemanticModel semanticModel, MemberAccessExpressionSyntax step, List<ConfigStep> configSteps, out List<SetupStep> setupSteps)
 		{
-			var nodes = compilation.SyntaxTrees.SelectMany(x => x.GetRoot().DescendantNodesAndSelf());
-
 			setupSteps = new();
 
 			var parentExpression = step.Parent as InvocationExpressionSyntax;
@@ -233,14 +264,16 @@ namespace Engine.Generator
 				if (configMethod.Expression is not MemberAccessExpressionSyntax methodAccess)
 					continue;
 
-				var methodDeclaration = nodes.FindNode<MethodDeclarationSyntax>(x => x.Identifier.Text == methodAccess.Name.Identifier.Text);
+				var foundSymbol = semanticModel.Compilation.GetSymbolsWithName(methodAccess.Name.Identifier.ToFullString(), SymbolFilter.Member).Single();
+				if (foundSymbol is not IMethodSymbol methodSymbol)
+					throw new Exception();
 
 				setupSteps.Add(new SetupStep()
 				{
 					method = configMethod.ToFullString(),
-					returnTypes = GetMethodReturnTypes(methodDeclaration),
-					argumentTypes = GetMethodArguments(methodDeclaration, configSteps),
-					nonConfigArgumentTypes = GetMethodNonConfigArguments(methodDeclaration, configSteps),
+					returnTypes = new(GetMethodReturnTypes(methodSymbol).ToArray()),
+					argumentTypes = new(GetMethodArguments(methodSymbol, configSteps).ToArray()),
+					nonConfigArgumentTypes = new(GetMethodNonConfigArguments(methodSymbol, configSteps).ToArray()),
 				});
 			}
 
@@ -284,9 +317,8 @@ namespace Engine.Generator
 			return true;
 		}
 
-		static bool TryGetResourceManagers(Compilation compilation, MemberAccessExpressionSyntax step, out List<ResourceManager> resourceManagers)
+		static bool TryGetResourceManagers(SemanticModel semanticModel, MemberAccessExpressionSyntax step, out List<ResourceManager> resourceManagers)
 		{
-			var nodes = compilation.SyntaxTrees.SelectMany(x => x.GetRoot().DescendantNodesAndSelf());
 			resourceManagers = new();
 
 			var parentExpression = step.Parent as InvocationExpressionSyntax;
@@ -310,29 +342,30 @@ namespace Engine.Generator
 					continue;
 
 				var nameArg = genericName.TypeArgumentList.Arguments[0] as IdentifierNameSyntax;
-				var nameToken = nameArg.Identifier.Text;
 
-				var resourceManagerNode = nodes.FindNode<ClassDeclarationSyntax>(x => x.Identifier.Text == nameToken);
+				var foundSymbol = semanticModel.Compilation.GetSymbolsWithName(nameArg.Identifier.ToFullString(), SymbolFilter.Type).Single();
+				if (foundSymbol is not INamedTypeSymbol typeSymbol)
+					continue;
+
+				if (typeSymbol.Constructors.Length == 0)
+					continue;
 
 				List<MethodArgumentType> arguments = new List<MethodArgumentType>();
-				if (resourceManagerNode.Members.TryFindNode(out ConstructorDeclarationSyntax constructor))
-				{
-					foreach (var argument in constructor.ParameterList.Parameters)
-					{
-						var argName = argument.Type as IdentifierNameSyntax;
+				var constructor = typeSymbol.Constructors.First();
 
-						arguments.Add(new MethodArgumentType()
-						{
-							type = argName.Identifier.Text
-						});
-					}
+				foreach (var argument in constructor.Parameters)
+				{
+					arguments.Add(new MethodArgumentType()
+					{
+						type = argument.Type.Name
+					});
 				}
 
 				resourceManagers.Add(new ResourceManager()
 				{
-					name = nameToken,
-					arguments = arguments,
-					ns = resourceManagerNode.GetNamespace()
+					name = foundSymbol.Name,
+					arguments = new(arguments.ToArray()),
+					ns = typeSymbol.ContainingNamespace.ToString()
 				});
 			}
 
@@ -353,26 +386,27 @@ namespace Engine.Generator
 			throw new Exception("Unknown name type");
 		}
 
-		static List<MethodReturnType> GetMethodReturnTypes(MethodDeclarationSyntax method)
+		static List<MethodReturnType> GetMethodReturnTypes(IMethodSymbol method)
 		{
 			List<MethodReturnType> models = new();
 
-			if (method.ReturnType is IdentifierNameSyntax returnName)
+			if (!method.ReturnType.IsTupleType)
 			{
-				models.Add(new MethodReturnType()
+				models.Add(new()
 				{
-					type = returnName.Identifier.Text
+					type = method.ReturnType.Name
 				});
 			}
-			else if (method.ReturnType is TupleTypeSyntax tuple)
+			else
 			{
-				foreach (var element in tuple.Elements)
-				{
-					var elemntName = element.Type as IdentifierNameSyntax;
+				if (method.ReturnType is not INamedTypeSymbol typeSymbol)
+					throw new Exception();
 
+				foreach (var element in typeSymbol.TupleElements)
+				{
 					models.Add(new MethodReturnType()
 					{
-						type = elemntName.Identifier.Text
+						type = element.Type.Name
 					});
 				}
 			}
@@ -380,37 +414,33 @@ namespace Engine.Generator
 			return models;
 		}
 
-		static List<MethodArgumentType> GetMethodArguments(MethodDeclarationSyntax method, List<ConfigStep> configSteps)
+		static List<MethodArgumentType> GetMethodArguments(IMethodSymbol method, List<ConfigStep> configSteps)
 		{
 			List<MethodArgumentType> models = new();
 
-			foreach (var argument in method.ParameterList.Parameters)
+			foreach (var argument in method.Parameters)
 			{
-				var argName = argument.Type as IdentifierNameSyntax;
-
 				models.Add(new MethodArgumentType()
 				{
-					type = argName.Identifier.Text
+					type = argument.Type.Name
 				});
 			}
 
 			return models;
 		}
 
-		static List<MethodArgumentType> GetMethodNonConfigArguments(MethodDeclarationSyntax method, List<ConfigStep> configSteps)
+		static List<MethodArgumentType> GetMethodNonConfigArguments(IMethodSymbol method, List<ConfigStep> configSteps)
 		{
 			List<MethodArgumentType> models = new();
 
-			foreach (var argument in method.ParameterList.Parameters)
+			foreach (var argument in method.Parameters)
 			{
-				var argName = argument.Type as IdentifierNameSyntax;
-
-				if (configSteps.Any(x => x.name == argName.Identifier.Text))
+				if (configSteps.Any(x => x.name == argument.Type.Name))
 					continue;
 
 				models.Add(new MethodArgumentType()
 				{
-					type = argName.Identifier.Text
+					type = argument.Type.Name
 				});
 			}
 
@@ -418,19 +448,44 @@ namespace Engine.Generator
 		}
 	}
 
-	struct EcsEngine
+	struct EcsEngine : IEquatable<EcsEngine>
 	{
-		public List<ConfigStep> configSteps;
-		public List<SetupStep> setupSteps;
-		public List<ResourceManager> resourceManagers;
-		public List<Pipeline> pipelines;
-		public List<World> worlds;
+		public EquatableArray<ConfigStep> configSteps;
+		public EquatableArray<SetupStep> setupSteps;
+		public EquatableArray<ResourceManager> resourceManagers;
+		public EquatableArray<Pipeline> pipelines;
+		public EquatableArray<World> worlds;
+
+        public EcsEngine()
+        {
+			configSteps = EquatableArray<ConfigStep>.Empty;
+			setupSteps = EquatableArray<SetupStep>.Empty;
+			resourceManagers = EquatableArray<ResourceManager>.Empty;
+			pipelines = EquatableArray<Pipeline>.Empty;
+			worlds = EquatableArray<World>.Empty;
+		}
+
+		public bool Equals(EcsEngine other)
+		{
+			return configSteps.Equals(other.configSteps) &&
+				setupSteps.Equals(other.setupSteps) &&
+				resourceManagers.Equals(other.resourceManagers) &&
+				pipelines.Equals(other.pipelines) &&
+				worlds.Equals(other.worlds);
+		}
 	}
 
-	struct World
+	struct World : IEquatable<World>
 	{
 		public string name;
-		public List<Pipeline> pipelines;
+		public EquatableArray<Pipeline> pipelines;
+
+        public World()
+        {
+			name = "";
+			pipelines = EquatableArray<Pipeline>.Empty;
+
+		}
 
 		public Model<ReturnType> GetModel()
 		{
@@ -440,27 +495,51 @@ namespace Engine.Generator
 
 			return model;
 		}
+
+		public bool Equals(World other)
+		{
+			return name.Equals(other.name) &&
+				pipelines.Equals(other.pipelines);
+		}
 	}
 
-	struct FileUsing
+	struct FileUsing : IEquatable<FileUsing>
 	{
 		public string name;
 
-		public Model<ReturnType> GetModel()
+        public FileUsing()
+        {
+			name = "";
+        }
+
+        public Model<ReturnType> GetModel()
 		{
 			var model = new Model<ReturnType>();
 			model.Set("usingName".AsSpan(), Parameter.Create(name));
 
 			return model;
 		}
+
+		public bool Equals(FileUsing other)
+		{
+			return name.Equals(other.name);
+		}
 	}
 
-	struct SetupStep
+	struct SetupStep : IEquatable<SetupStep>
 	{
 		public string method;
-		public List<MethodReturnType> returnTypes;
-		public List<MethodArgumentType> argumentTypes;
-		public List<MethodArgumentType> nonConfigArgumentTypes;
+		public EquatableArray<MethodReturnType> returnTypes;
+		public EquatableArray<MethodArgumentType> argumentTypes;
+		public EquatableArray<MethodArgumentType> nonConfigArgumentTypes;
+
+        public SetupStep()
+        {
+			method = "";
+			returnTypes = EquatableArray<MethodReturnType>.Empty;
+			argumentTypes = EquatableArray<MethodArgumentType>.Empty;
+			nonConfigArgumentTypes = EquatableArray<MethodArgumentType>.Empty;
+		}
 
 		public Model<ReturnType> GetModel(IEnumerable<SystemArgument> usedArguments, IEnumerable<MethodArgumentType> usedConfigArguments)
 		{
@@ -473,11 +552,24 @@ namespace Engine.Generator
 
 			return model;
 		}
+
+		public bool Equals(SetupStep other)
+		{
+			return method.Equals(other.method) &&
+				returnTypes.Equals(other.returnTypes) &&
+				argumentTypes.Equals(other.argumentTypes) &&
+				nonConfigArgumentTypes.Equals(other.nonConfigArgumentTypes);
+		}
 	}
 
-	struct ConfigStep
+	struct ConfigStep : IEquatable<ConfigStep>
 	{
 		public string name;
+
+        public ConfigStep()
+        {
+			name = "";
+        }
 
 		public Model<ReturnType> GetModel()
 		{
@@ -489,11 +581,21 @@ namespace Engine.Generator
 
 			return model;
 		}
+
+		public bool Equals(ConfigStep other)
+		{
+			return name.Equals(other.name);
+		}
 	}
 
-	struct MethodReturnType
+	struct MethodReturnType : IEquatable<MethodReturnType>
 	{
 		public string type;
+
+        public MethodReturnType()
+        {
+			type = "";
+        }
 
 		public Model<ReturnType> GetModel()
 		{
@@ -502,11 +604,21 @@ namespace Engine.Generator
 
 			return model;
 		}
+
+		public bool Equals(MethodReturnType other)
+		{
+			return type.Equals(other.type);
+		}
 	}
 
-	struct MethodArgumentType
+	struct MethodArgumentType : IEquatable<MethodArgumentType>
 	{
 		public string type;
+
+        public MethodArgumentType()
+        {
+			type = "";
+        }
 
 		public Model<ReturnType> GetModel()
 		{
@@ -516,13 +628,26 @@ namespace Engine.Generator
 
 			return model;
 		}
+
+		public bool Equals(MethodArgumentType other)
+		{
+			return type.Equals(other.type);
+		}
 	}
 
-	struct ResourceManager
+	struct ResourceManager : IEquatable<ResourceManager>
 	{
 		public string name;
 		public string ns;
-		public List<MethodArgumentType> arguments;
+		public EquatableArray<MethodArgumentType> arguments;
+
+        public ResourceManager()
+        {
+			name = "";
+			ns = "";
+			arguments = EquatableArray<MethodArgumentType>.Empty;
+
+		}
 
 		public Model<ReturnType> GetModel()
 		{
@@ -533,6 +658,13 @@ namespace Engine.Generator
 			model.Set("resourceManagerArguments".AsSpan(), Parameter.CreateEnum<IModel<ReturnType>>(arguments.Select(x => x.GetModel())));
 
 			return model;
+		}
+
+		public bool Equals(ResourceManager other)
+		{
+			return other.name.Equals(name) &&
+				other.ns.Equals(ns) &&
+				other.arguments.Equals(arguments);
 		}
 	}
 }

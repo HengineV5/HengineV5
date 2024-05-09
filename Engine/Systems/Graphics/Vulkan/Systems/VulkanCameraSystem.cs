@@ -6,7 +6,8 @@ using System.Numerics;
 
 namespace Engine
 {
-	[System<VulkanRenderContext>]
+	[System]
+	[SystemContext<VulkanRenderContext>]
 	[UsingResource<VulkanSkyboxResourceManager>]
 	public partial class VulkanCameraSystem
 	{

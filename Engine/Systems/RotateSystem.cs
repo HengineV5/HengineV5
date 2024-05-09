@@ -73,7 +73,8 @@ namespace Engine
 		}
 	}
 
-	[System<EngineContext>]
+	[System]
+	[SystemContext<EngineContext>]
 	public partial class MoveSystem
 	{
 		IInputHandler inputHandler;

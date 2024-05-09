@@ -7,7 +7,8 @@ using System.Numerics;
 
 namespace Engine
 {
-	[System<VulkanRenderContext>]
+	[System]
+	[SystemContext<VulkanRenderContext>]
 	[UsingResource<VulkanMeshResourceManager>]
 	[UsingResource<VulkanMaterialResourceManager>]
 	public partial class VulkanPbrRenderSystem

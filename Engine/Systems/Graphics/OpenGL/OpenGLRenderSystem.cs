@@ -17,7 +17,8 @@ namespace Engine
 		public Quaternion cameraRotation;
 	}
 
-	[System<OpenGLRenderContext>]
+	[System]
+	[SystemContext<OpenGLRenderContext>]
 	[UsingResource<OpenGLMeshResourceManager>]
 	[UsingResource<OpenGLTextureResourceManager>]
 	public partial class OpenGLRenderSystem

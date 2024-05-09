@@ -5,7 +5,8 @@ using System.Numerics;
 
 namespace Engine
 {
-	[System<EngineContext>]
+	[System]
+	[SystemContext<EngineContext>]
 	public partial class ClientSendSystem
     {
 		IClient client;
@@ -41,7 +42,8 @@ namespace Engine
 		}
 	}
 
-	[System<EngineContext>]
+	[System]
+	[SystemContext<EngineContext>]
 	public partial class ClientReceiveSystem
 	{
 		IClient client;

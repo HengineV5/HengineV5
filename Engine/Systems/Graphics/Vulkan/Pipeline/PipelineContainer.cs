@@ -194,7 +194,7 @@ namespace Engine
 				.WithVertexInput(GetGuiBindingDescription(), GetGuiAttributeDescription())
 				.WithInputAssembly()
 				.WithViewport(extent)
-				.WithRasterization(PolygonMode.Fill, CullModeFlags.BackBit, 1)
+				.WithRasterization(PolygonMode.Fill, CullModeFlags.None, 1)
 				.WithMultisample()
 				.WithDepthStencil(false)
 				.WithColorBlend()
