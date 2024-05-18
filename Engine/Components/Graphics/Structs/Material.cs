@@ -1,4 +1,4 @@
-﻿using Engine.Parsing.Gltf;
+﻿using Engine.Utils.Parsing.GLTF;
 using System.Numerics;
 using System.Runtime.InteropServices;
 

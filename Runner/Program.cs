@@ -1,7 +1,9 @@
 ﻿using CommunityToolkit.HighPerformance;
 using Engine;
+using Engine.Components;
 using Engine.Graphics;
 using Engine.Parsing;
+using Engine.Utils.Parsing.TTF;
 using System.Net;
 using System.Numerics;
 using System.Runtime.InteropServices;
@@ -113,10 +115,13 @@ namespace Runner
 
             var buttonAtlas = TextureAtlas.LoadAtlas("ButtonAtlas", 3, "Images/Gui/Button/Button.png");
 
-			overlayWorld.CreateGuiElement(new(10, 0, 10, 0), new(150 * 4, 0, 50 * 4, 0), buttonAtlas);
+			GuiProperties prop = new GuiProperties()
+			{
+				shape = GuiShape.Circle
+			};
+			overlayWorld.CreateGuiElement(new(10, 0, 250, 0), new(50 * 4, 0, 50 * 4, 0), buttonAtlas, prop);
 
-			/*
-			string str = "AaEeCc";
+			string str = "AaEeRr";
 
             for (int a = 0; a < str.Length; a++)
             {
@@ -138,9 +143,10 @@ namespace Runner
 					xy /= 20f;
 					xy += pos;
 
-					overlayWorld.CreateGuiElement(new(xy.X, 0, xy.Y, 0), new(5, 0, 5, 0), buttonAtlas);
+					overlayWorld.CreateGuiElement(new(xy.X, 0, xy.Y, 0), new(5, 0, 5, 0), buttonAtlas, new() { shape = GuiShape.Box });
 				}
 			}
+			/*
 			*/
 
             TestWorld.Load(mainWorld);

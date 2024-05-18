@@ -1,6 +1,6 @@
 ﻿using Engine.Components.Graphics;
 using Engine.Parsing;
-using Engine.Parsing.Gltf;
+using Engine.Utils.Parsing.GLTF;
 using Silk.NET.OpenGL;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;

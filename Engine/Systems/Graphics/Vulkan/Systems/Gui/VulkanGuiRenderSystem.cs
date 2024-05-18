@@ -3,6 +3,8 @@ using EnCS.Attributes;
 using Engine.Components;
 using Engine.Graphics;
 using Engine.Parsing;
+using Engine.Utils;
+using Engine.Utils.Parsing.TTF;
 using Silk.NET.Vulkan;
 using Silk.NET.Windowing;
 using System.Numerics;
@@ -21,6 +23,7 @@ namespace Engine
 		VkRenderContext renderContext;
 
 		VkMeshBuffer boxBuffer;
+		VkMeshBuffer circleBuffer;
 		Sampler sampler;
 
 		public VulkanGuiRenderSystem(VkContext context, VkRenderContext renderContext, IWindow window, IInputHandler inputHandler)
@@ -35,8 +38,11 @@ namespace Engine
 		{
 			sampler = VulkanHelper.CreateSampler(context, 5);
 
-			var boxMesh = GuiMeshes.Glyph;
+			var boxMesh = GuiMeshes.Box;
 			boxBuffer = VulkanMeshResourceManager.CreateGuiMeshBuffer(context, boxMesh.verticies, boxMesh.indicies);
+
+			var circleMesh = GuiMeshes.Glyph;
+			circleBuffer = VulkanMeshResourceManager.CreateGuiMeshBuffer(context, circleMesh.verticies, circleMesh.indicies);
 		}
 
 		// TODO: Refactor out
@@ -91,6 +97,9 @@ namespace Engine
 			{
 				case GuiShape.Box:
 					RenderMesh(boxBuffer);
+					break;
+				case GuiShape.Circle:
+					RenderMesh(circleBuffer);
 					break;
 				default:
 					throw new Exception("Shape not supported");
@@ -228,17 +237,38 @@ namespace Engine
 		{
 			var font = TtfLoader.LoadFont("Fonts/arial.ttf");
 
-			var g = font.GetGlyphIndex('H');
-			Vector2[] coords = new Vector2[g.xCoords.Length];
+			var g = font.GetGlyphIndex('e');
 			Vector2 delta = new Vector2(g.glyphDescription.xMax - g.glyphDescription.xMin, g.glyphDescription.yMax - g.glyphDescription.yMin);
-			for (int i = 0; i < coords.Length; i++)
+
+			//Console.WriteLine(g.endPtsOfContours[0]);
+			//Console.WriteLine(g.endPtsOfContours[1]);
+
+			Vector2[] mesh = new Vector2[g.endPtsOfContours[0] + 1];
+			for (int i = 0; i < mesh.Length; i++)
 			{
-				coords[i] = new Vector2(g.xCoords[i] / delta.X, g.yCoords[i] / delta.Y);
-				Console.WriteLine(coords[i]);
+				//coords[i] = new Vector2(g.xCoords[i] / delta.X, g.yCoords[i] / delta.Y);
+				mesh[i] = new Vector2(g.xCoords[i], g.yCoords[i]);
+				//Console.WriteLine($"new Vector2({mesh[i].X}f, {mesh[i].Y}f),");
+				//Console.WriteLine($"{mesh[i].X} {mesh[i].Y}");
             }
 
-			var indicies = Triangulation.Triangulate(coords.AsSpan().Slice(0, g.endPtsOfContours[0]));
-			/*
+			Vector2[] hole = new Vector2[g.endPtsOfContours[1] - g.endPtsOfContours[0]];
+			int offset = g.endPtsOfContours[0] + 1;
+			for (int i = 0; i < hole.Length; i++)
+			{
+				//coords[i] = new Vector2(g.xCoords[i] / delta.X, g.yCoords[i] / delta.Y);
+				hole[i] = new Vector2(g.xCoords[offset + i], g.yCoords[offset + i]);
+				//Console.WriteLine($"new Vector2({mesh[i].X}f, {mesh[i].Y}f),");
+				//Console.WriteLine($"{hole[i].X} {hole[i].Y}");
+			}
+
+			//Console.WriteLine(mesh.Length);
+			//Console.WriteLine(hole.Length);
+
+			var pMesh = Triangulation.ProcessHole(mesh.AsSpan(), hole.AsSpan());
+			var indicies = Triangulation.Triangulate(pMesh.Span);
+            Console.WriteLine($"Triangulated with {indicies.Length} triangles");
+            /*
 			for (int i = 0; i < indicies.Length; i++)
 			{
 				if (i != 0 && i % 3 == 0)
@@ -248,8 +278,8 @@ namespace Engine
 			}
 			*/
 
-			GuiMesh guiMesh = new GuiMesh();
-			guiMesh.verticies = coords.Select(x => new GuiVertex(new Vector4(x.X, 0, x.Y, 0), Vector2.Zero)).ToArray();
+            GuiMesh guiMesh = new GuiMesh();
+			guiMesh.verticies = pMesh.Span.ToArray().Select(x => new GuiVertex(new Vector4(x.X / 1000f, 0, 1 - x.Y / 1000f, 0), Vector2.Zero)).ToArray();
 			guiMesh.indicies = indicies.Span.ToArray().Select(x => (ushort)x).ToArray();
 
 			return guiMesh;

@@ -72,13 +72,14 @@ namespace Runner
 			});
 		}
 
-		public static EnCS.ArchRef<GuiElement> CreateGuiElement(this HengineEcs.Overlay world, Vector4 position, Vector4 size, TextureAtlas textureAtlas)
+		public static EnCS.ArchRef<GuiElement> CreateGuiElement(this HengineEcs.Overlay world, Vector4 position, Vector4 size, TextureAtlas textureAtlas, GuiProperties properties)
 		{
 			var objRef = world.Create(new GuiElement());
 			GuiElement.Ref entRef = world.Get(objRef);
 			entRef.GuiPosition.Set(position);
 			entRef.GuiSize.Set(size);
 			entRef.TextureAtlas.Set(textureAtlas);
+			entRef.GuiProperties.Set(properties);
 
 			return objRef;
 		}
