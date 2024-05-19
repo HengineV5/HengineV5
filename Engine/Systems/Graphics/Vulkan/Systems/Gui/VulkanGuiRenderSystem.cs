@@ -237,52 +237,106 @@ namespace Engine
 		{
 			var font = TtfLoader.LoadFont("Fonts/arial.ttf");
 
-			var g = font.GetGlyphIndex('e');
-			Vector2 delta = new Vector2(g.glyphDescription.xMax - g.glyphDescription.xMin, g.glyphDescription.yMax - g.glyphDescription.yMin);
-
-			//Console.WriteLine(g.endPtsOfContours[0]);
-			//Console.WriteLine(g.endPtsOfContours[1]);
-
-			Vector2[] mesh = new Vector2[g.endPtsOfContours[0] + 1];
-			for (int i = 0; i < mesh.Length; i++)
+			for (byte i = 65; i < 123; i++)
 			{
-				//coords[i] = new Vector2(g.xCoords[i] / delta.X, g.yCoords[i] / delta.Y);
-				mesh[i] = new Vector2(g.xCoords[i], g.yCoords[i]);
-				//Console.WriteLine($"new Vector2({mesh[i].X}f, {mesh[i].Y}f),");
-				//Console.WriteLine($"{mesh[i].X} {mesh[i].Y}");
-            }
+                Console.WriteLine($"Trying '{(char)i}':");
+                var g1 = font.GetGlyphIndex(i);
+				Memory<Vector2> mesh4 = ProcessMesh(g1).Span[0];
+				var indicies4 = Triangulation.Triangulate(mesh4.Span);
 
-			Vector2[] hole = new Vector2[g.endPtsOfContours[1] - g.endPtsOfContours[0]];
-			int offset = g.endPtsOfContours[0] + 1;
-			for (int i = 0; i < hole.Length; i++)
-			{
-				//coords[i] = new Vector2(g.xCoords[i] / delta.X, g.yCoords[i] / delta.Y);
-				hole[i] = new Vector2(g.xCoords[offset + i], g.yCoords[offset + i]);
-				//Console.WriteLine($"new Vector2({mesh[i].X}f, {mesh[i].Y}f),");
-				//Console.WriteLine($"{hole[i].X} {hole[i].Y}");
+				Console.WriteLine($"	Triangulated '{(char)i}' with {indicies4.Length} triangles");
 			}
-
-			//Console.WriteLine(mesh.Length);
-			//Console.WriteLine(hole.Length);
-
-			var pMesh = Triangulation.ProcessHole(mesh.AsSpan(), hole.AsSpan());
-			var indicies = Triangulation.Triangulate(pMesh.Span);
-            Console.WriteLine($"Triangulated with {indicies.Length} triangles");
-            /*
-			for (int i = 0; i < indicies.Length; i++)
-			{
-				if (i != 0 && i % 3 == 0)
-					Console.WriteLine();
-
-				Console.WriteLine(indicies.Span[i]);
-			}
+			/*
 			*/
 
-            GuiMesh guiMesh = new GuiMesh();
-			guiMesh.verticies = pMesh.Span.ToArray().Select(x => new GuiVertex(new Vector4(x.X / 1000f, 0, 1 - x.Y / 1000f, 0), Vector2.Zero)).ToArray();
+			var g = font.GetGlyphIndex('B');
+			Vector2 delta = new Vector2(g.glyphDescription.xMax - g.glyphDescription.xMin, g.glyphDescription.yMax - g.glyphDescription.yMin);
+
+			var meshes = ProcessMesh(g);
+			Memory<Vector2> mesh = meshes.Span[0];
+			Memory<int>  indicies = Triangulation.Triangulate(mesh.Span);
+
+			for (int i = 1; i < meshes.Length; i++)
+			{
+				Memory<Vector2> nextMesh = meshes.Span[1];
+				var nextIndicies = Triangulation.Triangulate(nextMesh.Span);
+
+				for (int a = 0; a < nextIndicies.Length; a++)
+					nextIndicies.Span[a] += mesh.Length;
+
+				mesh = ArrayHelpers.Join(mesh, nextMesh);
+				indicies = ArrayHelpers.Join(indicies, nextIndicies);
+			}
+
+			GuiMesh guiMesh = new GuiMesh();
+			guiMesh.verticies = mesh.Span.ToArray().Select(x => new GuiVertex(new Vector4(x.X / 1000f, 0, 1 - x.Y / 1000f, 0), Vector2.Zero)).ToArray();
 			guiMesh.indicies = indicies.Span.ToArray().Select(x => (ushort)x).ToArray();
 
 			return guiMesh;
+		}
+
+		/// <summary>
+		/// Add holes to the mesh for triangulation
+		/// </summary>
+		/// <returns></returns>
+		static Memory<Memory<Vector2>> ProcessMesh(in GlyphData glyphData)
+		{
+			int offset = 0;
+			List<Memory<Vector2>> meshes = new List<Memory<Vector2>>();
+			while (offset != glyphData.endPtsOfContours.Length)
+			{
+				Memory<Vector2> mesh = new Vector2[0];
+				offset = ProcessMeshWithHoles(glyphData, offset, ref mesh);
+
+				meshes.Add(mesh);
+			}
+
+			return meshes.ToArray();
+		}
+
+		static int ProcessMeshWithHoles(in GlyphData glyphData, int offset, ref Memory<Vector2> mesh)
+		{
+			// Assume first countour is always skin.
+
+			if (offset == 0)
+			{
+				mesh = new Vector2[glyphData.endPtsOfContours[offset] + 1];
+				for (int i = 0; i < mesh.Length; i++)
+				{
+					mesh.Span[i] = new Vector2(glyphData.xCoords[i], glyphData.yCoords[i]);
+				}
+			}
+			else
+			{
+				int start = glyphData.endPtsOfContours[offset - 1] + 1;
+				int end = glyphData.endPtsOfContours[offset] + 1;
+
+				mesh = new Vector2[end - start];
+				for (int i = 0; i < mesh.Length; i++)
+				{
+					mesh.Span[i] = new Vector2(glyphData.xCoords[start + i], glyphData.yCoords[start + i]);
+				}
+			}
+
+			for (int i = offset + 1; i < glyphData.endPtsOfContours.Length; i++)
+			{
+				int start = glyphData.endPtsOfContours[i - 1] + 1;
+				int end = glyphData.endPtsOfContours[i] + 1;
+
+				Memory<Vector2> newMesh = new Vector2[end - start];
+				for (int a = 0; a < newMesh.Length; a++)
+				{
+					newMesh.Span[a] = new Vector2(glyphData.xCoords[start + a], glyphData.yCoords[start + a]);
+				}
+
+				// If clockwise assume separate piece, else assume a hole.
+				if (!VectorMath.IsClockwise(newMesh.Span))
+					mesh = Triangulation.ProcessHole(mesh.Span, newMesh.Span);
+				else
+					return i;
+			}
+
+			return glyphData.endPtsOfContours.Length;
 		}
 
 		/*

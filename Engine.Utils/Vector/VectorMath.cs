@@ -52,6 +52,33 @@ namespace Engine.Utils
 
 			return false; // Doesn't fall in any of the above cases 
 		}
+
+		/// <summary>
+		/// Determine if a triangle as determined by three points is oriented clockwise of counter clockwise
+		/// </summary>
+		/// <returns></returns>
+		public static bool IsClockwise(Vector2 p1, Vector2 p2, Vector2 p3)
+		{
+			Vector2 ab = p2 - p1;
+			Vector2 bc = p2 - p3;
+
+			Vector3 cross = Vector3.Cross(new(ab, 0), new(bc, 0));
+            return float.Sign(cross.Z) == -1;
+		}
+
+		public static bool IsClockwise(Span<Vector2> points)
+		{
+			float sum = 0;
+            for (int i = 0; i < points.Length - 1; i++)
+            {
+				Vector2 p1 = points[i];
+				Vector2 p2 = points[i + 1];
+
+				sum += (p2.X - p1.X) * (p2.Y + p1.Y);
+            }
+
+			return float.Sign(sum) == 1;
+        }
 	}
 
 	static class VectorMathInternals

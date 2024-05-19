@@ -119,7 +119,7 @@ namespace Runner
 			{
 				shape = GuiShape.Circle
 			};
-			overlayWorld.CreateGuiElement(new(10, 0, 250, 0), new(50 * 4, 0, 50 * 4, 0), buttonAtlas, prop);
+			overlayWorld.CreateGuiElement(new(30, 0, 250, 0), new(50 * 4, 0, 50 * 4, 0), buttonAtlas, prop);
 
 			string str = "AaEeRr";
 

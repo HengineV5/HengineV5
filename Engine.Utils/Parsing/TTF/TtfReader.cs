@@ -19,6 +19,9 @@ namespace Engine.Utils.Parsing.TTF
             reader.Dispose();
 		}
 
+		public float ReadF2Dot14()
+			=> ((float)ReadInt16()) / (1 << 14);
+
 		public ulong ReadUInt64()
 			=> BitConverter.IsLittleEndian ? BinaryPrimitives.ReverseEndianness(reader.ReadUInt64()) : reader.ReadUInt64();
 
@@ -42,6 +45,9 @@ namespace Engine.Utils.Parsing.TTF
 
 		public byte ReadByte()
 			=> reader.ReadByte();
+
+		public sbyte ReadSByte()
+			=> reader.ReadSByte();
 
 		public void Read(Span<byte> buffer)
             => reader.Read(buffer);

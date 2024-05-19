@@ -119,7 +119,7 @@ namespace Engine.Utils.Parsing.TTF
 					continue;
 
                 reader.Seek(glyphEntry.offset + locations[i]);
-				font.glyphData[i] = ReadGlyphData(reader);
+				font.glyphData[i] = ReadGlyphData(reader, glyphEntry.offset, locations);
             }
 
 			return font;
@@ -258,7 +258,7 @@ namespace Engine.Utils.Parsing.TTF
 			return cmap;
 		}
 
-		static GlyphData ReadGlyphData(TtfReader reader)
+		static GlyphData ReadGlyphData(TtfReader reader, uint glyphStart, uint[] locations) // TODO: Not the best just passing locations here, mabye fix.
 		{
 			GlyphData glyphData = new();
 			glyphData.glyphDescription = new()
@@ -271,45 +271,142 @@ namespace Engine.Utils.Parsing.TTF
 			};
 
 			if (glyphData.glyphDescription.numberOfContours < 0) // Countours, deal with later
-				return glyphData;
+				ReadCompoundGlyphs(ref glyphData, reader, glyphStart, locations);
+			else
+				ReadSimpleGlyph(ref glyphData, reader);
 
+            return glyphData;
+		}
+
+		static void ReadSimpleGlyph(ref GlyphData glyphData, TtfReader reader)
+		{
 			glyphData.endPtsOfContours = new ushort[glyphData.glyphDescription.numberOfContours];
-            for (int i = 0; i < glyphData.endPtsOfContours.Length; i++)
-            {
+			for (int i = 0; i < glyphData.endPtsOfContours.Length; i++)
+			{
 				glyphData.endPtsOfContours[i] = reader.ReadUInt16();
-            }
+			}
 
 			ushort instructionLength = reader.ReadUInt16();
 			byte[] instructions = new byte[instructionLength];
 			for (int i = 0; i < instructions.Length; i++)
 			{
 				instructions[i] = reader.ReadByte();
-            }
+			}
 
 			int numPoints = glyphData.endPtsOfContours[glyphData.glyphDescription.numberOfContours - 1] + 1;
-			Flag[] flags = new Flag[numPoints];
-            for (int i = 0; i < numPoints; i++)
-            {
-				Flag flag = (Flag)reader.ReadByte();
+			SimpleGlyphFlag[] flags = new SimpleGlyphFlag[numPoints];
+			for (int i = 0; i < numPoints; i++)
+			{
+				SimpleGlyphFlag flag = (SimpleGlyphFlag)reader.ReadByte();
 				flags[i] = flag;
 
-				if (flags[i].HasFlag(Flag.Repeat))
+				if (flags[i].HasFlag(SimpleGlyphFlag.Repeat))
 				{
 					byte rep = reader.ReadByte();
 					for (int r = 0; r < rep; r++) flags[++i] = flag;
-				}	
-            }
+				}
+			}
 
 			glyphData.xCoords = new int[numPoints];
 			glyphData.yCoords = new int[numPoints];
 
-			ReadCoords(reader, glyphData.xCoords, flags, Flag.XByte, Flag.XSignOrSame);
-			ReadCoords(reader, glyphData.yCoords, flags, Flag.YByte, Flag.YSignOrSame);
-
-            return glyphData;
+			ReadCoords(reader, glyphData.xCoords, flags, SimpleGlyphFlag.XByte, SimpleGlyphFlag.XSignOrSame);
+			ReadCoords(reader, glyphData.yCoords, flags, SimpleGlyphFlag.YByte, SimpleGlyphFlag.YSignOrSame);
 		}
 
-		static void ReadCoords(TtfReader reader, Span<int> array, Span<Flag> flags, Flag isByte, Flag signOrSame)
+		static void ReadCompoundGlyphs(ref GlyphData glyphData, TtfReader reader, uint glyphStart, uint[] locations)
+		{
+            glyphData.endPtsOfContours = Array.Empty<ushort>();
+			glyphData.xCoords = Array.Empty<int>();
+			glyphData.yCoords = Array.Empty<int>();
+
+			while (ReadCompoundGlyph(ref glyphData, reader, glyphStart, locations)) { } // Read untill there are no more components
+		}
+
+		static bool ReadCompoundGlyph(ref GlyphData glyphData, TtfReader reader, uint glyphStart, uint[] locations)
+		{
+			CompoundGlyphFlag flag = (CompoundGlyphFlag)reader.ReadUInt16();
+			ushort glyphIndex = reader.ReadUInt16();
+
+			bool isByte = flag.HasFlag(CompoundGlyphFlag.Arg1And2AreWords);
+			bool isValue = flag.HasFlag(CompoundGlyphFlag.ArgsAreXYValues);
+
+			int offsetX;
+			int offsetY;
+
+			if (isByte)
+			{
+				if (isValue)
+				{
+					offsetX = reader.ReadInt16();
+					offsetY = reader.ReadInt16();
+				}
+				else
+				{
+					offsetX = reader.ReadUInt16();
+					offsetY = reader.ReadUInt16();
+				}
+			}
+			else
+			{
+				if (isValue)
+				{
+					offsetX = reader.ReadSByte();
+					offsetY = reader.ReadSByte();
+				}
+				else
+				{
+					offsetX = reader.ReadByte();
+					offsetY = reader.ReadByte();
+				}
+			}
+
+			float scaleX;
+			float scale01;
+			float scale10;
+			float scaleY;
+
+			if (flag.HasFlag(CompoundGlyphFlag.WeHaveAScale))
+			{
+				scaleX = scaleY = reader.ReadF2Dot14();
+			}
+			else if (flag.HasFlag(CompoundGlyphFlag.WeHaveAnXAndYScale))
+			{
+				scaleX = reader.ReadF2Dot14();
+				scaleY = reader.ReadF2Dot14();
+			}
+			else if (flag.HasFlag(CompoundGlyphFlag.WeHaveATwoByTwo))
+			{
+				scaleX = reader.ReadF2Dot14();
+				scale01 = reader.ReadF2Dot14();
+				scale10 = reader.ReadF2Dot14();
+				scaleY = reader.ReadF2Dot14();
+			}
+
+			long currPosition = reader.Position;
+			reader.Seek(glyphStart + locations[glyphIndex]);
+			var compoundGlyph = ReadGlyphData(reader, glyphStart, locations);
+			reader.Seek(currPosition);
+
+            for (int i = 0; i < compoundGlyph.endPtsOfContours.Length; i++)
+			{
+				compoundGlyph.endPtsOfContours[i] += (ushort)glyphData.xCoords.Length;
+			}
+
+			for (int i = 0; i < compoundGlyph.xCoords.Length; i++)
+			{
+				compoundGlyph.xCoords[i] += offsetX;
+				compoundGlyph.yCoords[i] += offsetY;
+			}
+
+			glyphData.endPtsOfContours = ArrayHelpers.Join(glyphData.endPtsOfContours.AsMemory(), compoundGlyph.endPtsOfContours.AsMemory());
+			glyphData.xCoords = ArrayHelpers.Join(glyphData.xCoords.AsMemory(), compoundGlyph.xCoords.AsMemory());
+			glyphData.yCoords = ArrayHelpers.Join(glyphData.yCoords.AsMemory(), compoundGlyph.yCoords.AsMemory());
+
+            return flag.HasFlag(CompoundGlyphFlag.MoreComponents);
+		}
+
+		static void ReadCoords(TtfReader reader, Span<int> array, Span<SimpleGlyphFlag> flags, SimpleGlyphFlag isByte, SimpleGlyphFlag signOrSame)
 		{
 			array[0] = 0;
 

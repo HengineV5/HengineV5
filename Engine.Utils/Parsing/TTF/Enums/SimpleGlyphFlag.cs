@@ -1,7 +1,7 @@
 ﻿namespace Engine.Utils.Parsing.TTF
 {
 	[Flags]
-	enum Flag : byte
+	enum SimpleGlyphFlag : byte
 	{
 		ControlPoint = 0,
 		OnCurve = 1,

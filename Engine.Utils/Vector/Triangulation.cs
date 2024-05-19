@@ -120,7 +120,7 @@ namespace Engine.Utils
 				Vector2 curr = verticies[vertMap[currIdx]];
 				Vector2 next = verticies[vertMap[nextIdx]];
 
-				var aLine = clockwise ? VectorMath.Angle(next, prev2, curr) : VectorMath.Angle(curr, prev2, next);
+				var aLine = clockwise ? VectorMath.Angle(next, prev, curr) : VectorMath.Angle(curr, prev, next);
 				var aPrev = clockwise ? VectorMath.Angle(prev2, prev, curr) : VectorMath.Angle(curr, prev, prev2);
 				var aCurr = clockwise ? VectorMath.Angle(prev, curr, next) : VectorMath.Angle(next, curr, prev);
 
