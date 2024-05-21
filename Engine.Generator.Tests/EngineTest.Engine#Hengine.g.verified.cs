@@ -23,6 +23,7 @@ namespace Test
 		public TestClass argTestClass;
 		public TestClass3 argTestClass3;
 		public TestClass5 argTestClass5;
+		public TestClass4 argTestClass4;
 
 		TestConfig1 argTestConfig1;
 		TestConfig2 argTestConfig2;
@@ -58,6 +59,7 @@ namespace Test
 			var (_TestClass, _TestClass3, _TestClass4) = NewClass.Setup2(argTestClass5);
 			argTestClass = _TestClass;
 			argTestClass3 = _TestClass3;
+			argTestClass4 = _TestClass4;
 			
 			var argMeshResourceManager = new Test.MeshResourceManager(argTestClass4);
 			_MeshResourceManager = argMeshResourceManager;

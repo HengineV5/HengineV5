@@ -62,6 +62,8 @@ namespace Runner
 			PbrMaterial material = pMaterial;
 			material.name = $"Map";
 			material.albedo = Vector3.One;
+			material.metallic = 1;
+			material.roughness = 1;
 			material.albedoMap = ETexture.LoadImage($"Map_albedo", "Images/AlbedoMap.png");
 
 			return material;

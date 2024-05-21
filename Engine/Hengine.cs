@@ -9,6 +9,7 @@ using Silk.NET.OpenGL;
 using System.Runtime.InteropServices;
 using Engine.Graphics;
 using Engine.Parsing;
+using Engine.Translation;
 
 namespace Engine
 {
@@ -64,7 +65,9 @@ namespace Engine
 					x.ArchType<Position, Rotation, Scale, HexCell, Mesh, PbrMaterial, Networked>("Hex");
 					x.ArchType<Position, Rotation, Camera, Skybox, Networked>("Cam");
 					x.ArchType<Position, Rotation, Scale, GizmoComp>("Gizmo");
+
 					x.ArchType<GuiProperties, GuiPosition, GuiSize, TextureAtlas>("GuiElement");
+					x.ArchType<GuiProperties, GuiPosition, TextureAtlas, GuiText>("TextElement");
 				})
 				.System(x =>
 				{
@@ -79,6 +82,7 @@ namespace Engine
 					x.System<VulkanWireframeRenderSystem>();
 					x.System<VulkanPresentSystem>();
 					x.System<VulkanGuiRenderSystem>();
+					x.System<VulkanTextRenderingSystem>();
 
 					x.System<ClientSendSystem>();
 					x.System<ClientReceiveSystem>();
@@ -86,12 +90,13 @@ namespace Engine
 				.World(x =>
 				{
 					x.World<HengineEcs.NEntity, HengineEcs.Cam, HengineEcs.Hex>("Main");
-					x.World<HengineEcs.GuiElement>("Overlay");
+					x.World<HengineEcs.GuiElement, HengineEcs.TextElement>("Overlay");
 				})
 				.Resource(x =>
 				{
 					x.ResourceManager<VulkanMeshResourceManager>();
 					x.ResourceManager<VulkanTextureResourceManager>();
+					x.ResourceManager<VulkanTextResourceManager>();
 					x.ResourceManager<VulkanMaterialResourceManager>();
 					x.ResourceManager<VulkanSkyboxResourceManager>();
 					x.ResourceManager<VulkanTextureAtlasResourceManager>();
@@ -110,7 +115,9 @@ namespace Engine
 					x.WithConfig<EngineConfig>();
 					x.WithConfig<VulkanConfig>();
 					x.WithConfig<NetworkConfig>();
+					x.WithConfig<TranslationConfig>();
 
+					x.Setup(Translator.TranslationSetup);
 					//x.Setup(ImageFormatSetup.HdrSetup);
 
 					//x.Setup(GlfwSetup.OpenGLWindowSetup);
@@ -130,6 +137,7 @@ namespace Engine
 				{
 					x.ResourceManager<VulkanMeshResourceManager>();
 					x.ResourceManager<VulkanTextureResourceManager>();
+					x.ResourceManager<VulkanTextResourceManager>();
                     x.ResourceManager<VulkanMaterialResourceManager>();
                     x.ResourceManager<VulkanSkyboxResourceManager>();
 					x.ResourceManager<VulkanTextureAtlasResourceManager>();
@@ -157,6 +165,7 @@ namespace Engine
 					x.Pipeline("Overlay", x =>
 					{
 						x.Sequential<VulkanGuiRenderSystem>();
+						x.Sequential<VulkanTextRenderingSystem>();
 					});
 
 					x.Pipeline("Present", x =>

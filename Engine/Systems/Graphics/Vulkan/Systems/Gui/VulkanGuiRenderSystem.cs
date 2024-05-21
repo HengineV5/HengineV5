@@ -8,6 +8,8 @@ using Engine.Utils.Parsing.TTF;
 using Silk.NET.Vulkan;
 using Silk.NET.Windowing;
 using System.Numerics;
+using System.Runtime.InteropServices;
+using System.Text;
 
 namespace Engine
 {
@@ -65,12 +67,12 @@ namespace Engine
 		{
             ref GuiShaderInput shaderInput = ref renderContext.pipeline.GetUbo<GuiShaderInput>(bufferIdx);
 			shaderInput.ubo.Value = context.guiUbo;
-			shaderInput.ubo.Value.screenSize = new Vector2(window.Size.X, window.Size.Y);
-            shaderInput.ubo.Value.proj = Matrix4x4.CreatePerspectiveFieldOfView(1.57f, 1, 0.1f, 100);
+
 			shaderInput.ubo.Value.position = new Vector4(position.x, position.y, position.z, position.w);
 			shaderInput.ubo.Value.size = new Vector4(size.x, size.y, size.z, size.w);
 			shaderInput.guiState.Value.totalStates = textureAtlas.textures;
 
+			// Move this to type specific code.
 			Vector2 p1 = new Vector2(shaderInput.ubo.Value.position.X + shaderInput.ubo.Value.position.Y * window.Size.X, shaderInput.ubo.Value.position.Z + shaderInput.ubo.Value.position.W * window.Size.X);
 			Vector2 p2 = p1 + new Vector2(shaderInput.ubo.Value.size.X + shaderInput.ubo.Value.size.Y * window.Size.X, shaderInput.ubo.Value.size.Z + shaderInput.ubo.Value.size.W * window.Size.X);
 
@@ -237,22 +239,25 @@ namespace Engine
 		{
 			var font = TtfLoader.LoadFont("Fonts/arial.ttf");
 
-			for (byte i = 65; i < 123; i++)
+			/*
+			for (byte i = 33; i < 127; i++)
 			{
-                Console.WriteLine($"Trying '{(char)i}':");
+                Console.WriteLine($"Trying '{(char)i}'/{i}:");
                 var g1 = font.GetGlyphIndex(i);
 				Memory<Vector2> mesh4 = ProcessMesh(g1).Span[0];
 				var indicies4 = Triangulation.Triangulate(mesh4.Span);
 
 				Console.WriteLine($"	Triangulated '{(char)i}' with {indicies4.Length} triangles");
 			}
-			/*
 			*/
 
-			var g = font.GetGlyphIndex('B');
+			ushort unicode = 'a';
+            Console.WriteLine(unicode);
+            var g = font.GetGlyphIndex(unicode);
 			Vector2 delta = new Vector2(g.glyphDescription.xMax - g.glyphDescription.xMin, g.glyphDescription.yMax - g.glyphDescription.yMin);
+            Console.WriteLine(delta);
 
-			var meshes = ProcessMesh(g);
+            var meshes = ProcessMesh(g);
 			Memory<Vector2> mesh = meshes.Span[0];
 			Memory<int>  indicies = Triangulation.Triangulate(mesh.Span);
 
@@ -270,6 +275,7 @@ namespace Engine
 
 			GuiMesh guiMesh = new GuiMesh();
 			guiMesh.verticies = mesh.Span.ToArray().Select(x => new GuiVertex(new Vector4(x.X / 1000f, 0, 1 - x.Y / 1000f, 0), Vector2.Zero)).ToArray();
+			//guiMesh.verticies = mesh.Span.ToArray().Select(x => new GuiVertex(new Vector4(x.X / delta.X, 0, 1 - x.Y / delta.Y, 0), Vector2.Zero)).ToArray();
 			guiMesh.indicies = indicies.Span.ToArray().Select(x => (ushort)x).ToArray();
 
 			return guiMesh;

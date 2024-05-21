@@ -8,6 +8,52 @@ namespace Engine.Generator
 {
 	public static class GeneratorExtensions
 	{
+		internal static IEnumerable<INamedTypeSymbol> AllNestedTypesAndSelf(this INamedTypeSymbol type)
+		{
+			yield return type;
+			foreach (var typeMember in type.GetTypeMembers())
+			{
+				foreach (var nestedType in typeMember.AllNestedTypesAndSelf())
+				{
+					yield return nestedType;
+				}
+			}
+		}
+		static IEnumerable<INamespaceSymbol> GetAllNamespaces(this INamespaceSymbol root)
+		{
+			yield return root;
+			foreach (var child in root.GetNamespaceMembers())
+				foreach (var next in GetAllNamespaces(child))
+					yield return next;
+		}
+
+		public static IEnumerable<INamedTypeSymbol> GetTypeSymbols(Compilation compilation, Func<INamedTypeSymbol, bool> predicate)
+		{
+			foreach (var type in compilation.Assembly.GlobalNamespace.GetAllNamespaces().SelectMany(x => x.GetTypeMembers()).SelectMany(x => x.AllNestedTypesAndSelf()))
+			{
+				if (predicate(type))
+					yield return type;
+			}
+
+			foreach (var assembly in compilation.SourceModule.ReferencedAssemblySymbols)
+			{
+				foreach (var type in assembly.GlobalNamespace.GetAllNamespaces().SelectMany(x => x.GetTypeMembers()).SelectMany(x => x.AllNestedTypesAndSelf()))
+				{
+					if (predicate(type))
+						yield return type;
+				}
+			}
+		}
+
+		public static IEnumerable<ISymbol> GetMemebers(INamedTypeSymbol symbol, Func<ISymbol, bool> predicate)
+		{
+			foreach (var member in symbol.GetMembers())
+			{
+				if (predicate(member))
+					yield return member;
+			}
+		}
+
 		public static string GetName(this NameSyntax name)
 		{
 			if (name is SimpleNameSyntax s)

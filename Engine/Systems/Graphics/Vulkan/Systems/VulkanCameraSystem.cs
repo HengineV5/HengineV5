@@ -74,9 +74,11 @@ namespace Engine
 		static void UpdateCameraGuiUbo(ref GuiUniformBufferObject ubo, Camera.Ref camera, IWindow window)
 		{
 			//ubo.proj = Matrix4x4.CreatePerspectiveFieldOfView(camera.fov, camera.width / camera.height, camera.zNear, camera.zFar);
-			ubo.proj = Matrix4x4.CreatePerspectiveFieldOfView(camera.fov, (float)window.Size.X / (float)window.Size.Y, camera.zNear, camera.zFar);
+			//ubo.proj = Matrix4x4.CreatePerspectiveFieldOfView(camera.fov, (float)window.Size.X / (float)window.Size.Y, camera.zNear, camera.zFar);
+			ubo.proj = Matrix4x4.CreatePerspectiveFieldOfView(1.57f, 1, 0.1f, 100);
+			ubo.screenSize = new Vector2(window.Size.X, window.Size.Y);
 
-			ubo.proj.M22 *= -1; // Think this was some opengl comaptability stuff.
+			//ubo.proj.M22 *= -1; // Think this was some opengl comaptability stuff.
 		}
 	}
 }

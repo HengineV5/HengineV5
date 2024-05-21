@@ -3,6 +3,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Xml.Linq;
 using TemplateGenerator;
@@ -57,12 +58,16 @@ namespace Engine.Generator
 
 			var uniqueSetupArgs = data.engine.setupSteps.SelectMany(x => x.nonConfigArgumentTypes).GroupBy(x => x.type).Select(x => x.First());
 			var uniqueContextArgs = data.engine.pipelines.SelectMany(x => x.contextArguments).GroupBy(x => x.type).Select(x => x.First());
+			var uniqueResourceManagerArgs = data.engine.resourceManagers.SelectMany(x => x.arguments).GroupBy(x => x.type).Select(x => x.First());
 			var uniqueSystemArgs = data.engine.pipelines.SelectMany(x => x.systems).SelectMany(x => x.arguments).GroupBy(x => x.type).Select(x => x.First());
-			var uniqueArgs = uniqueSystemArgs.Concat(uniqueSetupArgs.Select(x => new SystemArgument() { type = x.type })).GroupBy(x => x.type).Select(x => x.First());
+			var uniqueArgs = uniqueSystemArgs // TODO: Bit on edge but IDGAF
+				.Concat(uniqueSetupArgs.Select(x => new SystemArgument() { type = x.type }))
+				.Concat(uniqueResourceManagerArgs.Select(x => new SystemArgument() { type = x.type }))
+				.GroupBy(x => x.type).Select(x => x.First());
 
 			model.Set("uniqueArgs".AsSpan(), Parameter.CreateEnum<IModel<ReturnType>>(uniqueArgs.Select(x => x.GetModel())));
 			model.Set("uniqueContextArgs".AsSpan(), Parameter.CreateEnum<IModel<ReturnType>>(uniqueContextArgs.Select(x => x.GetModel())));
-			model.Set("setup".AsSpan(), Parameter.CreateEnum<IModel<ReturnType>>(data.engine.setupSteps.Select(x => x.GetModel(uniqueSystemArgs, uniqueSetupArgs))));
+			model.Set("setup".AsSpan(), Parameter.CreateEnum<IModel<ReturnType>>(data.engine.setupSteps.Select(x => x.GetModel(uniqueSystemArgs, uniqueSetupArgs, uniqueResourceManagerArgs))));
 
 			return true;
 		}
@@ -264,9 +269,21 @@ namespace Engine.Generator
 				if (configMethod.Expression is not MemberAccessExpressionSyntax methodAccess)
 					continue;
 
-				var foundSymbol = semanticModel.Compilation.GetSymbolsWithName(methodAccess.Name.Identifier.ToFullString(), SymbolFilter.Member).Single();
+				var name = configMethod.ToString().Split('.');
+				bool FindType(INamedTypeSymbol symbol)
+				{
+                    return symbol.Name == name[0];
+				}
+
+				bool FindMember(ISymbol symbol)
+				{
+					return symbol.Name == name[1];
+				}
+
+				var foundTypeSymbol = GeneratorExtensions.GetTypeSymbols(semanticModel.Compilation, FindType).Single();
+				var foundSymbol = GeneratorExtensions.GetMemebers(foundTypeSymbol, FindMember).Single();
 				if (foundSymbol is not IMethodSymbol methodSymbol)
-					throw new Exception();
+					throw new Exception($"Type is not {typeof(IMethodSymbol).Name}, type is {foundSymbol.GetType().Name}");
 
 				setupSteps.Add(new SetupStep()
 				{
@@ -343,7 +360,13 @@ namespace Engine.Generator
 
 				var nameArg = genericName.TypeArgumentList.Arguments[0] as IdentifierNameSyntax;
 
-				var foundSymbol = semanticModel.Compilation.GetSymbolsWithName(nameArg.Identifier.ToFullString(), SymbolFilter.Type).Single();
+				var name = nameArg.Identifier.ToFullString();
+				bool FindType(INamedTypeSymbol symbol)
+				{
+					return symbol.Name == name;
+				}
+
+				var foundSymbol = GeneratorExtensions.GetTypeSymbols(semanticModel.Compilation, FindType).FirstOrDefault();
 				if (foundSymbol is not INamedTypeSymbol typeSymbol)
 					continue;
 
@@ -541,13 +564,13 @@ namespace Engine.Generator
 			nonConfigArgumentTypes = EquatableArray<MethodArgumentType>.Empty;
 		}
 
-		public Model<ReturnType> GetModel(IEnumerable<SystemArgument> usedArguments, IEnumerable<MethodArgumentType> usedConfigArguments)
+		public Model<ReturnType> GetModel(IEnumerable<SystemArgument> usedArguments, IEnumerable<MethodArgumentType> usedConfigArguments, IEnumerable<MethodArgumentType> usedResourceArguments)
 		{
 			var model = new Model<ReturnType>();
 			model.Set("stepMethod".AsSpan(), Parameter.Create(method));
 			model.Set("stepTypes".AsSpan(), Parameter.CreateEnum<IModel<ReturnType>>(returnTypes.Select(x => x.GetModel())));
 			model.Set("stepArguments".AsSpan(), Parameter.CreateEnum<IModel<ReturnType>>(argumentTypes.Select(x => x.GetModel())));
-			model.Set("stepUsedTypes".AsSpan(), Parameter.CreateEnum<IModel<ReturnType>>(returnTypes.Where(x => usedArguments.Any(y => y.type == x.type) || usedConfigArguments.Any(y => y.type == x.type)).Select(x => x.GetModel())));
+			model.Set("stepUsedTypes".AsSpan(), Parameter.CreateEnum<IModel<ReturnType>>(returnTypes.Where(x => usedArguments.Any(y => y.type == x.type) || usedConfigArguments.Any(y => y.type == x.type) || usedResourceArguments.Any(y => y.type == x.type)).Select(x => x.GetModel())));
 			model.Set("stepCount".AsSpan(), Parameter.Create<float>(returnTypes.Count));
 
 			return model;

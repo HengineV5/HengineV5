@@ -83,5 +83,16 @@ namespace Runner
 
 			return objRef;
 		}
+
+		public static EnCS.ArchRef<TextElement> CreateTextElement(this HengineEcs.Overlay world, Vector4 position, TextureAtlas textureAtlas, GuiText text)
+		{
+			var objRef = world.Create(new TextElement());
+			TextElement.Ref entRef = world.Get(objRef);
+			entRef.GuiPosition.Set(position);
+			entRef.TextureAtlas.Set(textureAtlas);
+			entRef.GuiText.Set(text);
+
+			return objRef;
+		}
 	}
 }

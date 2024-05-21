@@ -32,7 +32,8 @@ namespace Engine.Utils.Parsing.TTF
 
     public class Font
     {
-		public GlyphData[] glyphData;
+		GlyphData[] glyphData;
+		HmtxTable hmtx;
 
 		CmapData cmapData;
         TtfOffsetSubtable offsetSubtable;
@@ -63,8 +64,32 @@ namespace Engine.Utils.Parsing.TTF
 			}
 		}
 
+		public ushort GetGlyphAdvance(ushort unicode)
+		{
+			//int idx = Array.BinarySearch(cmapData.endCode, unicode);
+			int idx = -1;
+			for (int i = 0; i < cmapData.endCode.Length; i++)
+			{
+				if (cmapData.endCode[i] >= unicode)
+				{
+					idx = i;
+					break;
+				}
+			}
+
+			if (cmapData.idRangeOffset[idx] == 0)
+			{
+				return hmtx.hMetrics[(unicode + cmapData.idDelta[idx]) % 65536].advanceWidth;
+			}
+			else
+			{
+				int offset = cmapData.idRangeOffset[idx] / 2 + (unicode - cmapData.startCode[idx]);
+				return hmtx.hMetrics[offset - cmapData.idRangeOffset.Length + idx].advanceWidth;
+			}
+		}
+
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public GlyphData GetGlyphIndex(int unicode)
+		public GlyphData GetGlyphIndex(uint unicode)
 			=> GetGlyphIndex((ushort)unicode);
 
 
@@ -97,6 +122,8 @@ namespace Engine.Utils.Parsing.TTF
 			var maxpEntry = font.tableDirectories.Single(x => x.TagAsString() == "maxp");
 			var headEntry = font.tableDirectories.Single(x => x.TagAsString() == "head");
 			var locaEntry = font.tableDirectories.Single(x => x.TagAsString() == "loca");
+			var hheaEntry = font.tableDirectories.Single(x => x.TagAsString() == "hhea");
+			var hmtxEntry = font.tableDirectories.Single(x => x.TagAsString() == "hmtx");
 
 			reader.Seek(headEntry.offset);
 			var headData = ReadHeadData(reader);
@@ -108,6 +135,11 @@ namespace Engine.Utils.Parsing.TTF
 
 			reader.Seek(locaEntry.offset);
 			var locations = ReadLocationData(reader, maxpData.numGlyphs, isLongVersion);
+
+			reader.Seek(hheaEntry.offset);
+			var hheaTable = ReadHheaData(reader);
+
+			font.hmtx = ReadHmtxData(reader, hheaTable);
 
             reader.Seek(cmapEntry.offset);
 			font.cmapData = ReadCmapData(reader);
@@ -179,6 +211,50 @@ namespace Engine.Utils.Parsing.TTF
 				fontDirectionHint = reader.ReadInt16(),
 				indexToLocFormat = reader.ReadInt16(),
 				glyphDatasFormat = reader.ReadInt16(),
+			};
+		}
+
+		static HheaTable ReadHheaData(TtfReader reader)
+		{
+			HheaTable table = new HheaTable()
+			{
+				version = reader.ReadFloat(),
+				ascent = reader.ReadInt16(),
+				descent = reader.ReadInt16(),
+				lineGap = reader.ReadInt16(),
+				advanceWidthMax = reader.ReadUInt16(),
+				minLeftSideBearing = reader.ReadInt16(),
+				minRightSideBearing = reader.ReadInt16(),
+				xMaxExtent = reader.ReadInt16(),
+				caretSlopeRise = reader.ReadInt16(),
+				caretSlopeRun = reader.ReadInt16(),
+				caretOffset = reader.ReadInt16(),
+			};
+
+			// Four reserved numbers
+			reader.ReadInt16();
+			reader.ReadInt16();
+			reader.ReadInt16();
+			reader.ReadInt16();
+
+			table.metricDataFormat = reader.ReadInt16();
+			table.numOfLongHorMetrics = reader.ReadUInt16();
+
+			return table;
+		}
+
+		static HmtxTable ReadHmtxData(TtfReader reader, in HheaTable hheaTable)
+		{
+			LongHorMetric[] hMetrics = new LongHorMetric[hheaTable.numOfLongHorMetrics];
+			for (int i = 0; i < hMetrics.Length; i++)
+			{
+				hMetrics[i].advanceWidth = reader.ReadUInt16();
+				reader.ReadUInt16(); // Ignore
+			}
+
+			return new HmtxTable
+			{
+				hMetrics = hMetrics,
 			};
 		}
 
@@ -270,7 +346,7 @@ namespace Engine.Utils.Parsing.TTF
 				yMax = reader.ReadUInt16()
 			};
 
-			if (glyphData.glyphDescription.numberOfContours < 0) // Countours, deal with later
+			if (glyphData.glyphDescription.numberOfContours < 0)
 				ReadCompoundGlyphs(ref glyphData, reader, glyphStart, locations);
 			else
 				ReadSimpleGlyph(ref glyphData, reader);

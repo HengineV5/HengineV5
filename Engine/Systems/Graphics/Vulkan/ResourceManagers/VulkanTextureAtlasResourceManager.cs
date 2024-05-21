@@ -3,7 +3,7 @@ using EnCS.Attributes;
 
 namespace Engine.Graphics
 {
-    public struct VkTextureAtlas
+	public struct VkTextureAtlas
     {
         public int textures;
 
@@ -32,7 +32,7 @@ namespace Engine.Graphics
 
 		public uint Store(in Graphics.TextureAtlas resource)
 		{
-			if (atlasCache.TryGetValue(resource.name, out uint id))
+            if (atlasCache.TryGetValue(resource.name, out uint id))
 				return id;
 
 			atlasCache.Add(resource.name, idx);
