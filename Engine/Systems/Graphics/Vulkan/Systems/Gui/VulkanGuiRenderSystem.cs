@@ -252,10 +252,8 @@ namespace Engine
 			*/
 
 			ushort unicode = 'a';
-            Console.WriteLine(unicode);
             var g = font.GetGlyphIndex(unicode);
 			Vector2 delta = new Vector2(g.glyphDescription.xMax - g.glyphDescription.xMin, g.glyphDescription.yMax - g.glyphDescription.yMin);
-            Console.WriteLine(delta);
 
             var meshes = ProcessMesh(g);
 			Memory<Vector2> mesh = meshes.Span[0];

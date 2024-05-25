@@ -138,7 +138,7 @@ namespace Runner
 			{
 				shape = GuiShape.Box
 			};
-			overlayWorld.CreateGuiElement(new(30, 0, 250, 0), new(50 * 4, 0, 50 * 4, 0), buttonAtlas, prop);
+			//overlayWorld.CreateGuiElement(new(30, 0, 250, 0), new(50 * 4, 0, 50 * 4, 0), buttonAtlas, prop);
 
 
 			GuiText text = new GuiText()
@@ -146,7 +146,7 @@ namespace Runner
 				id = "test_id",
 				font = font,
 			};
-			overlayWorld.CreateTextElement(new(30, 0, 50, 0), textAtlas, text);
+			//overlayWorld.CreateTextElement(new(30, 0, 50, 0), textAtlas, text);
 
 			/*
             for (int a = 0; a < str.Length; a++)

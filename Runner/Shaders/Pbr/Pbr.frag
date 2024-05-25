@@ -99,78 +99,79 @@ vec2 ParallaxMapping(vec2 texCoords, vec3 viewDir)
 }
 
 void main() {
-		vec3 viewDir = normalize(v_TBN * v_ViewPos - v_TBN * v_pos);
-		vec2 texCoords = ParallaxMapping(v_texCoord, viewDir);
+	vec3 viewDir = normalize(v_TBN * v_ViewPos - v_TBN * v_pos);
+	vec2 texCoords = ParallaxMapping(v_texCoord, viewDir);
 
-		vec3 albedo = texture(u_AlbedoMap, texCoords).rgb;
-		float metallic = texture(u_MetallicMap, texCoords).r;
-		float roughness = texture(u_RoughnessMap, texCoords).r;
+	vec3 albedo = texture(u_AlbedoMap, texCoords).rgb;
+	float metallic = texture(u_MetallicMap, texCoords).r;
+	float roughness = texture(u_RoughnessMap, texCoords).r;
 		
-		vec3 N = texture(u_NormalMap, texCoords).rgb;
-		//N = N * 2.0 - 1.0;
-		N = normalize(v_TBN * N);
+	vec3 N = texture(u_NormalMap, texCoords).rgb;
+	//N = N * 2.0 - 1.0;
+	N = normalize(v_TBN * N);
 
 
-		vec3 V = normalize(v_ViewPos - v_pos);
-		vec3 R = reflect(-V, N); 
+	vec3 V = normalize(v_ViewPos - v_pos);
+	vec3 R = reflect(-V, N); 
 
-		vec3 F0 = vec3(0.04);
-		F0 = mix(F0, albedo, metallic);
+	vec3 F0 = vec3(0.04);
+	F0 = mix(F0, albedo, metallic);
 
-		vec3 Lo = vec3(0.0);
-		for (int i = 0; i < 4; i++)
-		{
-			vec3 L = normalize(u_Light[i].position - v_pos);
-			vec3 H = normalize(V + L);
+	vec3 Lo = vec3(0.0);
+	for (int i = 0; i < 4; i++)
+	{
+		vec3 L = normalize(u_Light[i].position - v_pos);
+		vec3 H = normalize(V + L);
 
-			float dist = length(u_Light[i].position - v_pos);
-			float attenuation = 1.0 / (dist * dist);
-			vec3  radiance = u_Light[i].ambient * attenuation * 25;
+		float dist = length(u_Light[i].position - v_pos);
+		float attenuation = 1.0 / (dist * dist);
+		vec3  radiance = u_Light[i].ambient * attenuation * 25;
 
-			vec3 F = fresnelSchlick(max(dot(H, V), 0.0), F0);
+		vec3 F = fresnelSchlick(max(dot(H, V), 0.0), F0);
 
-			float NDF = distributionGGX(N, H, roughness);       
-			float G = geometrySmith(N, V, L, roughness);  
+		float NDF = distributionGGX(N, H, roughness);       
+		float G = geometrySmith(N, V, L, roughness);  
 
-			vec3 numerator = NDF * G * F;
-			float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0)  + 0.0001;
-			vec3 specular = numerator / denominator;
+		vec3 numerator = NDF * G * F;
+		float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0)  + 0.0001;
+		vec3 specular = numerator / denominator;
 
-			vec3 kS = F;
-			vec3 kD = vec3(1.0) - kS;
-			kD *= 1.0 - metallic;
-
-			float NdotL = max(dot(N, L), 0.0);
-			Lo += (kD * albedo / PI + specular) * radiance * NdotL;
-		}
-
-		vec3 F = fresnelSchlickRoughness(max(dot(N, V), 0.0), F0, roughness);
-    
 		vec3 kS = F;
-		vec3 kD = 1.0 - kS;
-		kD *= 1.0 - metallic;	  
+		vec3 kD = vec3(1.0) - kS;
+		kD *= 1.0 - metallic;
+
+		float NdotL = max(dot(N, L), 0.0);
+		Lo += (kD * albedo / PI + specular) * radiance * NdotL;
+	}
+
+	vec3 F = fresnelSchlickRoughness(max(dot(N, V), 0.0), F0, roughness);
     
-		vec3 irradiance = pow(texture(u_IrradianceMap, N).rgb, vec3(2.2));
-		vec3 diffuse      = irradiance * albedo;
+	vec3 kS = F;
+	vec3 kD = 1.0 - kS;
+	kD *= 1.0 - metallic;	  
     
-		// sample both the pre-filter map and the BRDF lut and combine them together as per the Split-Sum approximation to get the IBL specular part.
-		const float MAX_REFLECTION_LOD = 5.0;
-		vec3 prefilteredColor = pow(textureLod(u_SpecularMap, R,  roughness * MAX_REFLECTION_LOD).rgb, vec3(2.2));
-		vec2 brdf  = texture(u_Texture, vec2(max(dot(N, V), 0.0), roughness)).rg;
-		vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);
+	vec3 irradiance = pow(texture(u_IrradianceMap, N).rgb, vec3(2.2));
+	vec3 diffuse      = irradiance * albedo;
+    
+	// sample both the pre-filter map and the BRDF lut and combine them together as per the Split-Sum approximation to get the IBL specular part.
+	const float MAX_REFLECTION_LOD = 5.0;
+	vec3 prefilteredColor = pow(textureLod(u_SpecularMap, R,  roughness * MAX_REFLECTION_LOD).rgb, vec3(2.2));
+	vec2 brdf  = texture(u_Texture, vec2(max(dot(N, V), 0.0), roughness)).rg;
+	vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);
 
-		vec3 ambient = (kD * diffuse + specular) * ao;
-		vec3 result = ambient + Lo;
+	vec3 ambient = (kD * diffuse + specular) * ao;
+	vec3 result = ambient + Lo;
 
-		result = result / (result + vec3(1.0));
-		result = pow(result, vec3(1.0/2.2)); 
+	result = result / (result + vec3(1.0));
+	result = pow(result, vec3(1.0/2.2)); 
 
-		color = vec4(result, 1.0);
+	color = vec4(result, 1.0);
+	//color = vec4(vec3(roughness), 1.0);
 
-		/*
-		float height = texture(u_DepthMap, v_texCoord).r;
-		height = height - 0.1;
-		height *= 1.5;
-		color = vec4(vec3(height), 1.0);
-		*/
+	/*
+	float height = texture(u_DepthMap, v_texCoord).r;
+	height = height - 0.1;
+	height *= 1.5;
+	color = vec4(vec3(height), 1.0);
+	*/
 }

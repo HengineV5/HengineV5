@@ -105,8 +105,8 @@ namespace Runner
 					MapWorld.CreateHexBridgeIndicies(indicies.AsSpan().Slice(indexStride * hexIdx + 3 * 6), (uint)(vertexStride * hexIdx) + 7);
 					MapWorld.CreateHexBridgeIndicies(indicies.AsSpan().Slice(indexStride * hexIdx + 3 * 6 + 6 * 6), (uint)(vertexStride * hexIdx) + 7 + 12);
 
-					/*
 					// Corners: 30 verticies
+					/*
 					MapWorld.CreateHexVerticies(verticies.AsSpan().Slice(vertexStride * hexIdx + 7 + 18), p, hexScale * solidFactor, uvStart, offsetsZero);
 					MapWorld.CreateOuterHexVerticies(verticies.AsSpan().Slice(vertexStride * hexIdx + 7 + 18 + 6), p, hexScale * solidFactor, hexScale * blendFactor, uvStart, offsets);
 					MapWorld.CreateHexVerticies(verticies.AsSpan().Slice(vertexStride * hexIdx + 7 + 18 + 6 + 12), p, hexScale, uvStart, offsets2);

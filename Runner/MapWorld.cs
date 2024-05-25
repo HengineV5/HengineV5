@@ -45,7 +45,7 @@ namespace Runner
 				world.CreateObject(verticies[i].position * 0.5f, Vector3.One * 0.01f, meshSphere, materialSphere, 0);
 			}
 
-            Console.WriteLine(mapMesh.verticies.Length);
+            //Console.WriteLine(mapMesh.verticies.Length);
 
             Vector3 start = new((-21 / 2) + 0.5f, -2, -5);
 			start = Vector3.Zero;
@@ -57,13 +57,13 @@ namespace Runner
 			return new Vector3(Random.Shared.NextSingle(), Random.Shared.NextSingle(), Random.Shared.NextSingle());
 		}
 
+		static PbrMaterial mMaterial = PbrMaterial.GetDefault($"Point");
+
 		static PbrMaterial GetMapMaterial()
 		{
-			PbrMaterial material = pMaterial;
+			PbrMaterial material = mMaterial;
 			material.name = $"Map";
 			material.albedo = Vector3.One;
-			material.metallic = 1;
-			material.roughness = 1;
 			material.albedoMap = ETexture.LoadImage($"Map_albedo", "Images/AlbedoMap.png");
 
 			return material;
@@ -76,6 +76,7 @@ namespace Runner
 			PbrMaterial material = pMaterial;
 			material.name = $"Point: {color}";
 			material.albedo = color;
+
 
 			return material;
 		}
