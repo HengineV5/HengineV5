@@ -102,9 +102,9 @@ void main() {
 	vec3 viewDir = normalize(v_TBN * v_ViewPos - v_TBN * v_pos);
 	vec2 texCoords = ParallaxMapping(v_texCoord, viewDir);
 
-	vec3 albedo = texture(u_AlbedoMap, texCoords).rgb;
-	float metallic = texture(u_MetallicMap, texCoords).r;
-	float roughness = texture(u_RoughnessMap, texCoords).r;
+	vec3 albedo = pow(texture(u_AlbedoMap, texCoords).rgb, vec3(2.2)) * u_Material.albedo;
+	float metallic = pow(texture(u_MetallicMap, texCoords).b, 2.2) * u_Material.metallic;
+	float roughness = pow(texture(u_RoughnessMap, texCoords).r, 2.2) * u_Material.roughness;
 		
 	vec3 N = texture(u_NormalMap, texCoords).rgb;
 	//N = N * 2.0 - 1.0;

@@ -9,6 +9,8 @@
 	<IsAotCompatible>true</IsAotCompatible>
   
 	<InterceptorsPreviewNamespaces>Engine</InterceptorsPreviewNamespaces>
+
+	<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
   </PropertyGroup>
 
   <ItemGroup>

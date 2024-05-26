@@ -161,22 +161,22 @@ namespace Engine
 
             Vector3 delta = new Vector3();
 			if (inputHandler.IsKeyDown(Key.W))
-				delta += camForward * 10f;
+				delta += camForward * 5;
 
 			if (inputHandler.IsKeyDown(Key.A))
-				delta -= camRight * 10f;
+				delta -= camRight * 5;
 
 			if (inputHandler.IsKeyDown(Key.S))
-				delta -= camForward * 10f;
+				delta -= camForward * 5;
 
 			if (inputHandler.IsKeyDown(Key.D))
-				delta += camRight * 10f;
+				delta += camRight * 5;
 
 			if (inputHandler.IsKeyDown(Key.Q))
-				delta.Y += 10f;
+				delta.Y += 5;
 
 			if (inputHandler.IsKeyDown(Key.E))
-				delta.Y -= 10f;
+				delta.Y -= 5;
 
 			if (inputHandler.IsKeyDown(Key.ShiftLeft))
 				delta *= 2;

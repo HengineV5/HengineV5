@@ -17,7 +17,7 @@ namespace Runner
 
 		public static void Load(Main world)
 		{
-			HexMap map = new HexMap(4 * 8, 4 * 8);
+			HexMap map = new HexMap(4 * 4, 4 * 4);
 
 			var meshSphere = Mesh.LoadOBJ("Sphere", "Models/SphereSmooth.obj");
 			var materialSphere = GetPointMaterial(Vector3.Zero);
@@ -35,14 +35,14 @@ namespace Runner
 			Vertex[] verticies = new Vertex[128];
 			//CreateCenterVertex(verticies, Vector3.Zero, Vector2.Zero);
 			//CreateHexVerticies(verticies.AsSpan().Slice(1), Vector3.Zero, Vector3.One * 0.5f, Vector2.Zero, offsets);
-			CreateOuterHexVerticies(verticies.AsSpan().Slice(0), Vector3.Zero, Vector3.One * 0.5f, Vector3.One * 0f, Vector2.Zero, offsets);
-			CreateOuterHexVerticies(verticies.AsSpan().Slice(12), Vector3.Zero, Vector3.One * 0.5f, Vector3.One * 0.25f, Vector2.Zero, offsets);
-			CreateOuterHexVerticies(verticies.AsSpan().Slice(12 + 12), Vector3.Zero, Vector3.One * 0.5f, Vector3.One * 0.5f, Vector2.Zero, offsets);
+			CreateOuterHexVerticies(verticies.AsSpan().Slice(0), Vector3.Zero, Vector3.One * 0.75f, Vector3.One * 0f, Vector2.Zero, offsets);
+			CreateOuterHexVerticies(verticies.AsSpan().Slice(12), Vector3.Zero, Vector3.One * 0.75f, Vector3.One * 0.25f, Vector2.Zero, offsets);
+			//CreateOuterHexVerticies(verticies.AsSpan().Slice(12 + 12), Vector3.Zero, Vector3.One * 0.5f, Vector3.One * 0.25f, Vector2.Zero, offsets);
 			//CreateCenterVertex(verticies.AsSpan().Slice(7 + 24), Vector3.Zero, Vector2.Zero);
 			//CreateHexVerticies(verticies.AsSpan().Slice(7 + 24 + 1), Vector3.Zero, Vector3.One, Vector2.Zero, offsets);
 			for (int i = 0; i < verticies.Length; i++)
 			{
-				world.CreateObject(verticies[i].position * 0.5f, Vector3.One * 0.01f, meshSphere, materialSphere, 0);
+				//world.CreateObject(verticies[i].position * 0.5f, Vector3.One * 0.01f, meshSphere, materialSphere, 0);
 			}
 
             //Console.WriteLine(mapMesh.verticies.Length);
@@ -57,7 +57,7 @@ namespace Runner
 			return new Vector3(Random.Shared.NextSingle(), Random.Shared.NextSingle(), Random.Shared.NextSingle());
 		}
 
-		static PbrMaterial mMaterial = PbrMaterial.GetDefault($"Point");
+		static PbrMaterial mMaterial = PbrMaterial.GetDefault($"Point_2");
 
 		static PbrMaterial GetMapMaterial()
 		{

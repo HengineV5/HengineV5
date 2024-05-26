@@ -72,21 +72,20 @@ namespace Runner
 			//var textureRoughness = ETexture.LoadImage("PbrGoldRoughness", "Images/Pbr/Iron/rustediron2_roughness.png");
 			var textureRoughness = ETexture.LoadImage("PbrGoldRoughness", "Images/Pbr/Floor/wood_floor_worn_rough_4k.png");
 
-			var textureDepth = ETexture.LoadImage("PbrGoldDepth", "Images/Pbr/Floor/wood_floor_worn_disp_4k_new.png");
+			//var textureDepth = ETexture.LoadImage("PbrGoldDepth", "Images/Pbr/Floor/wood_floor_worn_disp_4k_new.png");
 
-			var textureAo = ETexture.LoadImage("PbrGoldAo", "Images/Pbr/Default/Ao.png");
+			//var textureAo = ETexture.LoadImage("PbrGoldAo", "Images/Pbr/Default/Ao.png");
 
-			PbrMaterial material = new PbrMaterial();
-			material.name = "PbrGold";
+			PbrMaterial material = PbrMaterial.GetDefault("PbrGold");
 			material.albedo = Vector3.One;
 			material.albedoMap = textureAlbedo;
 			material.metallic = 1;
 			material.metallicMap = textureMetallic;
-			material.roughness = 1;
+			material.roughness = 8;
 			material.roughnessMap = textureRoughness;
-			material.aoMap = textureAo;
+			//material.aoMap = textureAo;
 			material.normalMap = textureNormal;
-			material.depthMap = textureDepth;
+			//material.depthMap = textureDepth;
 
 			return material;
 		}

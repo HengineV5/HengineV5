@@ -54,7 +54,9 @@ namespace Engine.Graphics
             material.name = name;
             material.albedo = Vector3.One;
             material.albedoMap = ETexture.LoadImage($"{name}_albedo", "Images/Pbr/Default/Albedo.png");
+            material.metallic = 1;
             material.metallicMap = ETexture.LoadImage($"{name}_metallic", "Images/Pbr/Default/Metallic.png");
+            material.roughness = 1;
             material.roughnessMap = ETexture.LoadImage($"{name}_roughness", "Images/Pbr/Default/Roughness.png");
             material.aoMap = ETexture.LoadImage($"{name}_ao", "Images/Pbr/Default/Ao.png");
             material.normalMap = ETexture.LoadImage($"{name}_normal", "Images/Pbr/Default/Normal.png");

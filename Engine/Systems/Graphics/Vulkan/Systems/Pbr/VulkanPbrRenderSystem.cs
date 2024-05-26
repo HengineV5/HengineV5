@@ -40,8 +40,8 @@ namespace Engine
 			defaultLights[3] = defaultLight;
 
 			defaultLights[0].Position = new Vector3(0, 3, -6);
-			defaultLights[1].Position = new Vector3(10, 0, -2);
-			defaultLights[2].Position = new Vector3(-10, 0, -2);
+			defaultLights[1].Position = new Vector3(10, 5, -2);
+			defaultLights[2].Position = new Vector3(-10, 5, -2);
 			defaultLights[3].Position = new Vector3(0, 10, -2);
 		}
 

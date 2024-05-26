@@ -111,7 +111,7 @@ namespace Engine.Graphics
 			};
 		}
 
-		static List<Memory<Vector2>> ProcessMesh(in GlyphData glyphData)
+		public static List<Memory<Vector2>> ProcessMesh(in GlyphData glyphData)
 		{
 			if (glyphData.endPtsOfContours is null)
 				return new List<Memory<Vector2>>();
