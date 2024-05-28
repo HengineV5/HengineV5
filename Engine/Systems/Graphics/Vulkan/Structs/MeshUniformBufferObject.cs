@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 namespace Engine
 {
 	[StructLayout(LayoutKind.Sequential, Pack = 16)]
-	public struct PbrUniformBufferObject
+	public struct MeshUniformBufferObject
 	{
 		public Matrix4x4 translation;
 		public Matrix4x4 rotation;

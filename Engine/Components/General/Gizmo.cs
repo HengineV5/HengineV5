@@ -5,6 +5,7 @@ namespace Engine.Components
 	public enum GizmoType
 	{
 		Point,
+		Arrow,
 	}
 
 	[Component]

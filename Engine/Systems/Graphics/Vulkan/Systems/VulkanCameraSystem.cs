@@ -53,7 +53,7 @@ namespace Engine
 			UpdateCameraGuiUbo(ref context.guiUbo, camera, window);
 		}
 
-		static void UpdateCameraUbo(ref PbrUniformBufferObject ubo, Camera.Ref camera, Position.Ref position, Rotation.Ref rotation, IWindow window)
+		static void UpdateCameraUbo(ref MeshUniformBufferObject ubo, Camera.Ref camera, Position.Ref position, Rotation.Ref rotation, IWindow window)
 		{
 			ubo.view = Matrix4x4.CreateTranslation(-new Vector3(position.x, position.y, position.z)) * Matrix4x4.CreateFromQuaternion(new Quaternion(rotation.x, rotation.y, rotation.z, rotation.w));
 			//ubo.proj = Matrix4x4.CreatePerspectiveFieldOfView(camera.fov, camera.width / camera.height, camera.zNear, camera.zFar);
@@ -62,7 +62,7 @@ namespace Engine
 			ubo.proj.M22 *= -1; // Think this was some opengl comaptability stuff.
 		}
 
-		static void UpdateCameraUbo2(ref PbrUniformBufferObject ubo, Camera.Ref camera, Rotation.Ref rotation, IWindow window)
+		static void UpdateCameraUbo2(ref MeshUniformBufferObject ubo, Camera.Ref camera, Rotation.Ref rotation, IWindow window)
 		{
 			ubo.view = Matrix4x4.CreateFromQuaternion(new Quaternion(rotation.x, rotation.y, rotation.z, rotation.w));
 			//ubo.proj = Matrix4x4.CreatePerspectiveFieldOfView(camera.fov, camera.width / camera.height, camera.zNear, camera.zFar);

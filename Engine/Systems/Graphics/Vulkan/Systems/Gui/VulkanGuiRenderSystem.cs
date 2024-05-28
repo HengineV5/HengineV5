@@ -24,8 +24,8 @@ namespace Engine
 		VkContext context;
 		VkRenderContext renderContext;
 
-		VkMeshBuffer boxBuffer;
 		Sampler sampler;
+		VkMeshBuffer boxBuffer;
 
 		public VulkanGuiRenderSystem(VkContext context, VkRenderContext renderContext, IWindow window, IInputHandler inputHandler)
 		{
@@ -40,7 +40,7 @@ namespace Engine
 			sampler = VulkanHelper.CreateSampler(context, 5);
 
 			var boxMesh = GuiMeshes.Box;
-			boxBuffer = VulkanMeshResourceManager.CreateGuiMeshBuffer(context, boxMesh.verticies, boxMesh.indicies);
+			boxBuffer = VulkanMeshResourceManager.CreateBuffer<GuiVertex>(context, boxMesh.verticies, boxMesh.indicies, GuiVertex.SizeInBytes);
 		}
 
 		// TODO: Refactor out

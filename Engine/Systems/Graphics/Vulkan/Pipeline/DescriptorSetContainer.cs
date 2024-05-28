@@ -57,11 +57,13 @@ namespace Engine
 	{
         DescriptorSetGroup<PbrShaderInput> pbrDescriptors;
         DescriptorSetGroup<GuiShaderInput> guiDescriptors;
+        DescriptorSetGroup<GizmoShaderInput> gizmoDescriptors;
 
-		public DescriptorSetContainer(DescriptorSetGroup<PbrShaderInput> pbrDescriptors, DescriptorSetGroup<GuiShaderInput> guiDescriptors)
+		public DescriptorSetContainer(DescriptorSetGroup<PbrShaderInput> pbrDescriptors, DescriptorSetGroup<GuiShaderInput> guiDescriptors, DescriptorSetGroup<GizmoShaderInput> gizmoDescriptors)
 		{
 			this.pbrDescriptors = pbrDescriptors;
 			this.guiDescriptors = guiDescriptors;
+			this.gizmoDescriptors = gizmoDescriptors;
 		}
 
 		public static DescriptorSetContainer Create<TRenderTargetManager, TRenderPassInfo, TPipelineInfo>(VkContext context)
@@ -78,7 +80,10 @@ namespace Engine
 			var guiPool = VulkanHelper.CreateDescriptorPool(context, frames * descriptorsPerFrame);
 			var gui = DescriptorSetGroup<GuiShaderInput>.Create(context, guiPool, frames, descriptorsPerFrame);
 
-			return new DescriptorSetContainer(pbr, gui);
+			var gizmoPool = VulkanHelper.CreateDescriptorPool(context, frames * descriptorsPerFrame);
+			var gizmo = DescriptorSetGroup<GizmoShaderInput>.Create(context, gizmoPool, frames, descriptorsPerFrame);
+
+			return new DescriptorSetContainer(pbr, gui, gizmo);
 		}
 
 		public static DescriptorSet GetDescriptorSet(PipelineContainerLayer layer, uint frame, uint idx, ref DescriptorSetContainer self)
@@ -91,6 +96,8 @@ namespace Engine
 					return self.pbrDescriptors.GetDescriptorSet(frame, idx);
 				case PipelineContainerLayer.Gui:
 					return self.guiDescriptors.GetDescriptorSet(frame, idx);
+				case PipelineContainerLayer.Gizmo:
+					return self.gizmoDescriptors.GetDescriptorSet(frame, idx);
 				default:
 					throw new Exception();
 			}
@@ -106,6 +113,8 @@ namespace Engine
 					return PbrShaderInput.GetLayout(context);
 				case PipelineContainerLayer.Gui:
 					return GuiShaderInput.GetLayout(context);
+				case PipelineContainerLayer.Gizmo:
+					return GizmoShaderInput.GetLayout(context);
 				default:
 					throw new Exception();
 			}

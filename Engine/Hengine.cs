@@ -84,13 +84,14 @@ namespace Engine
 					x.System<VulkanPresentSystem>();
 					x.System<VulkanGuiRenderSystem>();
 					x.System<VulkanTextRenderingSystem>();
+					x.System<VulkanGizmoRenderSystem>();
 
 					x.System<ClientSendSystem>();
 					x.System<ClientReceiveSystem>();
 				})
 				.World(x =>
 				{
-					x.World<HengineEcs.NEntity, HengineEcs.Cam, HengineEcs.Hex>("Main");
+					x.World<HengineEcs.NEntity, HengineEcs.Cam, HengineEcs.Hex, HengineEcs.Gizmo>("Main");
 					x.World<HengineEcs.GuiElement, HengineEcs.TextElement>("Overlay");
 				})
 				.Resource(x =>
@@ -160,6 +161,7 @@ namespace Engine
 						//x.Sequential<VulkanCameraSystem>();
 						x.Sequential<VulkanPbrRenderSystem>();
 						x.Sequential<VulkanWireframeRenderSystem>();
+						x.Sequential<VulkanGizmoRenderSystem>();
 						//x.Sequential<VulkanPresentSystem>();
 					});
 

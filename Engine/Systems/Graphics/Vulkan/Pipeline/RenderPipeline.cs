@@ -1,4 +1,5 @@
 ﻿using EnCS;
+using Silk.NET.OpenAL;
 using Silk.NET.Vulkan;
 using Buffer = Silk.NET.Vulkan.Buffer;
 using Image = Silk.NET.Vulkan.Image;
@@ -71,7 +72,7 @@ namespace Engine
             return true;
         }
 
-		public void StartRenderPass(VkContext context, TRenderPassEnum renderPass, TPipelineEnum pipeline)
+		public void StartRenderPass(VkContext context, in TRenderPassEnum renderPass, in TPipelineEnum pipeline)
 		{
             var renderArea = TRenderTargetManager.GetRenderArea(ref renderTargetManager);
 			var vkRenderPass = TRenderPassContainer.Get(renderPass, ref renderPasses);
@@ -85,10 +86,9 @@ namespace Engine
             context.vk.CmdBindPipeline(renderTarget.frame.commandBuffer, PipelineBindPoint.Graphics, TPipelineContainer.Get(pipeline, ref pipelines));
         }
 
-        public unsafe void Render(VkContext context, TPipelineEnum pipeline, Buffer vertexBuffer, Buffer indexBuffer, uint indicies, int idx)
+        public unsafe void Render(VkContext context, in TPipelineEnum pipeline, in Buffer vertexBuffer, in Buffer indexBuffer, uint indicies, int idx)
         {
-            //context.vk.CmdBindDescriptorSets(renderTarget.frame.commandBuffer, PipelineBindPoint.Graphics, TPipelineContainer.GetLayout(pipeline, ref pipelines), 0, 1, TDescriptorSet.GetDescriptorSet(ref renderTarget.frame.descriptorData[idx]), 0, null);
-            context.vk.CmdBindDescriptorSets(renderTarget.frame.commandBuffer, PipelineBindPoint.Graphics, TPipelineContainer.GetLayout(pipeline, ref pipelines), 0, 1, TRenderTargetManager.GetDescriptorSet(pipeline, ref descriptorSets, (uint)idx, ref renderTargetManager), 0, null);
+            BindDescriptorSets(context, pipeline, idx);
 
             context.vk.CmdBindVertexBuffers(renderTarget.frame.commandBuffer, 0, [vertexBuffer], [0]);
             context.vk.CmdBindIndexBuffer(renderTarget.frame.commandBuffer, indexBuffer, 0, IndexType.Uint16);
@@ -96,7 +96,15 @@ namespace Engine
             context.vk.CmdDrawIndexed(renderTarget.frame.commandBuffer, indicies, 1, 0, 0, 0);
         }
 
-        public void EndRenderPass(VkContext context)
+		public unsafe void RenderWithoutUbo(VkContext context, in TPipelineEnum pipeline, in Buffer vertexBuffer, in Buffer indexBuffer, uint indicies, int idx)
+		{
+			context.vk.CmdBindVertexBuffers(renderTarget.frame.commandBuffer, 0, [vertexBuffer], [0]);
+			context.vk.CmdBindIndexBuffer(renderTarget.frame.commandBuffer, indexBuffer, 0, IndexType.Uint16);
+
+			context.vk.CmdDrawIndexed(renderTarget.frame.commandBuffer, indicies, 1, 0, 0, 0);
+		}
+
+		public void EndRenderPass(VkContext context)
         {
             FinishRender(context, renderTarget.frame.commandBuffer);
             var result = context.vk.ResetFences(context.device, [renderTarget.frame.inFlight]);
@@ -171,7 +179,12 @@ namespace Engine
 			return new(graphicsQueue, commandPool, renderTargetManager, descriptorSets, pipelineContainer, renderPassContainer);
         }
 
-        unsafe void BeginRenderCommand(VkContext context, CommandBuffer commandBuffer, RenderPass renderPass, Framebuffer framebuffer, ClearColorValue clearColor, Rect2D renderArea)
+        unsafe void BindDescriptorSets(VkContext context, in TPipelineEnum pipeline, int idx)
+        {
+			context.vk.CmdBindDescriptorSets(renderTarget.frame.commandBuffer, PipelineBindPoint.Graphics, TPipelineContainer.GetLayout(pipeline, ref pipelines), 0, 1, TRenderTargetManager.GetDescriptorSet(pipeline, ref descriptorSets, (uint)idx, ref renderTargetManager), 0, null);
+		}
+
+        static unsafe void BeginRenderCommand(VkContext context, CommandBuffer commandBuffer, RenderPass renderPass, Framebuffer framebuffer, ClearColorValue clearColor, Rect2D renderArea)
         {
             CommandBufferBeginInfo beginInfo = new();
             beginInfo.SType = StructureType.CommandBufferBeginInfo;
@@ -196,7 +209,7 @@ namespace Engine
             context.vk.CmdBeginRenderPass(commandBuffer, renderPassInfo, SubpassContents.Inline);
         }
 
-        unsafe void RenderSetViewportAndScissor(VkContext context, CommandBuffer commandBuffer, Rect2D renderArea)
+        static unsafe void RenderSetViewportAndScissor(VkContext context, CommandBuffer commandBuffer, Rect2D renderArea)
         {
             Viewport viewport = new();
             viewport.X = 0;
@@ -215,7 +228,7 @@ namespace Engine
             context.vk.CmdSetScissor(commandBuffer, 0, 1, &scissor);
         }
 
-        void FinishRender(VkContext context, CommandBuffer commandBuffer)
+        static void FinishRender(VkContext context, CommandBuffer commandBuffer)
         {
             context.vk.CmdEndRenderPass(commandBuffer);
 

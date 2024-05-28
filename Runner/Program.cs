@@ -174,8 +174,8 @@ namespace Runner
 			}
 			*/
 
-            //TestWorld.Load(mainWorld);
-			MapWorld.Load(mainWorld);
+            TestWorld.Load(mainWorld);
+			//MapWorld.Load(mainWorld);
 
 			engine.Start();
 			engine.argIWindow.Dispose();

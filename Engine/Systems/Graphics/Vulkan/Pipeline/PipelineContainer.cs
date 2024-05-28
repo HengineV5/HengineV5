@@ -15,13 +15,15 @@ namespace Engine
 		public RenderLayer pbrLayer;
 		public RenderLayer wireframeLayer;
         public RenderLayer guiLayer;
+        public RenderLayer gizmoLayer;
 
-        public PipelineContainer(RenderLayer skyboxLayer, RenderLayer pbrLayer, RenderLayer wireframeLayer, RenderLayer guiLayer)
+        public PipelineContainer(RenderLayer skyboxLayer, RenderLayer pbrLayer, RenderLayer wireframeLayer, RenderLayer guiLayer, RenderLayer gizmoLayer)
         {
             this.skyboxLayer = skyboxLayer;
             this.pbrLayer = pbrLayer;
             this.wireframeLayer = wireframeLayer;
             this.guiLayer = guiLayer;
+			this.gizmoLayer = gizmoLayer;
         }
 
         public static PipelineContainer Create<TDescriptorContainer>(VkContext context, RenderPass compatibleRenderPass, in DefaultPipelineInfo info)
@@ -29,6 +31,7 @@ namespace Engine
 		{
 			var pbrDescriptorLayout = CreatePipelineLayout(context, TDescriptorContainer.GetDescriptorSetLayout(context, PipelineContainerLayer.Pbr));
 			var guiDescriptorLayout = CreatePipelineLayout(context, TDescriptorContainer.GetDescriptorSetLayout(context, PipelineContainerLayer.Gui));
+			var gizmoDescriptorLayout = CreatePipelineLayout(context, TDescriptorContainer.GetDescriptorSetLayout(context, PipelineContainerLayer.Gizmo));
 
             var skyboxShader = Shader.FromFiles("Shaders/Skybox/SkyboxVert.spv", "Shaders/Skybox/SkyboxFrag.spv");
 			var skyboxPipeline = RenderLayer.CreateSkybox(context, skyboxShader, pbrDescriptorLayout, info.extent, compatibleRenderPass);
@@ -42,7 +45,10 @@ namespace Engine
             var guiShader = Shader.FromFiles("Shaders/Gui/GuiVert.spv", "Shaders/Gui/GuiFrag.spv");
             var guiPipeline = RenderLayer.CreateGui(context, guiShader, guiDescriptorLayout, info.extent, compatibleRenderPass);
 
-			return new PipelineContainer(skyboxPipeline, pbrPipeline, wireframePipeline, guiPipeline);
+            var gizmoShader = Shader.FromFiles("Shaders/Gizmo/GizmoVert.spv", "Shaders/Gizmo/GizmoFrag.spv");
+            var gizmoPipeline = RenderLayer.CreateGizmo(context, gizmoShader, gizmoDescriptorLayout, info.extent, compatibleRenderPass);
+
+			return new PipelineContainer(skyboxPipeline, pbrPipeline, wireframePipeline, guiPipeline, gizmoPipeline);
 		}
 
 		public static void Dispose(VkContext context, ref PipelineContainer self)
@@ -51,6 +57,8 @@ namespace Engine
             self.skyboxLayer.Dispose(context, true);
             self.pbrLayer.Dispose(context, false);
             self.wireframeLayer.Dispose(context, false);
+            self.guiLayer.Dispose(context, true);
+            self.gizmoLayer.Dispose(context, true);
 		}
 
 		public static Pipeline Get(PipelineContainerLayer layer, ref PipelineContainer self)
@@ -65,6 +73,8 @@ namespace Engine
                     return self.wireframeLayer.pipeline;
                 case PipelineContainerLayer.Gui:
                     return self.guiLayer.pipeline;
+                case PipelineContainerLayer.Gizmo:
+                    return self.gizmoLayer.pipeline;
                 default:
                     throw new Exception();
             }
@@ -82,6 +92,8 @@ namespace Engine
                     return self.wireframeLayer.layout;
                 case PipelineContainerLayer.Gui:
                     return self.guiLayer.layout;
+                case PipelineContainerLayer.Gizmo:
+                    return self.gizmoLayer.layout;
                 default:
                     throw new Exception();
             }
@@ -204,6 +216,22 @@ namespace Engine
 			return new RenderLayer(shader, pipeline, layout);
 		}
 
+		public static RenderLayer CreateGizmo(VkContext context, Shader shader, PipelineLayout layout, Extent2D extent, RenderPass compatibleRenderPass)
+		{
+			var pipeline = new GraphicsPipelineBuilder()
+				.WithVertexInput(GetGizmoBindingDescription(), GetGizmoAttributeDescription())
+				.WithInputAssembly()
+				.WithViewport(extent)
+				.WithRasterization(PolygonMode.Fill, CullModeFlags.None, 1)
+				.WithMultisample()
+				.WithDepthStencil(true)
+				.WithColorBlend()
+				.WithDynamicState()
+				.Build(context, layout, compatibleRenderPass, shader);
+
+			return new RenderLayer(shader, pipeline, layout);
+		}
+
 		static VertexInputBindingDescription GetPbrBindingDescription()
 		{
 			VertexInputBindingDescription description = new();
@@ -268,6 +296,35 @@ namespace Engine
 			description.Span[1].Location = 1;
 			description.Span[1].Format = Format.R32G32Sfloat;
 			description.Span[1].Offset = sizeof(float) * 4;
+
+			return description;
+		}
+
+		static VertexInputBindingDescription GetGizmoBindingDescription()
+		{
+			VertexInputBindingDescription description = new();
+			description.Binding = 0;
+			description.Stride = GizmoVertex.SizeInBytes;
+			description.InputRate = VertexInputRate.Vertex;
+
+			return description;
+		}
+
+		static Memory<VertexInputAttributeDescription> GetGizmoAttributeDescription()
+		{
+			Memory<VertexInputAttributeDescription> description = new VertexInputAttributeDescription[2];
+
+			// Vertex Position
+			description.Span[0].Binding = 0;
+			description.Span[0].Location = 0;
+			description.Span[0].Format = Format.R32G32B32Sfloat;
+			description.Span[0].Offset = 0;
+
+			// Vertex Normal
+			description.Span[1].Binding = 0;
+			description.Span[1].Location = 1;
+			description.Span[1].Format = Format.R32G32B32Sfloat;
+			description.Span[1].Offset = sizeof(float) * 3;
 
 			return description;
 		}

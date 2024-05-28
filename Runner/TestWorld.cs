@@ -37,6 +37,9 @@ namespace Runner
 			/*
 			*/
 
+			//world.CreateObject(new(0, 0, 0), Vector3.One * 1.25f, meshSphere, materialSphere, 0);
+			world.CreateGizmo(new(0, 0, 0), Vector3.One, new());
+
 			world.CreateObject(new(0, -4, 0), Vector3.One * 4, meshPlane, materialSphere, 0);
 
 			float midX = 4 / 2f;

@@ -146,6 +146,12 @@
     <None Update="Models\Duck\DuckCM.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="Models\Gizmos\Arrow\Arrow.bin">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Models\Gizmos\Arrow\Arrow.gltf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="Models\Plane\plane.bin">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -596,6 +602,18 @@
     <None Update="Scripts\startTestServer.bat">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="Shaders\Gizmo\Gizmo.vert">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Shaders\Gizmo\Gizmo.frag">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Shaders\Gizmo\GizmoFrag.spv">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Shaders\Gizmo\GizmoVert.spv">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="Shaders\Gui\GuiFrag.spv">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -654,6 +672,7 @@
 
   <ItemGroup>
     <Folder Include="Images\Gui\Button\" />
+    <Folder Include="Models\Gizmos\Arrow\" />
     <Folder Include="Models\Plane\" />
     <Folder Include="Models\Sponza\" />
     <Folder Include="Shaders\Gui\" />

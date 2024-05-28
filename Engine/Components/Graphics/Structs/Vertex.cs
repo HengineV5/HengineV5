@@ -34,4 +34,18 @@ namespace Engine.Graphics
 			this.textureCoordinate = textureCoordinate;
 		}
 	}
+
+	public struct GizmoVertex
+	{
+		public static readonly uint SizeInBytes = sizeof(float) * 6; // Byte size of vertex
+
+		public Vector3 position;
+		public Vector3 normal;
+
+		public GizmoVertex(Vector3 position, Vector3 normal)
+		{
+			this.position = position;
+			this.normal = normal;
+		}
+	}
 }

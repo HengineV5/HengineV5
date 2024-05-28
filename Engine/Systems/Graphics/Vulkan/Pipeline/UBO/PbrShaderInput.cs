@@ -8,7 +8,7 @@ namespace Engine
 {
 	public struct PbrShaderInput : IUniformBufferObject<PbrShaderInput>
 	{
-		public MappedMemory<PbrUniformBufferObject> ubo;
+		public MappedMemory<MeshUniformBufferObject> ubo;
 		public MappedMemory<PbrMaterialInfo> material;
 		public FixedArray4<MappedMemory<Light>> lights;
 
@@ -41,11 +41,11 @@ namespace Engine
 
 			// TODO: Convert this builder to source generator
 			var uniformBufferBuilder = new UniformBufferBuilder(descriptorSet, uniformBuffer)
-						.Variable<PbrUniformBufferObject>(0)
+						.Variable<MeshUniformBufferObject>(0)
 						.Variable<PbrMaterialInfo>(10)
 						.Array<Light>(11, 4);
 
-			shaderInput.ubo = uniformBufferBuilder.GetElement<PbrUniformBufferObject>(dataPtr, 0);
+			shaderInput.ubo = uniformBufferBuilder.GetElement<MeshUniformBufferObject>(dataPtr, 0);
 			shaderInput.material = uniformBufferBuilder.GetElement<PbrMaterialInfo>(dataPtr, 1);
 			for (int b = 0; b < 4; b++)
 			{
@@ -118,6 +118,55 @@ namespace Engine
 				.Uniform(ShaderStageFlags.VertexBit, 1)         // UBO
 				.Samplers(ShaderStageFlags.FragmentBit, 1, 1)   // UI Atlas map
 				.Uniform(ShaderStageFlags.FragmentBit, 1)       // GUI State
+				.Build(context);
+		}
+	}
+
+	public struct GizmoShaderInput : IUniformBufferObject<GizmoShaderInput>
+	{
+		public MappedMemory<MeshUniformBufferObject> ubo;
+
+		public unsafe static DescriptorSet Create(VkContext context, DescriptorPool descriptorPool)
+		{
+			DescriptorSetLayout layout = GetLayout(context);
+
+			DescriptorSetAllocateInfo allocInfo = new();
+			allocInfo.SType = StructureType.DescriptorSetAllocateInfo;
+			allocInfo.DescriptorPool = descriptorPool;
+			allocInfo.DescriptorSetCount = 1;
+			allocInfo.PSetLayouts = &layout;
+
+			var result = context.vk.AllocateDescriptorSets(context.device, allocInfo, out DescriptorSet descriptorSet);
+			if (result != Result.Success)
+				throw new Exception("Failed to allocate vkDescriptorSets");
+
+			return descriptorSet;
+		}
+
+		public unsafe static GizmoShaderInput Map(VkContext context, DescriptorSet descriptorSet)
+		{
+			Buffer uniformBuffer = VulkanHelper.CreateBuffer(context, BufferUsageFlags.UniformBufferBit, 704);
+			DeviceMemory uniformBuffersMemory = VulkanHelper.CreateBufferMemory(context, uniformBuffer, MemoryPropertyFlags.HostVisibleBit | MemoryPropertyFlags.HostCoherentBit);
+
+			void* dataPtr;
+			context.vk.MapMemory(context.device, uniformBuffersMemory, 0, 704, 0, &dataPtr);
+
+			var shaderInput = new GizmoShaderInput();
+
+			// TODO: Convert this builder to source generator
+			var uniformBufferBuilder = new UniformBufferBuilder(descriptorSet, uniformBuffer)
+						.Variable<MeshUniformBufferObject>(0);
+
+			shaderInput.ubo = uniformBufferBuilder.GetElement<MeshUniformBufferObject>(dataPtr, 0);
+
+			uniformBufferBuilder.UpdateDescriptorSet(context);
+			return shaderInput;
+		}
+
+		public static DescriptorSetLayout GetLayout(VkContext context)
+		{
+			return new DescriptorSetLayoutBuilder()
+				.Uniform(ShaderStageFlags.VertexBit, 1)  // UBO
 				.Build(context);
 		}
 	}

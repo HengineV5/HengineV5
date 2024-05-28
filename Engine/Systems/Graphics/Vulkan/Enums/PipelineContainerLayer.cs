@@ -5,6 +5,7 @@
 		Skybox,
 		Pbr,
 		Wireframe,
-		Gui
+		Gui,
+		Gizmo
 	}
 }

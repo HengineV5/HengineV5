@@ -25,6 +25,18 @@ namespace Runner
 			return objRef;
 		}
 
+		public static EnCS.ArchRef<Gizmo> CreateGizmo(this Main world, Vector3 pos, Vector3 scale, GizmoComp gizmo)
+		{
+			var objRef = world.Create(new Gizmo());
+			Gizmo.Ref entRef = world.Get(objRef);
+			entRef.Position.Set(pos);
+			entRef.Rotation.Set(Quaternion.Identity);
+			entRef.Scale.Set(scale);
+			entRef.GizmoComp.Set(gizmo);
+
+			return objRef;
+		}
+
 		public static EnCS.ArchRef<Hex> CreateHex(this Main world, Vector3 pos, Vector3 scale, HexCell hexCell, Mesh mesh, PbrMaterial material, int idx)
 		{
 			var objRef = world.Create(new Hex());

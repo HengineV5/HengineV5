@@ -99,7 +99,7 @@ namespace Engine.Graphics
 			for (int i = 0; i < indicies.Count; i++)
 				indexMemory.Memory.Span[i] = (ushort)indicies[i];
 
-			var meshBuffer = VulkanMeshResourceManager.CreateGuiMeshBuffer(context, vertMemory.Memory.Span.Slice(0, verticies.Count), indexMemory.Memory.Span.Slice(0, indicies.Count));
+			var meshBuffer = VulkanMeshResourceManager.CreateBuffer(context, vertMemory.Memory.Span.Slice(0, verticies.Count), indexMemory.Memory.Span.Slice(0, indicies.Count), GuiVertex.SizeInBytes);
 
 			return new()
 			{

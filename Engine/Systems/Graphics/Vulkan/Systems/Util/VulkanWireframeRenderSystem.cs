@@ -72,6 +72,7 @@ namespace Engine
 		{
 			if (wireframeEnabled)
 				renderContext.pipeline.Render(this.context, PipelineContainerLayer.Wireframe, mesh.vertexBuffer, mesh.indexBuffer, mesh.indicies, updateIdx);
+
 			updateIdx++;
 		}
 
@@ -82,7 +83,7 @@ namespace Engine
 				renderContext.pipeline.EndRenderPass(context);
 		}
 
-		static void UpdateEntityUbo(ref PbrUniformBufferObject ubo, Position.Ref position, Rotation.Ref rotation, Scale.Ref scale)
+		static void UpdateEntityUbo(ref MeshUniformBufferObject ubo, Position.Ref position, Rotation.Ref rotation, Scale.Ref scale)
 		{
 			ubo.translation = Matrix4x4.CreateTranslation(new Vector3(position.x, position.y, position.z));
 			ubo.rotation = Matrix4x4.CreateFromQuaternion(new Quaternion(rotation.x, rotation.y, rotation.z, rotation.w));
