@@ -152,6 +152,12 @@
     <None Update="Models\Gizmos\Arrow\Arrow.gltf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="Models\Gizmos\Point\Point.bin">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Models\Gizmos\Point\Point.gltf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="Models\Plane\plane.bin">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -673,6 +679,7 @@
   <ItemGroup>
     <Folder Include="Images\Gui\Button\" />
     <Folder Include="Models\Gizmos\Arrow\" />
+    <Folder Include="Models\Gizmos\Point\" />
     <Folder Include="Models\Plane\" />
     <Folder Include="Models\Sponza\" />
     <Folder Include="Shaders\Gui\" />

@@ -66,6 +66,7 @@ namespace Engine
 					x.ArchType<Position, Rotation, Camera, Skybox, Networked>("Cam");
 
 					x.ArchType<Position, Rotation, Scale, GizmoComp>("Gizmo");
+					x.ArchType<GizmoLine>("GizmoLine");
 
 					x.ArchType<GuiProperties, GuiPosition, GuiSize, TextureAtlas>("GuiElement");
 					x.ArchType<GuiProperties, GuiPosition, TextureAtlas, GuiText>("TextElement");
@@ -85,13 +86,14 @@ namespace Engine
 					x.System<VulkanGuiRenderSystem>();
 					x.System<VulkanTextRenderingSystem>();
 					x.System<VulkanGizmoRenderSystem>();
+					x.System<VulkanGizmoLineRenderSystem>();
 
 					x.System<ClientSendSystem>();
 					x.System<ClientReceiveSystem>();
 				})
 				.World(x =>
 				{
-					x.World<HengineEcs.NEntity, HengineEcs.Cam, HengineEcs.Hex, HengineEcs.Gizmo>("Main");
+					x.World<HengineEcs.NEntity, HengineEcs.Cam, HengineEcs.Hex, HengineEcs.Gizmo, HengineEcs.GizmoLine>("Main");
 					x.World<HengineEcs.GuiElement, HengineEcs.TextElement>("Overlay");
 				})
 				.Resource(x =>
@@ -158,11 +160,10 @@ namespace Engine
 					{
 						//x.Sequential<OpenGLRenderSystem>();
 
-						//x.Sequential<VulkanCameraSystem>();
 						x.Sequential<VulkanPbrRenderSystem>();
 						x.Sequential<VulkanWireframeRenderSystem>();
+						x.Sequential<VulkanGizmoLineRenderSystem>();
 						x.Sequential<VulkanGizmoRenderSystem>();
-						//x.Sequential<VulkanPresentSystem>();
 					});
 
 					x.Pipeline("Overlay", x =>

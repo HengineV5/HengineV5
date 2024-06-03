@@ -6,6 +6,7 @@
 		Pbr,
 		Wireframe,
 		Gui,
-		Gizmo
+		Gizmo,
+		GizmoLine
 	}
 }

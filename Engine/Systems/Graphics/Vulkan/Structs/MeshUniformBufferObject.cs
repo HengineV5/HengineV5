@@ -13,4 +13,10 @@ namespace Engine
 		public Matrix4x4 proj;
 		public Vector3 cameraPos;
 	}
+
+	[StructLayout(LayoutKind.Sequential, Pack = 16)]
+	public struct GizmoUniformBufferObject
+	{
+		public Vector3 color;
+	}
 }

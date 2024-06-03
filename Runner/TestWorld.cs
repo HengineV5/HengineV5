@@ -38,7 +38,23 @@ namespace Runner
 			*/
 
 			//world.CreateObject(new(0, 0, 0), Vector3.One * 1.25f, meshSphere, materialSphere, 0);
-			world.CreateGizmo(new(0, 0, 0), Vector3.One, new());
+			world.CreateGizmo(new(0, 0, 0), Vector3.One, new()
+			{
+				type = Engine.Components.GizmoType.Point,
+				color = new(0.005f, 0.005f, 0.005f)
+			});
+
+			world.CreateGizmo(new(1, -2, 0), Vector3.One, new()
+			{
+				type = Engine.Components.GizmoType.Point,
+				color = new(0.005f, 0.005f, 0.005f)
+			});
+
+			world.CreateGizmoLine(new Engine.Components.GizmoLine()
+			{
+				p1 = new Engine.Components.GizmoLinePosition(0, 0, 0),
+				p2 = new Engine.Components.GizmoLinePosition(1, -2, 0)
+			});
 
 			world.CreateObject(new(0, -4, 0), Vector3.One * 4, meshPlane, materialSphere, 0);
 

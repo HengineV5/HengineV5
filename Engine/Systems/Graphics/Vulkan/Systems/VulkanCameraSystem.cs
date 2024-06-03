@@ -31,10 +31,12 @@ namespace Engine
 		}
 
 		[SystemUpdate]
-		public void UpdateCamera(ref VulkanRenderContext context, Position.Ref position, Rotation.Ref rotation, Camera.Ref camera, ref VkSkybox skybox)
+		public void UpdateCamera(ref VulkanRenderContext context, in Position.Ref position, in Rotation.Ref rotation, in Camera.Ref camera, ref VkSkybox skybox)
 		{
-			UpdateCameraUbo2(ref context.pbrUbo, camera, rotation, window);
+			UpdateSkyboxCameraUbo(ref context.skyboxUbo, camera, rotation, window);
+			context.skyboxUbo.cameraPos = new Vector3(position.x, position.y, position.z);
 			context.pbrUbo.cameraPos = new Vector3(position.x, position.y, position.z);
+			context.gizmoUbo.cameraPos = new Vector3(position.x, position.y, position.z);
 			context.skybox = skybox;
 
 			// Skybox render
@@ -42,7 +44,7 @@ namespace Engine
 			renderContext.pipeline.StartRenderPass(this.context, RenderPassId.Skybox, PipelineContainerLayer.Skybox);
 
 			ref PbrShaderInput shaderInput = ref renderContext.pipeline.GetUbo<PbrShaderInput>(0);
-			shaderInput.ubo.Value = context.pbrUbo;
+			shaderInput.ubo.Value = context.skyboxUbo;
 			VulkanRenderHelpers.UpdateSkyboxDescriptorSet(this.context, renderContext.pipeline.GetDescriptorSet(PipelineContainerLayer.Skybox, 0), skybox.skybox, renderContext.samplers);
 
             renderContext.pipeline.Render(this.context, PipelineContainerLayer.Skybox, skyboxBuffer.vertexBuffer, skyboxBuffer.indexBuffer, skyboxBuffer.indicies, 0);
@@ -51,9 +53,10 @@ namespace Engine
 
 			UpdateCameraUbo(ref context.pbrUbo, camera, position, rotation, window);
 			UpdateCameraGuiUbo(ref context.guiUbo, camera, window);
+			UpdateCameraGizmoUbo(ref context.gizmoUbo, camera, position, rotation, window);
 		}
 
-		static void UpdateCameraUbo(ref MeshUniformBufferObject ubo, Camera.Ref camera, Position.Ref position, Rotation.Ref rotation, IWindow window)
+		static void UpdateCameraUbo(ref MeshUniformBufferObject ubo, in Camera.Ref camera, in Position.Ref position, in Rotation.Ref rotation, IWindow window)
 		{
 			ubo.view = Matrix4x4.CreateTranslation(-new Vector3(position.x, position.y, position.z)) * Matrix4x4.CreateFromQuaternion(new Quaternion(rotation.x, rotation.y, rotation.z, rotation.w));
 			//ubo.proj = Matrix4x4.CreatePerspectiveFieldOfView(camera.fov, camera.width / camera.height, camera.zNear, camera.zFar);
@@ -62,7 +65,7 @@ namespace Engine
 			ubo.proj.M22 *= -1; // Think this was some opengl comaptability stuff.
 		}
 
-		static void UpdateCameraUbo2(ref MeshUniformBufferObject ubo, Camera.Ref camera, Rotation.Ref rotation, IWindow window)
+		static void UpdateSkyboxCameraUbo(ref MeshUniformBufferObject ubo, in Camera.Ref camera, in Rotation.Ref rotation, IWindow window)
 		{
 			ubo.view = Matrix4x4.CreateFromQuaternion(new Quaternion(rotation.x, rotation.y, rotation.z, rotation.w));
 			//ubo.proj = Matrix4x4.CreatePerspectiveFieldOfView(camera.fov, camera.width / camera.height, camera.zNear, camera.zFar);
@@ -71,7 +74,17 @@ namespace Engine
 			ubo.proj.M22 *= -1; // Think this was some opengl comaptability stuff.
 		}
 
-		static void UpdateCameraGuiUbo(ref GuiUniformBufferObject ubo, Camera.Ref camera, IWindow window)
+		static void UpdateCameraGizmoUbo(ref MeshUniformBufferObject ubo, in Camera.Ref camera, in Position.Ref position, in Rotation.Ref rotation, IWindow window)
+		{
+			ubo.view = Matrix4x4.CreateTranslation(-new Vector3(position.x, position.y, position.z)) * Matrix4x4.CreateFromQuaternion(new Quaternion(rotation.x, rotation.y, rotation.z, rotation.w));
+			ubo.proj = Matrix4x4.CreatePerspectiveFieldOfView(camera.fov, (float)window.Size.X / (float)window.Size.Y, camera.zNear, camera.zFar);
+            //ubo.proj = Matrix4x4.CreatePerspectiveFieldOfView(MathF.PI / 2, (float)window.Size.X / (float)window.Size.Y, camera.zNear, camera.zFar);
+            //ubo.proj = Matrix4x4.CreateOrthographic(10, 10, camera.zNear, camera.zFar);
+
+            ubo.proj.M22 *= -1; // Think this was some opengl comaptability stuff.
+		}
+
+		static void UpdateCameraGuiUbo(ref GuiUniformBufferObject ubo, in Camera.Ref camera, IWindow window)
 		{
 			//ubo.proj = Matrix4x4.CreatePerspectiveFieldOfView(camera.fov, camera.width / camera.height, camera.zNear, camera.zFar);
 			//ubo.proj = Matrix4x4.CreatePerspectiveFieldOfView(camera.fov, (float)window.Size.X / (float)window.Size.Y, camera.zNear, camera.zFar);

@@ -147,9 +147,11 @@ namespace Engine
 			return this;
 		}
 
-        public unsafe GraphicsPipelineBuilder WithDynamicState()
+        public unsafe GraphicsPipelineBuilder WithDynamicState(scoped Span<DynamicState> dynamicStates)
         {
-			dynamicState = new DynamicState[2] { DynamicState.Viewport, DynamicState.Scissor };
+			//dynamicState = new DynamicState[2] { DynamicState.Viewport, DynamicState.Scissor };
+			dynamicState = new DynamicState[dynamicStates.Length];
+			dynamicStates.CopyTo(dynamicState.Span);
 
 			dynamicStateCreateInfo.SType = StructureType.PipelineDynamicStateCreateInfo;
 			dynamicStateCreateInfo.DynamicStateCount = 2;

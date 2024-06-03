@@ -125,6 +125,7 @@ namespace Engine
 	public struct GizmoShaderInput : IUniformBufferObject<GizmoShaderInput>
 	{
 		public MappedMemory<MeshUniformBufferObject> ubo;
+		public MappedMemory<GizmoUniformBufferObject> gizmoUbo;
 
 		public unsafe static DescriptorSet Create(VkContext context, DescriptorPool descriptorPool)
 		{
@@ -155,9 +156,11 @@ namespace Engine
 
 			// TODO: Convert this builder to source generator
 			var uniformBufferBuilder = new UniformBufferBuilder(descriptorSet, uniformBuffer)
-						.Variable<MeshUniformBufferObject>(0);
+						.Variable<MeshUniformBufferObject>(0)
+						.Variable<GizmoUniformBufferObject>(1);
 
 			shaderInput.ubo = uniformBufferBuilder.GetElement<MeshUniformBufferObject>(dataPtr, 0);
+			shaderInput.gizmoUbo = uniformBufferBuilder.GetElement<GizmoUniformBufferObject>(dataPtr, 1);
 
 			uniformBufferBuilder.UpdateDescriptorSet(context);
 			return shaderInput;
@@ -167,6 +170,7 @@ namespace Engine
 		{
 			return new DescriptorSetLayoutBuilder()
 				.Uniform(ShaderStageFlags.VertexBit, 1)  // UBO
+				.Uniform(ShaderStageFlags.VertexBit, 1)  // Gizmo UBO
 				.Build(context);
 		}
 	}

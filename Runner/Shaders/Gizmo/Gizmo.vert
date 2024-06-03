@@ -5,7 +5,7 @@
 layout(location = 0) in vec3 position;
 layout(location = 1) in vec3 normal;
 
-layout(location = 0) out vec2 v_texCoord;
+layout(location = 0) out vec3 v_color;
 layout(location = 1) out vec3 v_normal;
 layout(location = 2) out vec3 v_pos;
 layout(location = 3) out vec3 v_viewPos;
@@ -19,6 +19,11 @@ layout(binding = 0) uniform UniformBufferObject {
     vec3 viewPos;
 } u_Ubo;
 
+layout(binding = 1) uniform GizmoBufferObject
+{
+    vec3 color;
+} u_GizmoUbo;
+
 void main() {
     mat4 model = u_Ubo.translation * u_Ubo.rotation * u_Ubo.scale;
     gl_Position = u_Ubo.proj * u_Ubo.view * model * vec4(position, 1.0);
@@ -27,6 +32,6 @@ void main() {
 
     v_pos = vec3(model * vec4(position, 1));
     v_viewPos = u_Ubo.viewPos;
-    v_texCoord = vec2(0);
+    v_color = u_GizmoUbo.color;
     v_normal = normalMatrix * normal;
 }

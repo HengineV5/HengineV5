@@ -97,6 +97,7 @@ namespace Engine
 				case PipelineContainerLayer.Gui:
 					return self.guiDescriptors.GetDescriptorSet(frame, idx);
 				case PipelineContainerLayer.Gizmo:
+				case PipelineContainerLayer.GizmoLine:
 					return self.gizmoDescriptors.GetDescriptorSet(frame, idx);
 				default:
 					throw new Exception();
@@ -114,6 +115,7 @@ namespace Engine
 				case PipelineContainerLayer.Gui:
 					return GuiShaderInput.GetLayout(context);
 				case PipelineContainerLayer.Gizmo:
+				case PipelineContainerLayer.GizmoLine:
 					return GizmoShaderInput.GetLayout(context);
 				default:
 					throw new Exception();

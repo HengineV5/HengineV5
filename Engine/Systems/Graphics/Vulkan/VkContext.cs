@@ -147,8 +147,8 @@ namespace Engine
 			var graphicsQueueFamily = GetGraphicsQueueFamily(vk, physicalDevice);
 			device = CreateLogicalDevice(vk, physicalDevice, graphicsQueueFamily, vulkanConfig.validationLayers, DEVICE_EXTENSIONS);
 
-            //vk.GetPhysicalDeviceProperties(physicalDevice, out PhysicalDeviceProperties properties);
-            //Console.WriteLine(properties.Limits.MinUniformBufferOffsetAlignment);
+			//vk.GetPhysicalDeviceProperties(physicalDevice, out PhysicalDeviceProperties properties);
+			//Console.WriteLine(properties.Limits.MinUniformBufferOffsetAlignment);
 
             // Do not use TryGetInstanceExtension or TryGetDeviceExtensions since they use reflection.
             surface = new KhrSurface(new LamdaNativeContext((string x) => (nint)vk.GetInstanceProcAddr(instance, x)));

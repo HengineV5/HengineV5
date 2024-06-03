@@ -37,6 +37,15 @@ namespace Runner
 			return objRef;
 		}
 
+		public static EnCS.ArchRef<HengineEcs.GizmoLine> CreateGizmoLine(this Main world, Engine.Components.GizmoLine line)
+		{
+			var objRef = world.Create(new HengineEcs.GizmoLine());
+			HengineEcs.GizmoLine.Ref entRef = world.Get(objRef);
+			entRef.GizmoLine.Set(line);
+
+			return objRef;
+		}
+
 		public static EnCS.ArchRef<Hex> CreateHex(this Main world, Vector3 pos, Vector3 scale, HexCell hexCell, Mesh mesh, PbrMaterial material, int idx)
 		{
 			var objRef = world.Create(new Hex());

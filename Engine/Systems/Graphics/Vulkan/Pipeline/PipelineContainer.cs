@@ -16,14 +16,16 @@ namespace Engine
 		public RenderLayer wireframeLayer;
         public RenderLayer guiLayer;
         public RenderLayer gizmoLayer;
+        public RenderLayer gizmoLineLayer;
 
-        public PipelineContainer(RenderLayer skyboxLayer, RenderLayer pbrLayer, RenderLayer wireframeLayer, RenderLayer guiLayer, RenderLayer gizmoLayer)
+        public PipelineContainer(RenderLayer skyboxLayer, RenderLayer pbrLayer, RenderLayer wireframeLayer, RenderLayer guiLayer, RenderLayer gizmoLayer, RenderLayer gizmoLineLayer)
         {
             this.skyboxLayer = skyboxLayer;
             this.pbrLayer = pbrLayer;
             this.wireframeLayer = wireframeLayer;
             this.guiLayer = guiLayer;
 			this.gizmoLayer = gizmoLayer;
+			this.gizmoLineLayer = gizmoLineLayer;
         }
 
         public static PipelineContainer Create<TDescriptorContainer>(VkContext context, RenderPass compatibleRenderPass, in DefaultPipelineInfo info)
@@ -47,8 +49,9 @@ namespace Engine
 
             var gizmoShader = Shader.FromFiles("Shaders/Gizmo/GizmoVert.spv", "Shaders/Gizmo/GizmoFrag.spv");
             var gizmoPipeline = RenderLayer.CreateGizmo(context, gizmoShader, gizmoDescriptorLayout, info.extent, compatibleRenderPass);
+            var gizmoLinePipeline = RenderLayer.CreateGizmoLine(context, gizmoShader, gizmoDescriptorLayout, info.extent, compatibleRenderPass);
 
-			return new PipelineContainer(skyboxPipeline, pbrPipeline, wireframePipeline, guiPipeline, gizmoPipeline);
+			return new PipelineContainer(skyboxPipeline, pbrPipeline, wireframePipeline, guiPipeline, gizmoPipeline, gizmoLinePipeline);
 		}
 
 		public static void Dispose(VkContext context, ref PipelineContainer self)
@@ -75,6 +78,8 @@ namespace Engine
                     return self.guiLayer.pipeline;
                 case PipelineContainerLayer.Gizmo:
                     return self.gizmoLayer.pipeline;
+                case PipelineContainerLayer.GizmoLine:
+                    return self.gizmoLineLayer.pipeline;
                 default:
                     throw new Exception();
             }
@@ -94,6 +99,8 @@ namespace Engine
                     return self.guiLayer.layout;
                 case PipelineContainerLayer.Gizmo:
                     return self.gizmoLayer.layout;
+                case PipelineContainerLayer.GizmoLine:
+                    return self.gizmoLineLayer.layout;
                 default:
                     throw new Exception();
             }
@@ -162,7 +169,7 @@ namespace Engine
                 .WithMultisample()
                 .WithDepthStencil(true)
                 .WithColorBlend()
-                .WithDynamicState()
+                .WithDynamicState([DynamicState.Viewport, DynamicState.Scissor])
                 .Build(context, layout, compatibleRenderPass, shader);
 
             return new RenderLayer(shader, pipeline, layout);
@@ -178,7 +185,7 @@ namespace Engine
 				.WithMultisample()
 				.WithDepthStencil(true)
 				.WithColorBlend()
-				.WithDynamicState()
+				.WithDynamicState([DynamicState.Viewport, DynamicState.Scissor])
 				.Build(context, layout, compatibleRenderPass, shader);
 
 			return new RenderLayer(shader, pipeline, layout);
@@ -194,7 +201,7 @@ namespace Engine
 				.WithMultisample()
 				.WithDepthStencil(true)
 				.WithColorBlend()
-				.WithDynamicState()
+				.WithDynamicState([DynamicState.Viewport, DynamicState.Scissor])
 				.Build(context, layout, compatibleRenderPass, shader);
 
 			return new RenderLayer(shader, pipeline, layout);
@@ -210,7 +217,7 @@ namespace Engine
 				.WithMultisample()
 				.WithDepthStencil(false)
 				.WithColorBlend()
-				.WithDynamicState()
+				.WithDynamicState([DynamicState.Viewport, DynamicState.Scissor])
 				.Build(context, layout, compatibleRenderPass, shader);
 
 			return new RenderLayer(shader, pipeline, layout);
@@ -222,11 +229,27 @@ namespace Engine
 				.WithVertexInput(GetGizmoBindingDescription(), GetGizmoAttributeDescription())
 				.WithInputAssembly()
 				.WithViewport(extent)
-				.WithRasterization(PolygonMode.Fill, CullModeFlags.None, 1)
+				.WithRasterization(PolygonMode.Fill, CullModeFlags.BackBit, 1)
 				.WithMultisample()
-				.WithDepthStencil(true)
+				.WithDepthStencil(false)
 				.WithColorBlend()
-				.WithDynamicState()
+				.WithDynamicState([DynamicState.Viewport, DynamicState.Scissor])
+				.Build(context, layout, compatibleRenderPass, shader);
+
+			return new RenderLayer(shader, pipeline, layout);
+		}
+
+		public static RenderLayer CreateGizmoLine(VkContext context, Shader shader, PipelineLayout layout, Extent2D extent, RenderPass compatibleRenderPass)
+		{
+			var pipeline = new GraphicsPipelineBuilder()
+				.WithVertexInput(GetGizmoBindingDescription(), GetGizmoAttributeDescription())
+				.WithInputAssembly()
+				.WithViewport(extent)
+				.WithRasterization(PolygonMode.Line, CullModeFlags.None, 2)
+				.WithMultisample()
+				.WithDepthStencil(false)
+				.WithColorBlend()
+				.WithDynamicState([DynamicState.Viewport, DynamicState.Scissor])
 				.Build(context, layout, compatibleRenderPass, shader);
 
 			return new RenderLayer(shader, pipeline, layout);

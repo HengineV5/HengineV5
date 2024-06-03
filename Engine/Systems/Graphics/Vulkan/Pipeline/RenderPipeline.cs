@@ -228,6 +228,10 @@ namespace Engine
             context.vk.CmdSetScissor(commandBuffer, 0, 1, &scissor);
         }
 
+        unsafe void RenderSetPolygonMode(VkContext context, CommandBuffer commandBuffer, Rect2D renderArea)
+        {
+        }
+
         static void FinishRender(VkContext context, CommandBuffer commandBuffer)
         {
             context.vk.CmdEndRenderPass(commandBuffer);
