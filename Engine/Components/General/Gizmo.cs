@@ -20,6 +20,13 @@ namespace Engine.Components
 			G = g;
 			B = b;
 		}
+
+		public GizmoColor(float v)
+		{
+			R = v;
+			G = v;
+			B = v;
+		}
 	}
 
 	[Component]

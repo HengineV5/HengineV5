@@ -4,38 +4,15 @@ using System.Runtime.InteropServices;
 
 namespace Engine.Utils
 {
-	ref struct SpanBuilder<T>
-	{
-		Span<T> span;
-		int idx = 0;
-
-		public SpanBuilder(Span<T> span)
-		{
-			this.span = span;
-		}
-
-		public void Append(ReadOnlySpan<T> span)
-		{
-			span.CopyTo(this.span.Slice(idx));
-			idx += span.Length;
-		}
-
-		public void Append(in T item)
-		{
-			this.span[idx] = item;
-			idx++;
-		}
-	}
-
-	struct Ear
-	{
-		public int prev;
-		public int curr;
-		public int next;
-	}
-
 	public static class Triangulation
 	{
+		struct Ear
+		{
+			public int prev;
+			public int curr;
+			public int next;
+		}
+
 		public static Memory<int> Triangulate(ReadOnlySpan<Vector2> verticies, bool clockwise = true)
 		 => Triangulate(verticies, new List<int>(Enumerable.Range(0, verticies.Length)), clockwise);
 
@@ -67,7 +44,7 @@ namespace Engine.Utils
 			// Stitch together mesh that includes hole
 			int totalVerts = mesh.Length + hole.Length + 2;
 			Memory<Vector2> verticies = new Vector2[totalVerts];
-			SpanBuilder<Vector2> vertBuilder = new(verticies.Span);
+			SpanList<Vector2> vertBuilder = new(verticies.Span);
 
 			vertBuilder.Append(mesh.Slice(0, closest + 1));
 			vertBuilder.Append(hole);

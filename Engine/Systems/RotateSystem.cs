@@ -1,6 +1,7 @@
 ﻿using EnCS.Attributes;
 using Engine.Components;
 using Engine.Graphics;
+using Engine.Utils;
 using Silk.NET.Input;
 using Silk.NET.Windowing;
 using System.Diagnostics;
@@ -103,33 +104,19 @@ namespace Engine
 			inputHandler.PollEvents();
 		}
 
-		Vector3 Multiply(Quaternion q, Vector3 v)
-		{
-			// Extract the vector part of the quaternion
-			Vector3 u = new(q.X, q.Y, q.Z);
-
-			// Extract the scalar part of the quaternion
-			float s = q.W;
-
-			// Do the math
-			return 2.0f * Vector3.Dot(u, v) * u
-				    + (s * s - Vector3.Dot(u, u)) * v
-				    + 2.0f * s * Vector3.Cross(u, v);
-		}
-
 		[SystemUpdate]
 		public void Update(ref EngineContext context, Camera.Ref camera, Position.Ref position, Rotation.Ref rotation)
 		{
 			window.Title = $"Hengine v5: {context.dt}";
 
-			if (inputHandler.IsKeyDown(MouseButton.Left) && !mousePressed)
+			if (inputHandler.IsKeyDown(MouseButton.Right) && !mousePressed)
 			{
 				inputHandler.HideCursor();
 				prevPos = inputHandler.GetMousePosition();
 
 				mousePressed = true;
 			}
-			else if (!inputHandler.IsKeyDown(MouseButton.Left) && mousePressed)
+			else if (!inputHandler.IsKeyDown(MouseButton.Right) && mousePressed)
 			{
 				inputHandler.ShowCursor();
 
@@ -156,7 +143,7 @@ namespace Engine
 		Vector3 UpdatePosition(ref EngineContext context, Position.Ref position, Rotation.Ref rotation)
 		{
 			Quaternion camQ = new Quaternion(rotation.x, rotation.y, rotation.z, rotation.w);
-            Vector3 camForward = -Multiply(Quaternion.Inverse(camQ), Vector3.UnitZ);
+            Vector3 camForward = -QuaternionHelpers.Multiply(Quaternion.Inverse(camQ), Vector3.UnitZ);
 			Vector3 camRight = Vector3.Normalize(Vector3.Cross(camForward, Vector3.UnitY));
 
             Vector3 delta = new Vector3();

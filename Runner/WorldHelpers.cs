@@ -25,23 +25,32 @@ namespace Runner
 			return objRef;
 		}
 
-		public static EnCS.ArchRef<Gizmo> CreateGizmo(this Main world, Vector3 pos, Vector3 scale, GizmoComp gizmo)
+		public static EnCS.ArchRef<Gizmo> CreateGizmo(this Main world, in Vector3 pos, in Vector3 scale, in GizmoType type, in GizmoColor color)
 		{
 			var objRef = world.Create(new Gizmo());
 			Gizmo.Ref entRef = world.Get(objRef);
 			entRef.Position.Set(pos);
 			entRef.Rotation.Set(Quaternion.Identity);
 			entRef.Scale.Set(scale);
-			entRef.GizmoComp.Set(gizmo);
+			entRef.GizmoComp.Set(new()
+			{
+				type = type,
+				color = color
+			});
 
 			return objRef;
 		}
 
-		public static EnCS.ArchRef<HengineEcs.GizmoLine> CreateGizmoLine(this Main world, Engine.Components.GizmoLine line)
+		public static EnCS.ArchRef<HengineEcs.GizmoLine> CreateGizmoLine(this Main world, in Vector3 p1, in Vector3 p2, in GizmoColor color)
 		{
 			var objRef = world.Create(new HengineEcs.GizmoLine());
 			HengineEcs.GizmoLine.Ref entRef = world.Get(objRef);
-			entRef.GizmoLine.Set(line);
+			entRef.GizmoLine.Set(new()
+			{
+				p1 = new(p1.X, p1.Y, p1.Z),
+				p2 = new(p2.X, p2.Y, p2.Z),
+				color = color
+			});
 
 			return objRef;
 		}

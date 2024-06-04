@@ -100,11 +100,13 @@ namespace Runner
 			HEX.Span[5] = new Vector3(-INNER_RADIUS, 0, OUTER_RADIUS * 0.5f);
 		}
 
+		// Creates 1 verticies
 		public static void CreateCenterVertex(ref MeshBuilder<Vertex, uint> builder, in Vector3 pos, in Vector2 uv)
 		{
 			builder.AppendVertex(new Vertex(pos, Vector3.UnitY, uv, Vector3.UnitX));
 		}
 
+		// Creates 6 verticies
 		public static void CreateHexVerticies(ref MeshBuilder<Vertex, uint> builder, in Vector3 pos, in Vector3 scale, in Vector2 uv, float neighborScale, scoped Span<Vector3> neighbors)
 		{
 			Vector3 p0 = HEX.Span[0] * scale;
@@ -124,6 +126,25 @@ namespace Runner
 			builder.AppendVertex(new Vertex(p5 + pos + hexNeighbors.TopLeft * neighborScale, Vector3.UnitY, uv, Vector3.UnitX));
 		}
 
+		// Creates 6 verticies
+		public static void CreateHexVerticies(ref MeshBuilder<Vertex, uint> builder, in Vector3 pos, in Vector3 scale, in Vector2 uv)
+		{
+			Vector3 p0 = HEX.Span[0] * scale;
+			Vector3 p1 = HEX.Span[1] * scale;
+			Vector3 p2 = HEX.Span[2] * scale;
+			Vector3 p3 = HEX.Span[3] * scale;
+			Vector3 p4 = HEX.Span[4] * scale;
+			Vector3 p5 = HEX.Span[5] * scale;
+
+			builder.AppendVertex(new Vertex(p0 + pos, Vector3.UnitY, uv, Vector3.UnitX));
+			builder.AppendVertex(new Vertex(p1 + pos, Vector3.UnitY, uv, Vector3.UnitX));
+			builder.AppendVertex(new Vertex(p2 + pos, Vector3.UnitY, uv, Vector3.UnitX));
+			builder.AppendVertex(new Vertex(p3 + pos, Vector3.UnitY, uv, Vector3.UnitX));
+			builder.AppendVertex(new Vertex(p4 + pos, Vector3.UnitY, uv, Vector3.UnitX));
+			builder.AppendVertex(new Vertex(p5 + pos, Vector3.UnitY, uv, Vector3.UnitX));
+		}
+
+		// Creates 12 verticies
 		public static void CreateOuterHexVerticies(ref MeshBuilder<Vertex, uint> builder, in Vector3 pos, in Vector3 scale, in Vector3 bridgeScale, in Vector2 uv, float neighborScale, scoped Span<Vector3> neighbors)
 		{
 			Vector3 p0 = HEX.Span[0] * scale;
@@ -154,6 +175,37 @@ namespace Runner
 			builder.AppendVertex(new Vertex(p5 + right4 + pos + hexNeighbors.Right * neighborScale, Vector3.UnitY, uv, Vector3.UnitX));
 			builder.AppendVertex(new Vertex(p5 + right5 + pos + hexNeighbors.TopRight * neighborScale, Vector3.UnitY, uv, Vector3.UnitX));
 			builder.AppendVertex(new Vertex(p0 + right5 + pos + hexNeighbors.TopRight * neighborScale, Vector3.UnitY, uv, Vector3.UnitX));
+		}
+
+		// Creates 12 verticies
+		public static void CreateOuterHexVerticies(ref MeshBuilder<Vertex, uint> builder, in Vector3 pos, in Vector3 scale, in Vector3 bridgeScale, in Vector2 uv)
+		{
+			Vector3 p0 = HEX.Span[0] * scale;
+			Vector3 p1 = HEX.Span[1] * scale;
+			Vector3 p2 = HEX.Span[2] * scale;
+			Vector3 p3 = HEX.Span[3] * scale;
+			Vector3 p4 = HEX.Span[4] * scale;
+			Vector3 p5 = HEX.Span[5] * scale;
+
+			Vector3 right0 = Vector3.Cross(Vector3.Normalize(p1 - p0), Vector3.UnitY) * INNER_RADIUS * bridgeScale;
+			Vector3 right1 = Vector3.Cross(Vector3.Normalize(p2 - p1), Vector3.UnitY) * INNER_RADIUS * bridgeScale;
+			Vector3 right2 = Vector3.Cross(Vector3.Normalize(p3 - p2), Vector3.UnitY) * INNER_RADIUS * bridgeScale;
+			Vector3 right3 = Vector3.Cross(Vector3.Normalize(p4 - p3), Vector3.UnitY) * INNER_RADIUS * bridgeScale;
+			Vector3 right4 = Vector3.Cross(Vector3.Normalize(p5 - p4), Vector3.UnitY) * INNER_RADIUS * bridgeScale;
+			Vector3 right5 = Vector3.Cross(Vector3.Normalize(p0 - p5), Vector3.UnitY) * INNER_RADIUS * bridgeScale;
+
+			builder.AppendVertex(new Vertex(p0 + right0 + pos, Vector3.UnitY, uv, Vector3.UnitX));
+			builder.AppendVertex(new Vertex(p1 + right0 + pos, Vector3.UnitY, uv, Vector3.UnitX));
+			builder.AppendVertex(new Vertex(p1 + right1 + pos, Vector3.UnitY, uv, Vector3.UnitX));
+			builder.AppendVertex(new Vertex(p2 + right1 + pos, Vector3.UnitY, uv, Vector3.UnitX));
+			builder.AppendVertex(new Vertex(p2 + right2 + pos, Vector3.UnitY, uv, Vector3.UnitX));
+			builder.AppendVertex(new Vertex(p3 + right2 + pos, Vector3.UnitY, uv, Vector3.UnitX));
+			builder.AppendVertex(new Vertex(p3 + right3 + pos, Vector3.UnitY, uv, Vector3.UnitX));
+			builder.AppendVertex(new Vertex(p4 + right3 + pos, Vector3.UnitY, uv, Vector3.UnitX));
+			builder.AppendVertex(new Vertex(p4 + right4 + pos, Vector3.UnitY, uv, Vector3.UnitX));
+			builder.AppendVertex(new Vertex(p5 + right4 + pos, Vector3.UnitY, uv, Vector3.UnitX));
+			builder.AppendVertex(new Vertex(p5 + right5 + pos, Vector3.UnitY, uv, Vector3.UnitX));
+			builder.AppendVertex(new Vertex(p0 + right5 + pos, Vector3.UnitY, uv, Vector3.UnitX));
 		}
 
 		public static void CreateHexIndicies(ref MeshBuilder<Vertex, uint> builder, uint offset)

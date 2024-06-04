@@ -28,10 +28,10 @@ namespace Engine.Utils
 		{
 			// Find the four orientations needed for general and 
 			// special cases 
-			int o1 = VectorMathInternals.orientation(p1, q1, p2);
-			int o2 = VectorMathInternals.orientation(p1, q1, q2);
-			int o3 = VectorMathInternals.orientation(p2, q2, p1);
-			int o4 = VectorMathInternals.orientation(p2, q2, q1);
+			int o1 = VectorMathInternals.orientation(p1, q1, p2, 0.01f);
+			int o2 = VectorMathInternals.orientation(p1, q1, q2, 0.01f);
+			int o3 = VectorMathInternals.orientation(p2, q2, p1, 0.01f);
+			int o4 = VectorMathInternals.orientation(p2, q2, q1, 0.01f);
 
 			// General case 
 			if (o1 != o2 && o3 != o4)
@@ -54,7 +54,7 @@ namespace Engine.Utils
 		}
 
 		/// <summary>
-		/// Determine if a triangle as determined by three points is oriented clockwise of counter clockwise
+		/// Determine if a triangle as determined by three points is oriented clockwise or counter clockwise
 		/// </summary>
 		/// <returns></returns>
 		public static bool IsClockwise(Vector2 p1, Vector2 p2, Vector2 p3)
@@ -66,6 +66,11 @@ namespace Engine.Utils
             return float.Sign(cross.Z) == -1;
 		}
 
+		/// <summary>
+		/// Determine wether a set of points is clockwise or counter clockwise
+		/// </summary>
+		/// <param name="points"></param>
+		/// <returns></returns>
 		public static bool IsClockwise(Span<Vector2> points)
 		{
 			float sum = 0;
@@ -79,6 +84,23 @@ namespace Engine.Utils
 
 			return float.Sign(sum) == 1;
         }
+
+		public static bool TryGetIntersection(Vector2 p1, Vector2 q1, Vector2 p2, Vector2 q2, float margin, out Vector2 i)
+		{
+			Unsafe.SkipInit(out i);
+			Vector2 a = q1 - p1;
+			Vector2 b = q2 - p2;
+
+			float delta = a.Y * b.X - a.X * b.Y;
+
+			if (MathF.Abs(delta) < margin)
+				return false;
+
+			float k1 = ((p1.X - p2.X) * b.Y + (p2.Y - p1.Y) * b.X) / delta;
+
+			i = new Vector2(p1.X + a.X * k1, p1.Y + a.Y * k1);
+			return true;
+		}
 	}
 
 	static class VectorMathInternals
@@ -99,13 +121,13 @@ namespace Engine.Utils
 		// 0 --> p, q and r are collinear 
 		// 1 --> Clockwise 
 		// 2 --> Counterclockwise 
-		public static int orientation(Vector2 p, Vector2 q, Vector2 r)
+		public static int orientation(Vector2 p, Vector2 q, Vector2 r, float margin)
 		{
 			// See https://www.geeksforgeeks.org/orientation-3-ordered-points/ 
 			// for details of below formula. 
 			float val = MathF.Round((q.Y - p.Y) * (r.X - q.X) - (q.X - p.X) * (r.Y - q.Y), 2);
 
-			if (val == 0) return 0; // collinear 
+			if (MathF.Abs(val) < margin) return 0; // collinear 
 
 			return (val > 0) ? 1 : 2; // clock or counterclock wise 
 		}
