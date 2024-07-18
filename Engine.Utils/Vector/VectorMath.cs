@@ -24,14 +24,14 @@ namespace Engine.Utils
 		/// Check if two lines as defined by four points intersect
 		/// </summary>
 		/// <returns></returns> 
-		public static bool Intersect(Vector2 p1, Vector2 q1, Vector2 p2, Vector2 q2)
+		public static bool Intersect(Vector2 p1, Vector2 q1, Vector2 p2, Vector2 q2, float margin)
 		{
 			// Find the four orientations needed for general and 
 			// special cases 
-			int o1 = VectorMathInternals.orientation(p1, q1, p2, 0.01f);
-			int o2 = VectorMathInternals.orientation(p1, q1, q2, 0.01f);
-			int o3 = VectorMathInternals.orientation(p2, q2, p1, 0.01f);
-			int o4 = VectorMathInternals.orientation(p2, q2, q1, 0.01f);
+			int o1 = VectorMathInternals.orientation(p1, q1, p2, margin);
+			int o2 = VectorMathInternals.orientation(p1, q1, q2, margin);
+			int o3 = VectorMathInternals.orientation(p2, q2, p1, margin);
+			int o4 = VectorMathInternals.orientation(p2, q2, q1, margin);
 
 			// General case 
 			if (o1 != o2 && o3 != o4)
@@ -39,16 +39,16 @@ namespace Engine.Utils
 
 			// Special Cases 
 			// p1, q1 and p2 are collinear and p2 lies on segment p1q1 
-			if (o1 == 0 && VectorMathInternals.onSegment(p1, p2, q1)) return true;
+			if (o1 == 0 && OnSegment(p1, p2, q1)) return true;
 
 			// p1, q1 and q2 are collinear and q2 lies on segment p1q1 
-			if (o2 == 0 && VectorMathInternals.onSegment(p1, q2, q1)) return true;
+			if (o2 == 0 && OnSegment(p1, q2, q1)) return true;
 
 			// p2, q2 and p1 are collinear and p1 lies on segment p2q2 
-			if (o3 == 0 && VectorMathInternals.onSegment(p2, p1, q2)) return true;
+			if (o3 == 0 && OnSegment(p2, p1, q2)) return true;
 
 			// p2, q2 and q1 are collinear and q1 lies on segment p2q2 
-			if (o4 == 0 && VectorMathInternals.onSegment(p2, q1, q2)) return true;
+			if (o4 == 0 && OnSegment(p2, q1, q2)) return true;
 
 			return false; // Doesn't fall in any of the above cases 
 		}
@@ -71,7 +71,7 @@ namespace Engine.Utils
 		/// </summary>
 		/// <param name="points"></param>
 		/// <returns></returns>
-		public static bool IsClockwise(Span<Vector2> points)
+		public static bool IsClockwise(ReadOnlySpan<Vector2> points)
 		{
 			float sum = 0;
             for (int i = 0; i < points.Length - 1; i++)
@@ -101,13 +101,15 @@ namespace Engine.Utils
 			i = new Vector2(p1.X + a.X * k1, p1.Y + a.Y * k1);
 			return true;
 		}
-	}
 
-	static class VectorMathInternals
-	{
+		public static bool IsClose(Vector2 p1, Vector2 p2, float margin)
+		{
+			return MathF.Abs(p1.X - p2.X) < margin && MathF.Abs(p1.Y - p2.Y) < margin;
+		}
+
 		// Given three collinear points p, q, r, the function checks if 
 		// point q lies on line segment 'pr' 
-		public static bool onSegment(Vector2 p, Vector2 q, Vector2 r)
+		public static bool OnSegment(Vector2 p, Vector2 q, Vector2 r)
 		{
 			if (q.X <= Math.Max(p.X, r.X) && q.X >= Math.Min(p.X, r.X) &&
 				q.Y <= Math.Max(p.Y, r.Y) && q.Y >= Math.Min(p.Y, r.Y))
@@ -116,6 +118,15 @@ namespace Engine.Utils
 			return false;
 		}
 
+		// Distance from p to a line going trough a and b
+		public static float DistanceToLine(Vector2 a, Vector2 b, Vector2 p)
+		{
+			return ((p.X - a.X) * (b.X - a.X) + (p.Y - a.Y) * (b.Y - a.Y)) / (b - a).LengthSquared();
+		}
+	}
+
+	static class VectorMathInternals
+	{
 		// To find orientation of ordered triplet (p, q, r). 
 		// The function returns following values 
 		// 0 --> p, q and r are collinear 
@@ -125,7 +136,7 @@ namespace Engine.Utils
 		{
 			// See https://www.geeksforgeeks.org/orientation-3-ordered-points/ 
 			// for details of below formula. 
-			float val = MathF.Round((q.Y - p.Y) * (r.X - q.X) - (q.X - p.X) * (r.Y - q.Y), 2);
+			float val = (q.Y - p.Y) * (r.X - q.X) - (q.X - p.X) * (r.Y - q.Y);
 
 			if (MathF.Abs(val) < margin) return 0; // collinear 
 

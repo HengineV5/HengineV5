@@ -66,7 +66,7 @@ namespace Engine.Graphics
 			{
 				var glyph = resource.font.GetGlyphIndex(str[i]);
 				var advance = resource.font.GetGlyphAdvance(str[i]);
-				if (advance < 100) // TODO: Make less hacky
+				if (advance < 100) // TODO: Make less hacky, this is for space.
 					advance = 1200;
 
                 var meshes = ProcessMesh(glyph);

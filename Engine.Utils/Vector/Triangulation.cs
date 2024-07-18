@@ -13,10 +13,10 @@ namespace Engine.Utils
 			public int next;
 		}
 
-		public static Memory<int> Triangulate(ReadOnlySpan<Vector2> verticies, bool clockwise = true)
-		 => Triangulate(verticies, new List<int>(Enumerable.Range(0, verticies.Length)), clockwise);
+		public static Memory<int> Triangulate(ReadOnlySpan<Vector2> verticies, bool clockwise = true, float margin = 0.001f)
+		 => Triangulate(verticies, new List<int>(Enumerable.Range(0, verticies.Length)), clockwise, margin);
 
-		public static Memory<Vector2> ProcessHole(ReadOnlySpan<Vector2> mesh, Span<Vector2> hole)
+		public static Memory<Vector2> ProcessHole(ReadOnlySpan<Vector2> mesh, ReadOnlySpan<Vector2> hole, float margin = 0.001f)
 		{
 			int closest = -1;
 			float dist = float.MaxValue;
@@ -30,11 +30,11 @@ namespace Engine.Utils
 					continue;
 
 				skips[0] = i;
-				if (IntersectAny(mesh[i], hole[0], skips, mesh))
+				if (IntersectAny(mesh[i], hole[0], skips, mesh, margin))
 					continue;
 
 				skips[0] = 0;
-				if (IntersectAny(mesh[i], hole[0], skips, hole))
+				if (IntersectAny(mesh[i], hole[0], skips, hole, margin))
 					continue;
 
 				closest = i;
@@ -46,22 +46,22 @@ namespace Engine.Utils
 			Memory<Vector2> verticies = new Vector2[totalVerts];
 			SpanList<Vector2> vertBuilder = new(verticies.Span);
 
-			vertBuilder.Append(mesh.Slice(0, closest + 1));
-			vertBuilder.Append(hole);
-			vertBuilder.Append(hole[0]);
-			vertBuilder.Append(mesh[closest]);
-			vertBuilder.Append(mesh.Slice(closest + 1));
+			vertBuilder.Add(mesh.Slice(0, closest + 1));
+			vertBuilder.Add(hole);
+			vertBuilder.Add(hole[0]);
+			vertBuilder.Add(mesh[closest]);
+			vertBuilder.Add(mesh.Slice(closest + 1));
 
 			return verticies;
 		}
 
-		static Memory<int> Triangulate(ReadOnlySpan<Vector2> verticies, List<int> vertMap, bool clockwise)
+		static Memory<int> Triangulate(ReadOnlySpan<Vector2> verticies, List<int> vertMap, bool clockwise, float margin)
 		{
 			List<int> indicies = new List<int>();
 			while (vertMap.Count > 3)
 			{
-				if (!TryFindEar(verticies, CollectionsMarshal.AsSpan(vertMap), clockwise, out Ear ear))
-					throw new Exception();
+				if (!TryFindEar(verticies, CollectionsMarshal.AsSpan(vertMap), clockwise, margin, out Ear ear))
+					throw new Exception("Unable to complete mesh triangualtion.");
 
 				indicies.Add(ear.prev);
 				indicies.Add(ear.curr);
@@ -81,7 +81,7 @@ namespace Engine.Utils
 			return indicies.ToArray();
 		}
 
-		static bool TryFindEar(ReadOnlySpan<Vector2> verticies, ReadOnlySpan<int> vertMap, bool clockwise, out Ear ear)
+		static bool TryFindEar(ReadOnlySpan<Vector2> verticies, ReadOnlySpan<int> vertMap, bool clockwise, float margin, out Ear ear)
 		{
 			Span<int> excludeIndicies = stackalloc int[3];
 
@@ -101,14 +101,13 @@ namespace Engine.Utils
 				var aPrev = clockwise ? VectorMath.Angle(prev2, prev, curr) : VectorMath.Angle(curr, prev, prev2);
 				var aCurr = clockwise ? VectorMath.Angle(prev, curr, next) : VectorMath.Angle(next, curr, prev);
 
-				if (aCurr >= MathF.PI || aPrev < aLine)
+				if (aCurr >= MathF.PI || aPrev < aLine || MathF.Abs(aCurr - MathF.PI) < margin)
 					continue;
-
 
 				excludeIndicies[0] = vertMap[prevIdx];
 				excludeIndicies[1] = vertMap[currIdx];
 				excludeIndicies[2] = vertMap[nextIdx];
-				if (!IntersectAny(prev, next, excludeIndicies, verticies))
+				if (!IntersectAny(prev, next, excludeIndicies, verticies, margin))
 				{
 					ear = new Ear()
 					{
@@ -131,14 +130,14 @@ namespace Engine.Utils
 			return (idx + modulo) % modulo;
 		}
 
-		static bool IntersectAny(Vector2 p1, Vector2 p2, ReadOnlySpan<int> skips, ReadOnlySpan<Vector2> verticies)
+		static bool IntersectAny(Vector2 p1, Vector2 p2, ReadOnlySpan<int> skips, ReadOnlySpan<Vector2> verticies, float margin)
 		{
 			for (int i = 0; i < verticies.Length - 1; i++)
 			{
-				if (p1 == verticies[i] || p1 == verticies[i + 1])
+				if (VectorMath.IsClose(p1, verticies[i], margin) || VectorMath.IsClose(p1, verticies[i + 1], margin))
 					continue;
 
-				if (p2 == verticies[i] || p2 == verticies[i + 1])
+				if (VectorMath.IsClose(p2, verticies[i], margin) || VectorMath.IsClose(p2, verticies[i + 1], margin))
 					continue;
 
 				if (skips.Contains(i))
@@ -147,11 +146,11 @@ namespace Engine.Utils
 				if (skips.Contains(i + 1))
 					continue;
 
-				if (VectorMath.Intersect(p1, p2, verticies[i], verticies[i + 1]))
+				if (VectorMath.Intersect(p1, p2, verticies[i], verticies[i + 1], margin))
 					return true;
 			}
 
-			if (!FoundSkip(verticies.Length - 1, skips) && !FoundSkip(0, skips) && VectorMath.Intersect(p1, p2, verticies[verticies.Length - 1], verticies[0]))
+			if (!FoundSkip(verticies.Length - 1, skips) && !FoundSkip(0, skips) && VectorMath.Intersect(p1, p2, verticies[verticies.Length - 1], verticies[0], margin))
 				return true;
 
 			return false;
@@ -162,7 +161,7 @@ namespace Engine.Utils
 			for (int a = 0; a < skips.Length; a++)
 			{
 				if (i == skips[a])
-					return true; ;
+					return true;
 			}
 
 			return false;

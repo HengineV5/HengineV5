@@ -29,10 +29,12 @@ namespace Runner
 			Span<uint> indicies = stackalloc uint[12];
 			var meshBuilder = new MeshBuilder<Vertex, uint>(verticies, indicies);
 
-			meshBuilder.AppendTriange(0, 1, 2);
 			meshBuilder.AppendTriange(0, 2, 5);
+			meshBuilder.AppendTriange(0, 1, 2);
 			meshBuilder.AppendTriange(2, 3, 5);
 			meshBuilder.AppendTriange(3, 4, 5);
+			/*
+			*/
 
 			//CreateCenterVertex(verticies, Vector3.Zero, Vector2.Zero);
 			HexMapBuilder.CreateHexVerticies(ref meshBuilder, Vector3.Zero, Vector3.One * 0.5f, Vector2.Zero);
@@ -50,16 +52,16 @@ namespace Runner
 
 			for (int i = 0; i < meshBuilder.IndexOffset; i+=3)
 			{
-				world.CreateGizmoLine(verticies[(int)indicies[i]].position, verticies[(int)indicies[i + 1]].position, new GizmoColor(0.0f));
-				world.CreateGizmoLine(verticies[(int)indicies[i + 1]].position, verticies[(int)indicies[i + 2]].position, new GizmoColor(0.0f));
-				world.CreateGizmoLine(verticies[(int)indicies[i + 2]].position, verticies[(int)indicies[i]].position, new GizmoColor(0.0f));
+				//world.CreateGizmoLine(verticies[(int)indicies[i]].position, verticies[(int)indicies[i + 1]].position, new GizmoColor(0.0f));
+				//world.CreateGizmoLine(verticies[(int)indicies[i + 1]].position, verticies[(int)indicies[i + 2]].position, new GizmoColor(0.0f));
+				//world.CreateGizmoLine(verticies[(int)indicies[i + 2]].position, verticies[(int)indicies[i]].position, new GizmoColor(0.0f));
 			}
 
 			float l1 = Random.Shared.NextSingle() * 6;
 			float l2 = Random.Shared.NextSingle() * 6;
 
 			//float l1 = 1.25f;
-			//float l2 = 2.5f;
+			//float l2 = 0.5f;
 
             Console.WriteLine($"L1: {l1}, L2: {l2}");
 
@@ -76,18 +78,22 @@ namespace Runner
 			start = new Vector3(0, 0, -5);
 			world.CreateHex(start, Vector3.One, new HexCell(0), mapMesh, materialMap, 1);
 
-			Span<Vector2> line = stackalloc Vector2[101];
-			for (int i = 0; i < 100; i++)
+			int lineRes = 8;
+			Span<Vector2> line = stackalloc Vector2[lineRes + 1];
+			for (int i = 0; i < lineRes; i++)
 			{
-				Vector3 c1 = Bezier.CubicBezierCurve(p1, zero, zero, p2, i / 100f);
-				Vector3 c2 = Bezier.CubicBezierCurve(p1, zero, zero, p2, (i + 1) / 100f);
+                //Console.WriteLine($"Line: {i} - {(i / (float)lineRes)}");
+                Vector3 c1 = Bezier.CubicBezierCurve(p1, zero, zero, p2, i / (float)lineRes);
+				Vector3 c2 = Bezier.CubicBezierCurve(p1, zero, zero, p2, (i + 1) / (float)lineRes);
 
-				world.CreateGizmoLine(c1, c2, new(0, 0, 0));
+				//if (i == 7)
+				//world.CreateGizmoLine(c1, c2, new(0, 0, 0));
+
 				line[i] = new(c1.X, c1.Z);
             }
 
 			Vector3 c11 = Bezier.CubicBezierCurve(p1, zero, zero, p2, 1);
-			line[100] = new(c11.X, c11.Z);
+			line[lineRes] = new(c11.X, c11.Z);
 
 			Span<Vector2> verticies2 = stackalloc Vector2[meshBuilder.VertexOffset];
 			for (int i = 0; i < meshBuilder.VertexOffset; i++)
@@ -102,13 +108,29 @@ namespace Runner
 				indicies2[i] = (int)meshBuilder.indicies[i];
 			}
 
-			//Slicing.Slice([new Vector2(p1.X, p1.Z), new Vector2(p2.X, p2.Z)], verticies2, indicies2, out var newVerts, out var newIndicies);
-			Slicing.Slice(line, verticies2, indicies2, out var newVerts, out var newIndicies);
+			static Vector3 ToVec3(in Vector2 v)
+			{
+				return new Vector3(v.X, 0, v.Y);
+			}
+
+			Slicing.SliceNew(line, verticies2, indicies2, out var newVerts, out var newIndicies, margin: 0.001f);
 			for (int i = 0; i < newVerts.Length; i++)
 			{
 				Vector2 point = newVerts.Span[i];
                 world.CreateGizmo(new(point.X, 0, point.Y), Vector3.One * 0.04f, GizmoType.Point, new GizmoColor(0, 1, 0));
 			}
+
+			for (int i = 0; i < newIndicies.Length; i += 3)
+			{
+                world.CreateGizmoLine(ToVec3(newVerts.Span[newIndicies.Span[i]])    , ToVec3(newVerts.Span[newIndicies.Span[i + 1]]), new GizmoColor(0.0f));
+				world.CreateGizmoLine(ToVec3(newVerts.Span[newIndicies.Span[i + 1]]), ToVec3(newVerts.Span[newIndicies.Span[i + 2]]), new GizmoColor(0.0f));
+				world.CreateGizmoLine(ToVec3(newVerts.Span[newIndicies.Span[i + 2]]), ToVec3(newVerts.Span[newIndicies.Span[i]]), new GizmoColor(0.0f));
+			}
+			/*
+			*/
+
+			//Vector2 point = newVerts.Span[5];
+			//world.CreateGizmo(new(point.X, 0, point.Y), Vector3.One * 0.04f, GizmoType.Point, new GizmoColor(0, 1, 0));
 		}
 
 		public static Vector3 CircularGetElement(scoped Span<Vertex> buff, float lerp)

@@ -106,9 +106,9 @@ namespace Engine
 				{
 					name = "Line",
 					verticies = [
-						new Vertex(new(0, 0, 0), Vector3.UnitY, Vector2.Zero, Vector3.Zero),
-						new Vertex(new(0.5f, 0, 0), Vector3.UnitY, Vector2.Zero, Vector3.Zero),
-						new Vertex(new(1, 0, 0), Vector3.UnitY, Vector2.Zero, Vector3.Zero)
+						new Vertex(new(0, 0, 0), Vector3.Zero, Vector2.Zero, Vector3.Zero),
+						new Vertex(new(0.5f, 0, 0), Vector3.Zero, Vector2.Zero, Vector3.Zero),
+						new Vertex(new(1, 0, 0), Vector3.Zero, Vector2.Zero, Vector3.Zero)
 					],
 					indicies = [0, 1, 2]
 				};
