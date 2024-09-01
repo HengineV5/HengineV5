@@ -63,7 +63,7 @@ namespace Runner
 			//float l1 = 1.25f;
 			//float l2 = 0.5f;
 
-            Console.WriteLine($"L1: {l1}, L2: {l2}");
+			Console.WriteLine($"L1: {l1}, L2: {l2}");
 
             Vector3 zero = Vector3.Zero;
 			Vector3 p1 = CircularGetElement(verticies.Slice(0, vertexLength), l1);
@@ -78,7 +78,7 @@ namespace Runner
 			start = new Vector3(0, 0, -5);
 			world.CreateHex(start, Vector3.One, new HexCell(0), mapMesh, materialMap, 1);
 
-			int lineRes = 8;
+			int lineRes = 5;
 			Span<Vector2> line = stackalloc Vector2[lineRes + 1];
 			for (int i = 0; i < lineRes; i++)
 			{
@@ -113,7 +113,14 @@ namespace Runner
 				return new Vector3(v.X, 0, v.Y);
 			}
 
-			Slicing.SliceNew(line, verticies2, indicies2, out var newVerts, out var newIndicies, margin: 0.001f);
+			Slicing.Slice(line, verticies2, indicies2, out var newVerts, out var newIndicies, out var seam, margin: 0.001f);
+			Splitting.Split(newVerts.Span, newIndicies.Span, seam.Span, out var vr, out var ir, out var vl, out var il);
+
+			for (int i = 0; i < seam.Length; i++)
+			{
+				//newVerts.Span[seam.Span[i]] += new Vector2(0, 1f);
+			}
+
 			for (int i = 0; i < newVerts.Length; i++)
 			{
 				Vector2 point = newVerts.Span[i];
@@ -131,6 +138,14 @@ namespace Runner
 
 			//Vector2 point = newVerts.Span[5];
 			//world.CreateGizmo(new(point.X, 0, point.Y), Vector3.One * 0.04f, GizmoType.Point, new GizmoColor(0, 1, 0));
+
+			Engine.Utils.Mesh.MeshBuilder.Build(x =>
+			{
+				ref readonly var p = ref x.Plane(Vector3.Zero, Vector3.UnitY, x =>
+				{
+					ref readonly var hex = ref x.Square(Vector2.Zero, Vector2.One);
+				});
+			}, out var verts, out var inds);
 		}
 
 		public static Vector3 CircularGetElement(scoped Span<Vertex> buff, float lerp)

@@ -14,7 +14,7 @@ namespace Engine.Utils.Parsing.GLTF
 {
     public static class GltfLoader
     {
-        public static void LoadMesh(string name, string path, ref Mesh mesh, bool normalize)
+        public static void LoadMesh(string name, string path, ref Engine.Graphics.Mesh mesh, bool normalize)
         {
             GltfFile file = JsonSerializer.Deserialize(File.ReadAllText(path), GltfSourceGenerationContext.Default.GltfFile);
             int idx = Array.FindIndex(file.meshes, x => x.name == name);
@@ -28,7 +28,7 @@ namespace Engine.Utils.Parsing.GLTF
             ReadMaterial(Path.GetDirectoryName(path), file, idx, ref material);
         }
 
-        static void ReadMesh(string baseFolder, GltfFile file, int meshIdx, ref Mesh mesh, bool normalize)
+        static void ReadMesh(string baseFolder, GltfFile file, int meshIdx, ref Engine.Graphics.Mesh mesh, bool normalize)
         {
             GltfMesh gltfMesh = file.meshes[meshIdx];
             GltfPrimitive primitive = gltfMesh.primitives[0];

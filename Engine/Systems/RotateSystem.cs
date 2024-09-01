@@ -1,4 +1,5 @@
-﻿using EnCS.Attributes;
+﻿
+using EnCS.Attributes;
 using Engine.Components;
 using Engine.Graphics;
 using Engine.Utils;
@@ -84,7 +85,6 @@ namespace Engine
 		bool mousePressed = false;
 
 		Vector2 prevPos;
-		//Vector2 cameraRotation = new Vector2(-MathF.PI / 2f, 0);
 		Vector2 cameraRotation = Vector2.Zero;
 
 		public MoveSystem(IInputHandler inputHandler, IWindow window)
@@ -95,8 +95,6 @@ namespace Engine
 
 		public void Init()
 		{
-			//inputHandler.HideCursor();
-			//prevPos = inputHandler.GetMousePosition();
 		}
 
 		public void PreRun()
@@ -187,7 +185,7 @@ namespace Engine
 			cameraDir.Y = MathF.Sin(cameraRotation.Y);
 			cameraDir.Z = MathF.Sin(cameraRotation.X) * MathF.Cos(cameraRotation.Y);
 
-			return Quaternion.CreateFromRotationMatrix(Matrix4x4.CreateLookAt(Vector3.Zero, cameraDir, Vector3.UnitY));
+			return Quaternion.CreateFromRotationMatrix(Matrix4x4.CreateLookTo(Vector3.Zero, cameraDir, Vector3.UnitY));
 		}
 	}
 }

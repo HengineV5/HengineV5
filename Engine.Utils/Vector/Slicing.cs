@@ -37,65 +37,43 @@ namespace Engine.Utils
 			{
 				return VectorMath.TryGetIntersection(line[o1], line[o2], verticies[i1], verticies[i2], margin, out p);
 			}
-
-			public bool TriangleEquals(in TriangleHit triangle)
-			{
-				return tri == triangle.tri;
-			}
 		}
 
 		struct TriangleIntersection
 		{
-			public bool entryClockwise;
-
 			public Vector2 entry;
 			public int entryIdx;
 			public TriangleHit entryHit;
 			public float entryPercent;
+			public float entryLinePercent;
 
 			public Vector2 exit;
 			public int exitIdx;
 			public TriangleHit exitHit;
 			public float exitPercent;
+			public float exitLinePercent;
 
-			public TriangleIntersection(bool entryClockwise, Vector2 entry, int entryIdx, TriangleHit entryHit, float entryPercent, Vector2 exit, int exitIdx, TriangleHit exitHit, float exitPercent)
+			public TriangleIntersection(Vector2 entry, int entryIdx, TriangleHit entryHit, float entryPercent, float entryLinePercent, Vector2 exit, int exitIdx, TriangleHit exitHit, float exitPercent, float exitLinePercent)
 			{
-				this.entryClockwise = entryClockwise;
 				this.entry = entry;
 				this.entryIdx = entryIdx;
 				this.entryHit = entryHit;
 				this.entryPercent = entryPercent;
+				this.entryLinePercent = entryLinePercent;
 				this.exit = exit;
 				this.exitIdx = exitIdx;
 				this.exitHit = exitHit;
 				this.exitPercent = exitPercent;
+				this.exitLinePercent = exitLinePercent;
 			}
 
 			public static TriangleIntersection Reverse(ref readonly TriangleIntersection inter)
 			{
-				return new(inter.entryClockwise, inter.exit, inter.exitIdx, inter.exitHit, inter.exitPercent, inter.entry, inter.entryIdx, inter.entryHit, inter.entryPercent);
+				return new(inter.exit, inter.exitIdx, inter.exitHit, inter.exitPercent, inter.exitLinePercent, inter.entry, inter.entryIdx, inter.entryHit, inter.entryPercent, inter.entryLinePercent);
 			}
 		}
 
-		struct Intersection
-		{
-			public Vector2 point;
-			public int lineIdx;
-			public int vertIdxS;
-			public int vertIdxE;
-			public int count;
-
-			public Intersection(Vector2 point, int lineIdx, int vertIdxS, int vertIdxE, int count)
-			{
-				this.point = point;
-				this.lineIdx = lineIdx;
-				this.vertIdxS = vertIdxS;
-				this.vertIdxE = vertIdxE;
-				this.count = count;
-			}
-		}
-
-		public static void SliceNew(scoped Span<Vector2> line, scoped Span<Vector2> verticies, scoped Span<int> indicies, out Memory<Vector2> newVerticies, out Memory<int> newIndicies, float margin = 0.01f)
+		public static void Slice(scoped Span<Vector2> line, scoped Span<Vector2> verticies, scoped Span<int> indicies, out Memory<Vector2> newVerticies, out Memory<int> newIndicies, out Memory<int> seam, float margin = 0.01f)
 		{
 			using var hitMem = MemoryPool<TriangleHit>.Shared.Rent(indicies.Length);
 			SpanList<TriangleHit> hits = new(hitMem.Memory.Span);
@@ -137,16 +115,38 @@ namespace Engine.Utils
             while (hits.Count >= 2)
 			{
 				GetTriangleIntersection(ref hits, out TriangleIntersection intersection, line, ref verts, margin);
-				ints.Add(intersection.entryPercent < intersection.exitPercent ? intersection : TriangleIntersection.Reverse(in intersection)); // Ensure counter clockwise direction
+
+				ints.Add(intersection);
+			}
+
+			int seamStart = verts.Count;
+
+			AddIntersectionVerticies(ref ints, ref verts);
+
+			// Add line except start and end
+			for (int i = 1; i < line.Length - 1; i++)
+			{
+				verts.Add(line[i]);
+			}
+
+            int seamLength = verts.Count - seamStart;
+
+			seam = new int[seamLength];
+			for (int i = 0; i < seamLength; i++)
+			{
+				seam.Span[i] = seamStart + i;
 			}
 
 			ints.Sort((int1, int2) => int1.entryHit.tri.CompareTo(int2.entryHit.tri));
+
+			SpanList<int> trianglesToRemove = stackalloc int[ints.Count];
 
 			int tri = ints[0].entryHit.tri;
 			int prevIdx = 0;
 			for (int i = 0; i < ints.Count; i++)
 			{
-                ref TriangleIntersection inter = ref ints[i];
+				ref TriangleIntersection inter = ref ints[i];
+				ints[i] = inter.entryPercent < inter.exitPercent ? inter : TriangleIntersection.Reverse(in ints[i]); // Ensure counter clockwise direction
 
 				if (inter.entryHit.tri != tri)
 				{
@@ -154,16 +154,56 @@ namespace Engine.Utils
 
 					tri = inter.entryHit.tri;
 					prevIdx = i;
+
+					trianglesToRemove.Add(tri);
 				}
 			}
 
+			trianglesToRemove.Add(tri);
 			ProcessTriangle(line, ints.AsSpan().Slice(prevIdx, ints.Count - prevIdx), verticies, indicies, ref verts, ref idx, margin);
+
+			// Remove old triangles.
+			int offset = 0;
+			for (int i = 0; i < trianglesToRemove.Count; i++)
+			{
+				idx.Remove(trianglesToRemove[i] * 3 + offset);
+				idx.Remove(trianglesToRemove[i] * 3 + offset);
+				idx.Remove(trianglesToRemove[i] * 3 + offset);
+
+				offset -= 3;
+			}
 
 			newVerticies = new Vector2[verts.Count];
 			vertMem.Memory.Span.Slice(0, verts.Count).CopyTo(newVerticies.Span);
 
 			newIndicies = new int[idx.Count];
 			idxMem.Memory.Span.Slice(0, idx.Count).CopyTo(newIndicies.Span);
+		}
+
+		// Add intersection verticies to verts and assign the correct vertex idx to each intersection
+		static void AddIntersectionVerticies(ref SpanList<TriangleIntersection> ints, ref SpanList<Vector2> verts)
+		{
+			ints.Sort((int1, int2) => int1.entryLinePercent.CompareTo(int2.entryLinePercent));
+
+			verts.Add(ints[0].entryLinePercent < ints[0].exitLinePercent ? ints[0].entry : ints[0].exit);
+			for (int i = 0; i < ints.Count; i++)
+			{
+				ref var inter = ref ints[i];
+				bool isAlongLine = ints[i].entryLinePercent < ints[i].exitLinePercent;
+
+				if (isAlongLine)
+				{
+					ints[i].entryIdx = verts.Count - 1;
+					ints[i].exitIdx = verts.Count;
+				}
+				else
+				{
+					ints[i].exitIdx = verts.Count - 1;
+					ints[i].entryIdx = verts.Count;
+				}
+
+				verts.Add(isAlongLine ? ints[i].exit : ints[i].entry);
+			}
 		}
 
 		static void ProcessTriangle(scoped Span<Vector2> line, in ReadOnlySpan<TriangleIntersection> intersections, scoped Span<Vector2> verticies, scoped ReadOnlySpan<int> indicies, ref SpanList<Vector2> verts, ref SpanList<int> idx, float margin)
@@ -203,6 +243,15 @@ namespace Engine.Utils
 				return -1;
 			}
 
+			static void AddTriangleVerticies(float start, float end, int tri, scoped ReadOnlySpan<int> indicies, ref SpanList<int> idx)
+			{
+				if (start < 1 && end > 1)
+					idx.Add(indicies[tri * 3 + 1]);
+
+				if (start < 2 && end > 2)
+					idx.Add(indicies[tri * 3 + 2]);
+			}
+
 			float curr = start;
 			while (true)
 			{
@@ -210,11 +259,7 @@ namespace Engine.Utils
 
                 if (closestIdx == -1)
 				{
-					if (curr < 1)
-						idx.Add(indicies[tri * 3 + 1]);
-
-					if (curr < 2)
-						idx.Add(indicies[tri * 3 + 2]);
+					AddTriangleVerticies(curr, 3, tri, indicies, ref idx);
 
 					idx.Add(indicies[tri * 3]);
 					break;
@@ -222,37 +267,19 @@ namespace Engine.Utils
 
 				ref readonly TriangleIntersection closest = ref intersections[closestIdx];
 
-				if (curr < 1 && closest.entryPercent > 1)
-					idx.Add(indicies[tri * 3 + 1]);
-
-				if (curr < 2 && closest.entryPercent > 2)
-					idx.Add(indicies[tri * 3 + 2]);
+				AddTriangleVerticies(curr, closest.entryPercent, tri, indicies, ref idx);
 
 				idx.Add(closest.entryIdx);
 
-				// Ensure line is added in the correct direction so the mesh is counter clockwise
-                if (closest.entryHit.o2 <= closest.exitHit.o2)
-				{
-					for (int i = closest.entryHit.o2; i < closest.exitHit.o2; i++)
-					{
-						if (VectorMath.IsClose(line[i], closest.entry, margin) || VectorMath.IsClose(line[i], closest.exit, margin))
-							continue;
 
-						verts.Add(line[i]);
-						idx.Add(verts.Count - 1);
-					}
-				}
-				else
-				{
-					for (int i = closest.entryHit.o1; i > closest.exitHit.o1; i--)
-					{
-						if (VectorMath.IsClose(line[i], closest.entry, margin) || VectorMath.IsClose(line[i], closest.exit, margin))
-							continue;
+				int begin = closest.entryHit.o2 <= closest.exitHit.o2 ? closest.entryHit.o2 : closest.entryHit.o1;
+				int end = closest.entryHit.o2 <= closest.exitHit.o2 ? closest.exitHit.o2 : closest.exitHit.o1;
+				int dir = int.Sign(closest.exitHit.o2 - closest.entryHit.o2);
 
-						verts.Add(line[i]);
-						idx.Add(verts.Count - 1);
-					}
-				}
+				for (int i = begin; i != end; i += dir)
+				{
+					idx.Add(verts.Count - line.Length + i + 1);
+                }
 
 				idx.Add(closest.exitIdx);
 
@@ -279,8 +306,11 @@ namespace Engine.Utils
 
 		static void GetTriangleIntersection(ref TriangleHit entry, ref TriangleHit exit, out TriangleIntersection intersection, scoped ReadOnlySpan<Vector2> line, ref SpanList<Vector2> verticies, float margin)
 		{
-			static float GetPercent(Vector2 a, Vector2 b, Vector2 c)
+			static float GetPercent(Vector2 a, Vector2 b, Vector2 c, float margin)
 			{
+				if (VectorMath.IsClose(a, c, margin))
+					return 0;
+
 				Vector2 ab = b - a;
 				Vector2 ac = c - a;
 
@@ -290,19 +320,14 @@ namespace Engine.Utils
 			entry.TryGetPoint(line, verticies.AsSpan(), margin, out Vector2 entryPoint);
 			exit.TryGetPoint(line, verticies.AsSpan(), margin, out Vector2 exitPoint);
 
-			int entryIdx = verticies.Count;
-			verticies.Add(entryPoint);
+			float pEntry = GetPercent(verticies[entry.i1], verticies[entry.i2], entryPoint, margin) + entry.face;
+			float pExit = GetPercent(verticies[exit.i1], verticies[exit.i2], exitPoint, margin) + exit.face;
 
-			int exitIdx = verticies.Count;
-			verticies.Add(exitPoint);
+			float pLineEntry = GetPercent(line[entry.o1], line[entry.o2], entryPoint, margin) + entry.o1;
+			float pLineExit = GetPercent(line[exit.o1], line[exit.o2], exitPoint, margin) + exit.o1;
 
-			bool entryClockwise = VectorMath.IsClockwise(line[entry.o1], line[entry.o2], verticies[entry.i1]);
-
-			float pEntry = GetPercent(verticies[entry.i1], verticies[entry.i2], entryPoint) + entry.face;
-			float pExit = GetPercent(verticies[exit.i1], verticies[exit.i2], exitPoint) + exit.face;
-
-			intersection = new TriangleIntersection(entryClockwise, entryPoint, entryIdx, entry, pEntry, exitPoint, exitIdx, exit, pExit);
-		}
+			intersection = new TriangleIntersection(entryPoint, -1, entry, pEntry, pLineEntry, exitPoint, -1, exit, pExit, pLineExit); // -1 will be filled out at a later step
+        }
 
 		static void GetTriangleIntersection(scoped ref SpanList<TriangleHit> hits, out TriangleIntersection intersection, scoped ReadOnlySpan<Vector2> line, ref SpanList<Vector2> verticies, float margin)
 		{

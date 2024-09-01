@@ -79,7 +79,7 @@ namespace Engine.Graphics
 			{
 				verticies.Span[i] = new(mesh.verticies[i].position, mesh.verticies[i].normal);
 			}
-
+			
 			return CreateBuffer(context, verticies.Span, indicies.Span, GizmoVertex.SizeInBytes);
 		}
 
