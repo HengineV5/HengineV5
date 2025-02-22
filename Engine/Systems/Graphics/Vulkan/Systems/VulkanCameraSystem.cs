@@ -2,7 +2,6 @@
 using Engine.Components;
 using Engine.Graphics;
 using Silk.NET.Windowing;
-using System.Numerics;
 
 namespace Engine
 {

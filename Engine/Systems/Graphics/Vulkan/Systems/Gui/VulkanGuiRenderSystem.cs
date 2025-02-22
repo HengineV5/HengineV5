@@ -7,7 +7,6 @@ using Engine.Utils;
 using Engine.Utils.Parsing.TTF;
 using Silk.NET.Vulkan;
 using Silk.NET.Windowing;
-using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Text;
 

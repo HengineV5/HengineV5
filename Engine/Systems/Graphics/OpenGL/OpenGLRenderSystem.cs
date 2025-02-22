@@ -4,7 +4,6 @@ using Engine.Components.Graphics;
 using Engine.Graphics;
 using Silk.NET.OpenGL;
 using Silk.NET.Windowing;
-using System.Numerics;
 using System.Text;
 using Shader = Engine.Graphics.Shader;
 
@@ -25,17 +24,17 @@ namespace Engine
 	{
 		private static readonly Material defaultMaterial = new Material
 		{
-			Ambient = new Vector3(0.0215f, 0.1745f, 0.0215f),
-			Diffuse = new Vector3(0.07568f, 0.61424f, 0.07568f),
-			Specular = new Vector3(0.633f, 0.727811f, 0.633f),
+			Ambient = new Vector3f(0.0215f, 0.1745f, 0.0215f),
+			Diffuse = new Vector3f(0.07568f, 0.61424f, 0.07568f),
+			Specular = new Vector3f(0.633f, 0.727811f, 0.633f),
 			Shininess = 2f
 		};
 
 		private static readonly Light defaultLight = new Light
 		{
-			Ambient = new Vector3(0.2f, 0.2f, 0.2f),
-			Diffuse = new Vector3(0.5f, 0.5f, 0.5f),
-			Specular = new Vector3(1, 1, 1)
+			Ambient = new Vector3f(0.2f, 0.2f, 0.2f),
+			Diffuse = new Vector3f(0.5f, 0.5f, 0.5f),
+			Specular = new Vector3f(1, 1, 1)
 		};
 
 		GL gl;
@@ -109,9 +108,9 @@ namespace Engine
 		unsafe void SetModelUniforms(in Position.Ref position, in Rotation.Ref rotation, in Scale.Ref scale, in ShaderUniforms uniforms)
 		{
 			// Model matrix components
-			Matrix4x4 translationMatrix = Matrix4x4.CreateTranslation(new Vector3(position.x, position.y, position.z));
-			Matrix4x4 rotationMatrix = Matrix4x4.CreateFromQuaternion(new Quaternion(rotation.x, rotation.y, rotation.z, rotation.w));
-			Matrix4x4 scaleMatrix = Matrix4x4.CreateScale(new Vector3(scale.x, scale.y, scale.z));
+			Matrix4x4f translationMatrix = Matrix4x4f.CreateTranslation(new Vector3f(position.x, position.y, position.z));
+			Matrix4x4f rotationMatrix = Matrix4x4f.FromQuaternion(new Quaternionf(rotation.x, rotation.y, rotation.z, rotation.w));
+			Matrix4x4f scaleMatrix = Matrix4x4f.CreateScale(new Vector3f(scale.x, scale.y, scale.z));
 
 			UniformMatrix4(gl, uniforms.Model.Translation, false, translationMatrix);
 			UniformMatrix4(gl, uniforms.Model.Rotation, false, rotationMatrix);
@@ -120,8 +119,8 @@ namespace Engine
 
 		unsafe void SetCameraUniforms(in Camera camera, in Position position, in Rotation rotation, in ShaderUniforms uniforms)
 		{
-			Matrix4x4 view = Matrix4x4.CreateTranslation(-new Vector3(position.x, position.y, position.z)) * Matrix4x4.CreateFromQuaternion(new Quaternion(rotation.x, rotation.y, rotation.z, rotation.w));
-			Matrix4x4 projection = Matrix4x4.CreatePerspectiveFieldOfView(camera.fov, camera.width / camera.height, camera.zNear, camera.zFar);
+			Matrix4x4f view = Matrix4x4f.CreateTranslation(-new Vector3f(position.x, position.y, position.z)) * Matrix4x4f.FromQuaternion(new Quaternionf(rotation.x, rotation.y, rotation.z, rotation.w));
+			Matrix4x4f projection = Matrix4x4f.CreatePersperctive(camera.fov, camera.width / camera.height, camera.zNear, camera.zFar);
 
 			UniformMatrix4(gl, uniforms.Camera.View, false, view);
 			gl.Uniform3(uniforms.Camera.ViewPos, 1, position.x);
@@ -130,23 +129,23 @@ namespace Engine
 
 		void SetMaterialUniforms(in Material material, in ShaderUniforms uniforms)
 		{
-			gl.Uniform3(uniforms.Material.Ambient, 1, material.Ambient.X);
-			gl.Uniform3(uniforms.Material.Diffuse, 1, material.Diffuse.X);
-			gl.Uniform3(uniforms.Material.Specular, 1, material.Specular.X);
+			gl.Uniform3(uniforms.Material.Ambient, 1, material.Ambient.x);
+			gl.Uniform3(uniforms.Material.Diffuse, 1, material.Diffuse.x);
+			gl.Uniform3(uniforms.Material.Specular, 1, material.Specular.x);
 			gl.Uniform1(uniforms.Material.Shininess, material.Shininess);
 		}
 
 		void SetLightUniforms(in Light light, in Position position, in ShaderUniforms uniforms)
 		{
-			gl.Uniform3(uniforms.Light.Ambient, 1, light.Ambient.X);
-			gl.Uniform3(uniforms.Light.Diffuse, 1, light.Diffuse.X);
-			gl.Uniform3(uniforms.Light.Specular, 1, light.Specular.X);
-			gl.Uniform3(uniforms.Light.Position, 1, position.x);
+			gl.Uniform3(uniforms.Light.Ambient, 1, light.Ambient.x);
+			gl.Uniform3(uniforms.Light.Diffuse, 1, light.Diffuse.x);
+			gl.Uniform3(uniforms.Light.Specular, 1, light.Specular.x);
+			gl.Uniform3(uniforms.Light.Position, 1, in position.x);
 		}
 
-		unsafe void UniformMatrix4(GL gl, int location, bool transpose, in Matrix4x4 matrix)
+		unsafe void UniformMatrix4(GL gl, int location, bool transpose, in Matrix4x4f matrix)
 		{
-			gl.UniformMatrix4(location, 1, transpose, matrix.M11);
+			gl.UniformMatrix4(location, 1, transpose, matrix.m11);
 		}
 
 		static ShaderProgram CreateShaderProgram(GL gl, Shader shader)

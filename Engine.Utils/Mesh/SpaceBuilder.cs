@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -61,7 +60,7 @@ namespace Engine.Utils.Mesh
 	struct ShapeInfo
 	{
 		public int plane;
-		public Memory<Vector2> outline;
+		public Memory<Vector2f> outline;
 	}
 
 	public class MeshBuilder
@@ -144,13 +143,13 @@ namespace Engine.Utils.Mesh
 			this.plane = plane;
 		}
 
-		public ref readonly ShapeId Square(Vector2 position, Vector2 size)
+		public ref readonly ShapeId Square(Vector2f position, Vector2f size)
 		{
-			Memory<Vector2> outline = new Vector2[4];
+			Memory<Vector2f> outline = new Vector2f[4];
 			outline.Span[0] = position;
-			outline.Span[1] = position + new Vector2(size.Y);
+			outline.Span[1] = position + new Vector2f(size.y);
 			outline.Span[2] = position + size;
-			outline.Span[3] = position + new Vector2(size.X);
+			outline.Span[3] = position + new Vector2f(size.x);
 
 			builder.shapes.Add(new()
 			{
@@ -160,12 +159,12 @@ namespace Engine.Utils.Mesh
 			return ref builder.GetShapeId();
 		}
 
-		public ref readonly ShapeId Circle(Vector2 position, float radius)
+		public ref readonly ShapeId Circle(Vector2f position, float radius)
 		{
 			return ref builder.GetShapeId();
 		}
 
-		public ref readonly ShapeId Hex(Vector2 position, float radius)
+		public ref readonly ShapeId Hex(Vector2f position, float radius)
 		{
 			return ref builder.GetShapeId();
 		}
@@ -175,12 +174,12 @@ namespace Engine.Utils.Mesh
 			return ref builder.GetSurfaceId();
 		}
 
-		public IdTuple<SurfaceId, SurfaceId> Split(ref readonly SurfaceId surface, scoped ReadOnlySpan<Vector2> seam)
+		public IdTuple<SurfaceId, SurfaceId> Split(ref readonly SurfaceId surface, scoped ReadOnlySpan<Vector2f> seam)
 		{
 			return new(ref builder.GetSurfaceId(), ref builder.GetSurfaceId());
 		}
 
-		public IdTuple<SurfaceId, SurfaceId> Split(scoped ReadOnlySpan<SurfaceId> surface, scoped ReadOnlySpan<Vector2> seam)
+		public IdTuple<SurfaceId, SurfaceId> Split(scoped ReadOnlySpan<SurfaceId> surface, scoped ReadOnlySpan<Vector2f> seam)
 		{
 			return new(ref builder.GetSurfaceId(), ref builder.GetSurfaceId());
 		}

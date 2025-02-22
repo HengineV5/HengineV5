@@ -1,5 +1,4 @@
 ﻿using EnCS.Attributes;
-using System.Numerics;
 
 namespace Engine.Components
 {

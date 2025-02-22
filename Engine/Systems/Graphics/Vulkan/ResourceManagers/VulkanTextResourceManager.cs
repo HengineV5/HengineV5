@@ -4,7 +4,6 @@ using Engine.Translation;
 using Engine.Utils.Parsing.TTF;
 using Engine.Utils;
 using Silk.NET.Vulkan;
-using System.Numerics;
 using Buffer = Silk.NET.Vulkan.Buffer;
 using System.Runtime.InteropServices;
 using System.Buffers;

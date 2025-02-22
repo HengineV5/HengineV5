@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
@@ -61,11 +60,11 @@ namespace Engine.Utils.Parsing.GLTF
             Vector2f[] texcoords = new Vector2f[texAccessor.count];
             ReadData(baseFolder, file, texAccessor, texcoords.AsSpan());
 
-            Vector4[] tangents = [];
+            Vector4f[] tangents = [];
             if (primitive.attributes.tangent != uint.MaxValue)
             {
                 GltfAccessor tangentAccessor = file.accessors[primitive.attributes.tangent];
-                tangents = new Vector4[tangentAccessor.count];
+                tangents = new Vector4f[tangentAccessor.count];
                 ReadData(baseFolder, file, tangentAccessor, tangents.AsSpan());
             }
 
@@ -84,7 +83,7 @@ namespace Engine.Utils.Parsing.GLTF
             {
                 Vector3f tangent = Vector3f.Zero;
                 if (i < tangents.Length)
-                    tangent = new Vector3f(tangents[i].X, tangents[i].Y, tangents[i].Z);
+                    tangent = new Vector3f(tangents[i].x, tangents[i].y, tangents[i].z);
 
                 mesh.verticies[i] = new Vertex(positions[i], normals[i], texcoords[i], tangent);
             }

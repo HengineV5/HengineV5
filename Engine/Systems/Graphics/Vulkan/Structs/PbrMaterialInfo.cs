@@ -1,5 +1,4 @@
 ﻿using Engine.Graphics;
-using System.Numerics;
 using System.Runtime.InteropServices;
 
 namespace Engine

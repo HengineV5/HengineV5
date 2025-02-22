@@ -6,7 +6,6 @@ using Engine.Utils;
 using Silk.NET.Input;
 using Silk.NET.Windowing;
 using System.Diagnostics;
-using System.Numerics;
 
 namespace Engine
 {
@@ -35,13 +34,13 @@ namespace Engine
 			var randY = (Random.Shared.NextSingle() - 0.5f) / 100;
 			var randZ = (Random.Shared.NextSingle() - 0.5f) / 100;
 
-			Quaternion q = new Quaternion(rotation.x, rotation.y, rotation.z, rotation.w);
-			q *= Quaternion.CreateFromYawPitchRoll(randX, randY, randZ);
+			Quaternionf q = new Quaternionf(rotation.x, rotation.y, rotation.z, rotation.w);
+			//q *= Quaternionf.CreateFromYawPitchRoll(randX, randY, randZ);
 
-            rotation.x = q.X;
-			rotation.y = q.Y;
-			rotation.z = q.Z;
-			rotation.w = q.W;
+            rotation.x = q.x;
+			rotation.y = q.y;
+			rotation.z = q.z;
+			rotation.w = q.w;
 		}
 
 		public void PostRun()
@@ -52,24 +51,24 @@ namespace Engine
 
 	public static class QuaternionExtensions
 	{
-		public static Vector3 ToEulerAngles(this Quaternion q)
+		public static Vector3f ToEulerAngles(this Quaternionf q)
 		{
-			Vector3 euler = new Vector3();
+			Vector3f euler = new Vector3f();
 
 			// roll (x-axis rotation)
-			float sinr_cosp = 2 * (q.W * q.X + q.Y * q.Z);
-			float cosr_cosp = 1 - 2 * (q.X * q.X + q.Y * q.Y);
-			euler.X = MathF.Atan2(sinr_cosp, cosr_cosp);
+			float sinr_cosp = 2 * (q.w * q.x + q.y * q.z);
+			float cosr_cosp = 1 - 2 * (q.x * q.x + q.y * q.y);
+			euler.x = MathF.Atan2(sinr_cosp, cosr_cosp);
 
 			// pitch (y-axis rotation)
-			float sinp = MathF.Sqrt(1 + 2 * (q.W * q.Y - q.X * q.Z));
-			float cosp = MathF.Sqrt(1 - 2 * (q.W * q.Y - q.X * q.Z));
-			euler.Y = 2 * MathF.Atan2(sinp, cosp) - MathF.PI / 2;
+			float sinp = MathF.Sqrt(1 + 2 * (q.w * q.y - q.x * q.z));
+			float cosp = MathF.Sqrt(1 - 2 * (q.w * q.y - q.x * q.z));
+			euler.y = 2 * MathF.Atan2(sinp, cosp) - MathF.PI / 2;
 
 			// yaw (z-axis rotation)
-			float siny_cosp = 2 * (q.W * q.Z + q.X * q.Y);
-			float cosy_cosp = 1 - 2 * (q.Y * q.Y + q.Z * q.Z);
-			euler.Z = MathF.Atan2(siny_cosp, cosy_cosp);
+			float siny_cosp = 2 * (q.w * q.z + q.x * q.y);
+			float cosy_cosp = 1 - 2 * (q.y * q.y + q.z * q.z);
+			euler.z = MathF.Atan2(siny_cosp, cosy_cosp);
 
 			return euler;
 		}

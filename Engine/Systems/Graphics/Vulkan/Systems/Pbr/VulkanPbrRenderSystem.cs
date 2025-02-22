@@ -3,7 +3,6 @@ using EnCS.Attributes;
 using Engine.Components;
 using Engine.Graphics;
 using Silk.NET.Windowing;
-using System.Numerics;
 
 namespace Engine
 {
@@ -17,9 +16,9 @@ namespace Engine
 
 		private static readonly Light defaultLight = new Light
 		{
-			Ambient = new Vector3(1f, 1f, 1f),
-			Diffuse = new Vector3(0.5f, 0.5f, 0.5f),
-			Specular = new Vector3(1f, 1f, 1f)
+			Ambient = new Vector3f(1f, 1f, 1f),
+			Diffuse = new Vector3f(0.5f, 0.5f, 0.5f),
+			Specular = new Vector3f(1f, 1f, 1f)
 		};
 
 		IWindow window;
@@ -39,10 +38,10 @@ namespace Engine
 			defaultLights[2] = defaultLight;
 			defaultLights[3] = defaultLight;
 
-			defaultLights[0].Position = new Vector3(0, 3, -6);
-			defaultLights[1].Position = new Vector3(10, 5, -2);
-			defaultLights[2].Position = new Vector3(-10, 5, -2);
-			defaultLights[3].Position = new Vector3(0, 10, -2);
+			defaultLights[0].Position = new Vector3f(0, 3, -6);
+			defaultLights[1].Position = new Vector3f(10, 5, -2);
+			defaultLights[2].Position = new Vector3f(-10, 5, -2);
+			defaultLights[3].Position = new Vector3f(0, 10, -2);
 		}
 
 		public void Init()

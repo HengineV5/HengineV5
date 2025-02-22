@@ -1,5 +1,4 @@
-﻿using System.Numerics;
-
+﻿
 namespace Engine.Utils
 {
 	public static class Bezier

@@ -1,5 +1,4 @@
 ﻿using EnCS.Attributes;
-using System.Numerics;
 
 namespace Engine.Components
 {
@@ -19,6 +18,6 @@ namespace Engine.Components
 			this.w = w;
 		}
 
-		public static implicit operator GuiPosition(Vector4 v) => new(v.X, v.Y, v.Z, v.W);
+		public static implicit operator GuiPosition(Vector4f v) => new(v.x, v.y, v.z, v.w);
 	}
 }

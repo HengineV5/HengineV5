@@ -1,6 +1,5 @@
 ﻿using EnCS;
 using EnCS.Attributes;
-using System.Numerics;
 
 namespace Engine.Graphics
 {

@@ -1,5 +1,4 @@
 ﻿using Engine.Utils.Parsing.GLTF;
-using System.Numerics;
 using System.Runtime.InteropServices;
 
 namespace Engine.Graphics

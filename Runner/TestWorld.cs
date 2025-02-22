@@ -1,6 +1,5 @@
 ﻿using Engine.Graphics;
 using Engine.Utils;
-using System.Numerics;
 using static Engine.HengineEcs;
 
 namespace Runner

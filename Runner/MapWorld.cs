@@ -6,7 +6,6 @@ using Engine.Graphics;
 using Engine.Utils;
 using Silk.NET.Vulkan;
 using System;
-using System.Numerics;
 using System.Xml.Linq;
 using static Engine.HengineEcs;
 
@@ -143,7 +142,7 @@ namespace Runner
 			{
 				ref readonly var p = ref x.Plane(Vector3f.Zero, Vector3f.UnitY, x =>
 				{
-					ref readonly var hex = ref x.Square(Vector2.Zero, Vector2.One);
+					ref readonly var hex = ref x.Square(Vector2f.Zero, Vector2f.One);
 				});
 			}, out var verts, out var inds);
 		}

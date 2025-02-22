@@ -1,7 +1,6 @@
 ﻿using Engine;
 using Engine.Components;
 using Engine.Graphics;
-using System.Numerics;
 using static Engine.HengineEcs;
 
 namespace Runner
@@ -102,7 +101,7 @@ namespace Runner
 			});
 		}
 
-		public static EnCS.ArchRef<GuiElement> CreateGuiElement(this HengineEcs.Overlay world, Vector4 position, Vector4 size, TextureAtlas textureAtlas, GuiProperties properties)
+		public static EnCS.ArchRef<GuiElement> CreateGuiElement(this HengineEcs.Overlay world, Vector4f position, Vector4f size, TextureAtlas textureAtlas, GuiProperties properties)
 		{
 			var objRef = world.Create(new GuiElement());
 			GuiElement.Ref entRef = world.Get(objRef);
@@ -114,7 +113,7 @@ namespace Runner
 			return objRef;
 		}
 
-		public static EnCS.ArchRef<TextElement> CreateTextElement(this HengineEcs.Overlay world, Vector4 position, TextureAtlas textureAtlas, GuiText text)
+		public static EnCS.ArchRef<TextElement> CreateTextElement(this HengineEcs.Overlay world, Vector4f position, TextureAtlas textureAtlas, GuiText text)
 		{
 			var objRef = world.Create(new TextElement());
 			TextElement.Ref entRef = world.Get(objRef);

@@ -1,6 +1,4 @@
 ﻿
-using System.Numerics;
-
 namespace Engine.Graphics
 {
 	public struct Vertex

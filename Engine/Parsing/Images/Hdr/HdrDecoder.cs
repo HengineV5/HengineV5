@@ -3,7 +3,6 @@ using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using System.Buffers;
-using System.Numerics;
 using System.Runtime.InteropServices;
 
 namespace Engine.Parsing
@@ -12,9 +11,9 @@ namespace Engine.Parsing
     {
         public static HdrDecoder Instance { get; } = new HdrDecoder();
 
-        private static readonly Vector4 MaxBytes = new Vector4(255f);
+        private static readonly Vector4f MaxBytes = new Vector4f(255f);
 
-        private static readonly Vector4 Half = new Vector4(0.5f);
+        private static readonly Vector4f Half = new Vector4f(0.5f);
 
         protected unsafe override Image<TPixel> Decode<TPixel>(HdrDecoderOptions options, Stream stream, CancellationToken cancellationToken)
         {

@@ -1,6 +1,5 @@
 ﻿using Engine.Graphics;
 using Silk.NET.Vulkan;
-using System.Numerics;
 
 namespace Engine
 {
@@ -8,7 +7,7 @@ namespace Engine
 	{
         struct PushConstant
         {
-            public Matrix4x4 model;
+            public Matrix4x4f model;
         }
 
         public RenderLayer skyboxLayer;

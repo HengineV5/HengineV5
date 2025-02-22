@@ -5,7 +5,6 @@ using Silk.NET.OpenGL;
 using Silk.NET.Vulkan;
 using Silk.NET.Windowing;
 using Silk.NET.Windowing.Glfw;
-using System.Numerics;
 
 namespace Engine
 {
