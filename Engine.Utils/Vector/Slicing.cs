@@ -33,7 +33,7 @@ namespace Engine.Utils
 				this.o2 = o2;
 			}
 
-			public bool TryGetPoint(scoped ReadOnlySpan<Vector2> line, scoped ReadOnlySpan<Vector2> verticies, float margin, out Vector2 p)
+			public bool TryGetPoint(scoped ReadOnlySpan<Vector2f> line, scoped ReadOnlySpan<Vector2f> verticies, float margin, out Vector2f p)
 			{
 				return VectorMath.TryGetIntersection(line[o1], line[o2], verticies[i1], verticies[i2], margin, out p);
 			}
@@ -41,19 +41,19 @@ namespace Engine.Utils
 
 		struct TriangleIntersection
 		{
-			public Vector2 entry;
+			public Vector2f entry;
 			public int entryIdx;
 			public TriangleHit entryHit;
 			public float entryPercent;
 			public float entryLinePercent;
 
-			public Vector2 exit;
+			public Vector2f exit;
 			public int exitIdx;
 			public TriangleHit exitHit;
 			public float exitPercent;
 			public float exitLinePercent;
 
-			public TriangleIntersection(Vector2 entry, int entryIdx, TriangleHit entryHit, float entryPercent, float entryLinePercent, Vector2 exit, int exitIdx, TriangleHit exitHit, float exitPercent, float exitLinePercent)
+			public TriangleIntersection(Vector2f entry, int entryIdx, TriangleHit entryHit, float entryPercent, float entryLinePercent, Vector2f exit, int exitIdx, TriangleHit exitHit, float exitPercent, float exitLinePercent)
 			{
 				this.entry = entry;
 				this.entryIdx = entryIdx;
@@ -73,7 +73,7 @@ namespace Engine.Utils
 			}
 		}
 
-		public static void Slice(scoped Span<Vector2> line, scoped Span<Vector2> verticies, scoped Span<int> indicies, out Memory<Vector2> newVerticies, out Memory<int> newIndicies, out Memory<int> seam, float margin = 0.01f)
+		public static void Slice(scoped Span<Vector2f> line, scoped Span<Vector2f> verticies, scoped Span<int> indicies, out Memory<Vector2f> newVerticies, out Memory<int> newIndicies, out Memory<int> seam, float margin = 0.01f)
 		{
 			using var hitMem = MemoryPool<TriangleHit>.Shared.Rent(indicies.Length);
 			SpanList<TriangleHit> hits = new(hitMem.Memory.Span);
@@ -81,8 +81,8 @@ namespace Engine.Utils
 			using var intMem = MemoryPool<TriangleIntersection>.Shared.Rent(indicies.Length);
 			SpanList<TriangleIntersection> ints = new(intMem.Memory.Span);
 
-			using var vertMem = MemoryPool<Vector2>.Shared.Rent(1024);
-			SpanList<Vector2> verts = new(vertMem.Memory.Span);
+			using var vertMem = MemoryPool<Vector2f>.Shared.Rent(1024);
+			SpanList<Vector2f> verts = new(vertMem.Memory.Span);
 
 			using var idxMem = MemoryPool<int>.Shared.Rent(1024);
 			SpanList<int> idx = new(idxMem.Memory.Span);
@@ -173,7 +173,7 @@ namespace Engine.Utils
 				offset -= 3;
 			}
 
-			newVerticies = new Vector2[verts.Count];
+			newVerticies = new Vector2f[verts.Count];
 			vertMem.Memory.Span.Slice(0, verts.Count).CopyTo(newVerticies.Span);
 
 			newIndicies = new int[idx.Count];
@@ -181,7 +181,7 @@ namespace Engine.Utils
 		}
 
 		// Add intersection verticies to verts and assign the correct vertex idx to each intersection
-		static void AddIntersectionVerticies(ref SpanList<TriangleIntersection> ints, ref SpanList<Vector2> verts)
+		static void AddIntersectionVerticies(ref SpanList<TriangleIntersection> ints, ref SpanList<Vector2f> verts)
 		{
 			ints.Sort((int1, int2) => int1.entryLinePercent.CompareTo(int2.entryLinePercent));
 
@@ -206,7 +206,7 @@ namespace Engine.Utils
 			}
 		}
 
-		static void ProcessTriangle(scoped Span<Vector2> line, in ReadOnlySpan<TriangleIntersection> intersections, scoped Span<Vector2> verticies, scoped ReadOnlySpan<int> indicies, ref SpanList<Vector2> verts, ref SpanList<int> idx, float margin)
+		static void ProcessTriangle(scoped Span<Vector2f> line, in ReadOnlySpan<TriangleIntersection> intersections, scoped Span<Vector2f> verticies, scoped ReadOnlySpan<int> indicies, ref SpanList<Vector2f> verts, ref SpanList<int> idx, float margin)
 		{
             Span<TriangleIntersection> ints = stackalloc TriangleIntersection[intersections.Length * 2];
 
@@ -230,7 +230,7 @@ namespace Engine.Utils
 			}
 		}
 
-		static void CalculateMesh(int tri, float start, scoped Span<Vector2> line, scoped ReadOnlySpan<TriangleIntersection> intersections, scoped ReadOnlySpan<int> indicies, ref SpanList<Vector2> verts, ref SpanList<int> idx, float margin)
+		static void CalculateMesh(int tri, float start, scoped Span<Vector2f> line, scoped ReadOnlySpan<TriangleIntersection> intersections, scoped ReadOnlySpan<int> indicies, ref SpanList<Vector2f> verts, ref SpanList<int> idx, float margin)
 		{
 			static int GetClosest(float idx, in ReadOnlySpan<TriangleIntersection> intersections)
 			{
@@ -289,11 +289,11 @@ namespace Engine.Utils
 			}
 		}
 		
-		static void TriangulateAndInsert(int tri, float start, scoped Span<Vector2> line, scoped Span<TriangleIntersection> ints, scoped ReadOnlySpan<int> indicies, ref SpanList<Vector2> verts, ref SpanList<int> idx, ref SpanList<int> tmpIdx, float margin)
+		static void TriangulateAndInsert(int tri, float start, scoped Span<Vector2f> line, scoped Span<TriangleIntersection> ints, scoped ReadOnlySpan<int> indicies, ref SpanList<Vector2f> verts, ref SpanList<int> idx, ref SpanList<int> tmpIdx, float margin)
 		{
 			CalculateMesh(tri, start, line, ints, indicies, ref verts, ref tmpIdx, margin);
 
-			Span<Vector2> tmpVerts = stackalloc Vector2[tmpIdx.Count];
+			Span<Vector2f> tmpVerts = stackalloc Vector2f[tmpIdx.Count];
 			for (int a = 0; a < tmpVerts.Length; a++)
 				tmpVerts[a] = verts[tmpIdx[a]];
 
@@ -304,21 +304,21 @@ namespace Engine.Utils
 			}
 		}
 
-		static void GetTriangleIntersection(ref TriangleHit entry, ref TriangleHit exit, out TriangleIntersection intersection, scoped ReadOnlySpan<Vector2> line, ref SpanList<Vector2> verticies, float margin)
+		static void GetTriangleIntersection(ref TriangleHit entry, ref TriangleHit exit, out TriangleIntersection intersection, scoped ReadOnlySpan<Vector2f> line, ref SpanList<Vector2f> verticies, float margin)
 		{
-			static float GetPercent(Vector2 a, Vector2 b, Vector2 c, float margin)
+			static float GetPercent(Vector2f a, Vector2f b, Vector2f c, float margin)
 			{
 				if (VectorMath.IsClose(a, c, margin))
 					return 0;
 
-				Vector2 ab = b - a;
-				Vector2 ac = c - a;
+				Vector2f ab = b - a;
+				Vector2f ac = c - a;
 
-				return MathF.Sqrt(ac.LengthSquared() / ab.LengthSquared());
+				return MathF.Sqrt(Vector2f.LengthSquared(in ac) / Vector2f.LengthSquared(in ab));
 			}
 
-			entry.TryGetPoint(line, verticies.AsSpan(), margin, out Vector2 entryPoint);
-			exit.TryGetPoint(line, verticies.AsSpan(), margin, out Vector2 exitPoint);
+			entry.TryGetPoint(line, verticies.AsSpan(), margin, out Vector2f entryPoint);
+			exit.TryGetPoint(line, verticies.AsSpan(), margin, out Vector2f exitPoint);
 
 			float pEntry = GetPercent(verticies[entry.i1], verticies[entry.i2], entryPoint, margin) + entry.face;
 			float pExit = GetPercent(verticies[exit.i1], verticies[exit.i2], exitPoint, margin) + exit.face;
@@ -329,7 +329,7 @@ namespace Engine.Utils
 			intersection = new TriangleIntersection(entryPoint, -1, entry, pEntry, pLineEntry, exitPoint, -1, exit, pExit, pLineExit); // -1 will be filled out at a later step
         }
 
-		static void GetTriangleIntersection(scoped ref SpanList<TriangleHit> hits, out TriangleIntersection intersection, scoped ReadOnlySpan<Vector2> line, ref SpanList<Vector2> verticies, float margin)
+		static void GetTriangleIntersection(scoped ref SpanList<TriangleHit> hits, out TriangleIntersection intersection, scoped ReadOnlySpan<Vector2f> line, ref SpanList<Vector2f> verticies, float margin)
 		{
 			for (int i = 1; i < hits.Count; i++)
 			{
@@ -346,7 +346,7 @@ namespace Engine.Utils
 			throw new Exception("No matching pair of entry and exit hits.");
 		}
 
-		static bool IntersectAny(in int l1, in int l2, scoped ReadOnlySpan<Vector2> line, scoped ReadOnlySpan<Vector2> verticies, scoped ReadOnlySpan<int> indicies, ref SpanList<TriangleHit> hits, float margin)
+		static bool IntersectAny(in int l1, in int l2, scoped ReadOnlySpan<Vector2f> line, scoped ReadOnlySpan<Vector2f> verticies, scoped ReadOnlySpan<int> indicies, ref SpanList<TriangleHit> hits, float margin)
 		{
 			// Beware this only works when mesh triangles have a consistent ordering as intersection might not happen on same triangle for entry and exit.
 			// As those meshes would not work with culling this is a ok assumption.

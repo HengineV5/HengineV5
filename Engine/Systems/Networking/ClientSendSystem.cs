@@ -36,8 +36,8 @@ namespace Engine
             client.SendData(new NetworkPacket()
 			{
 				idx = networked.idx,
-				position = new Vector3(position.x, position.y, position.z),
-				roation = new Quaternion(rotation.x, rotation.y, rotation.z, rotation.w)
+				position = new Vector3f(position.x, position.y, position.z),
+				roation = new Quaternionf(rotation.x, rotation.y, rotation.z, rotation.w)
 			});
 		}
 	}

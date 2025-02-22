@@ -36,8 +36,8 @@ namespace Engine
 	public struct NetworkPacket
 	{
 		public int idx;
-		public Vector3 position;
-		public Quaternion roation;
+		public Vector3f position;
+		public Quaternionf roation;
 	}
 
 	[JsonSourceGenerationOptions(IncludeFields = true)]

@@ -17,7 +17,7 @@ namespace Engine.Components
 			this.z = z;
 		}
 
-		public static implicit operator Scale(Vector3 v) => new(v.X, v.Y, v.Z);
-		public static implicit operator Scale(Vector2 v) => new(v.X, v.Y, 0);
+		public static implicit operator Scale(Vector3f v) => new(v.x, v.y, v.z);
+		public static implicit operator Scale(Vector2f v) => new(v.x, v.y, 0);
 	}
 }

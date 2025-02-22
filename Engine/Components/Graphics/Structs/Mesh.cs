@@ -82,14 +82,14 @@ namespace Engine.Graphics
 				uint indexB = indicies[i * 3 + 1];
 				uint indexC = indicies[i * 3 + 2];
 
-				Vector3 A = verticies[indexA].position;
-				Vector3 AB = verticies[indexB].position - A;
-				Vector3 AC = verticies[indexC].position - A;
+				Vector3f A = verticies[indexA].position;
+				Vector3f AB = verticies[indexB].position - A;
+				Vector3f AC = verticies[indexC].position - A;
 
-				if (AB == Vector3.Zero || AC == Vector3.Zero)
+				if (AB == Vector3f.Zero || AC == Vector3f.Zero)
 					continue;
 
-				Vector3 normal = Vector3.Normalize(Vector3.Cross(AB, AC));
+				Vector3f normal = Vector3f.Normalize(Vector3f.Cross(in AB, in AC));
 				verticies[indexA].normal = normal;
 				verticies[indexB].normal = normal;
 				verticies[indexC].normal = normal;

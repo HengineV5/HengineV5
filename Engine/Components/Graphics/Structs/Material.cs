@@ -8,7 +8,7 @@ namespace Engine.Graphics
     {
 		public string name;
 
-        public Vector3 albedo;
+        public Vector3f albedo;
         public ETexture albedoMap;
         public float metallic;
         public ETexture metallicMap;
@@ -21,7 +21,7 @@ namespace Engine.Graphics
         public static PbrMaterial LoadGltf(string name, string filePath)
         {
             PbrMaterial material = new PbrMaterial();
-			material.albedo = Vector3.One;
+			material.albedo = Vector3f.One;
             material.metallic = 1;
             material.roughness = 1;
 
@@ -52,7 +52,7 @@ namespace Engine.Graphics
         {
             PbrMaterial material = new PbrMaterial();
             material.name = name;
-            material.albedo = Vector3.One;
+            material.albedo = Vector3f.One;
             material.albedoMap = ETexture.LoadImage($"{name}_albedo", "Images/Pbr/Default/Albedo.png");
             material.metallic = 1;
             material.metallicMap = ETexture.LoadImage($"{name}_metallic", "Images/Pbr/Default/Metallic.png");

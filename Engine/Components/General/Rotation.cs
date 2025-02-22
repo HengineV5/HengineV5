@@ -19,9 +19,9 @@ namespace Engine.Components
 			this.w = w;
 		}
 
-		public static implicit operator Rotation(Quaternion v) => new(v.X, v.Y, v.Z, v.W);
-		public static implicit operator Rotation(Vector4 v) => new(v.X, v.Y, v.Z, v.W);
-		public static implicit operator Rotation(Vector3 v) => new(v.X, v.Y, v.Z, 0);
-		public static implicit operator Rotation(Vector2 v) => new(v.X, v.Y, 0, 0);
+		public static implicit operator Rotation(Quaternionf v) => new(v.x, v.y, v.z, v.w);
+		public static implicit operator Rotation(Vector4f v) => new(v.x, v.y, v.z, v.w);
+		public static implicit operator Rotation(Vector3f v) => new(v.x, v.y, v.z, 0);
+		public static implicit operator Rotation(Vector2f v) => new(v.x, v.y, 0, 0);
 	}
 }

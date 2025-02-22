@@ -68,9 +68,9 @@ namespace Engine
 
 		bool IsKeyDown(MouseButton key);
 
-		Vector2 GetMousePosition();
+		Vector2f GetMousePosition();
 
-		void SetCursorPosition(Vector2 pos);
+		void SetCursorPosition(Vector2f pos);
 
 		void HideCursor();
 
@@ -108,14 +108,14 @@ namespace Engine
 			return mouse.IsButtonPressed(key);
 		}
 
-		public Vector2 GetMousePosition()
+		public Vector2f GetMousePosition()
 		{
-			return mouse.Position;
+			return new(mouse.Position.X, mouse.Position.Y);
 		}
 
-		public void SetCursorPosition(Vector2 pos)
+		public void SetCursorPosition(Vector2f pos)
 		{
-			mouse.Position = pos;
+			mouse.Position = new(pos.x, pos.y);
 		}
 
 		public void HideCursor()

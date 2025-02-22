@@ -56,7 +56,7 @@ namespace Engine.Utils
 			}
 		}
 
-		public static void Split(scoped ReadOnlySpan<Vector2> verticies, scoped ReadOnlySpan<int> indicies, scoped ReadOnlySpan<int> seam, out Memory<Vector2> verticiesRight, out Memory<int> indiciesRight, out Memory<Vector2> verticiesLeft, out Memory<int> indiciesLeft)
+		public static void Split(scoped ReadOnlySpan<Vector2f> verticies, scoped ReadOnlySpan<int> indicies, scoped ReadOnlySpan<int> seam, out Memory<Vector2f> verticiesRight, out Memory<int> indiciesRight, out Memory<Vector2f> verticiesLeft, out Memory<int> indiciesLeft)
 		{
 			using var triMem = MemoryPool<Triangle>.Shared.Rent(indicies.Length / 3);
 			SpanList<Triangle> tris = new(triMem.Memory.Span);

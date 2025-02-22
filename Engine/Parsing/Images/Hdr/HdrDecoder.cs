@@ -53,7 +53,7 @@ namespace Engine.Parsing
 
                     if (rgbeBuff[0] != 2 || rgbeBuff[1] != 2 || (rgbeBuff[2] & 0x80) != 0)
                     {
-                        throw new Exception("Not encoded");
+                        throw new Exception("Not RLE encoded");
                     }
 
                     for (int i = 0; i < 4; i++)

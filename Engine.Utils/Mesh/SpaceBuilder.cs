@@ -48,10 +48,10 @@ namespace Engine.Utils.Mesh
 
 	struct PlaneInfo
 	{
-		public Vector3 position;
-		public Vector3 up;
+		public Vector3f position;
+		public Vector3f up;
 
-		public PlaneInfo(Vector3 position, Vector3 up)
+		public PlaneInfo(Vector3f position, Vector3f up)
 		{
 			this.position = position;
 			this.up = up;
@@ -99,13 +99,13 @@ namespace Engine.Utils.Mesh
 			return ref SurfaceId;
 		}
 
-        public static void Build(Action<SpaceBuilder> meshBuilder, out Memory<Vector3> verticies, out Memory<int> indicies)
+        public static void Build(Action<SpaceBuilder> meshBuilder, out Memory<Vector3f> verticies, out Memory<int> indicies)
 		{
 			var builder = new MeshBuilder();
 
 			meshBuilder(new(builder));
 
-			verticies = new Vector3[0];
+			verticies = new Vector3f[0];
 			indicies = new int[0];
 		}
 	}
@@ -119,7 +119,7 @@ namespace Engine.Utils.Mesh
 			this.builder = builder;
 		}
 
-		public ref readonly PlaneId Plane(Vector3 position, Vector3 up, Action<PlaneBuilder> planeBuilder)
+		public ref readonly PlaneId Plane(Vector3f position, Vector3f up, Action<PlaneBuilder> planeBuilder)
 		{
 			builder.planes.Add(new()
 			{

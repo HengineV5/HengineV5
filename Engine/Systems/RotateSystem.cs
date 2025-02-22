@@ -84,8 +84,8 @@ namespace Engine
 
 		bool mousePressed = false;
 
-		Vector2 prevPos;
-		Vector2 cameraRotation = Vector2.Zero;
+		Vector2f prevPos;
+		Vector2f cameraRotation = Vector2f.Zero;
 
 		public MoveSystem(IInputHandler inputHandler, IWindow window)
 		{
@@ -121,15 +121,17 @@ namespace Engine
 				mousePressed = false;
 			}
 
-			position.Set(UpdatePosition(ref context, position, rotation));
+			position.Set(UpdatePosition_New(ref context, position, rotation));
 
 			if (mousePressed)
-				rotation.Set(UpdateRotation(ref context, rotation));
+			{
+				rotation.Set(UpdateRotation_New(ref context, rotation));
+			}
 
 			if (inputHandler.IsKeyDown(Key.Escape))
 			{
-				position.Set(Vector3.Zero);
-				rotation.Set(Quaternion.Identity);
+				position.Set(Vector3f.Zero);
+				rotation.Set(Quaternionf.Identity);
 			}
 		}
 
@@ -138,13 +140,13 @@ namespace Engine
 			
 		}
 
-		Vector3 UpdatePosition(ref EngineContext context, Position.Ref position, Rotation.Ref rotation)
+		Vector3f UpdatePosition_New(ref EngineContext context, Position.Ref position, Rotation.Ref rotation)
 		{
-			Quaternion camQ = new Quaternion(rotation.x, rotation.y, rotation.z, rotation.w);
-            Vector3 camForward = -QuaternionHelpers.Multiply(Quaternion.Inverse(camQ), Vector3.UnitZ);
-			Vector3 camRight = Vector3.Normalize(Vector3.Cross(camForward, Vector3.UnitY));
+			Quaternionf camQ = new Quaternionf(rotation.x, rotation.y, rotation.z, rotation.w);
+            Vector3f camForward = -Vector3f.Transform(Vector3f.UnitZ, Quaternionf.Inverse(in camQ));
+			Vector3f camRight = Vector3f.Normalize(Vector3f.Cross(camForward, Vector3f.UnitY));
 
-            Vector3 delta = new Vector3();
+            Vector3f delta = new();
 			if (inputHandler.IsKeyDown(Key.W))
 				delta += camForward * 5;
 
@@ -158,34 +160,29 @@ namespace Engine
 				delta += camRight * 5;
 
 			if (inputHandler.IsKeyDown(Key.Q))
-				delta.Y += 5;
+				delta.y += 5;
 
 			if (inputHandler.IsKeyDown(Key.E))
-				delta.Y -= 5;
+				delta.y -= 5;
 
 			if (inputHandler.IsKeyDown(Key.ShiftLeft))
 				delta *= 2;
 
 			delta *= MathF.Max(context.dt, 0.0005f);
-			return delta + new Vector3(position.x, position.y, position.z);
+			return delta + new Vector3f(position.x, position.y, position.z);
 		}
 
-		Quaternion UpdateRotation(ref EngineContext context, Rotation.Ref rotation)
+		Quaternionf UpdateRotation_New(ref EngineContext context, Rotation.Ref rotation)
 		{
-			Vector2 newPos = inputHandler.GetMousePosition();
-			Vector2 mouseDelta = newPos - prevPos;
+			Vector2f newPos = inputHandler.GetMousePosition();
+			Vector2f mouseDelta = newPos - prevPos;
 			prevPos = newPos;
 
-			mouseDelta.Y *= -1;
+			mouseDelta.y *= -1;
 			mouseDelta *= 0.001f;
 			cameraRotation += mouseDelta;
 
-            Vector3 cameraDir = new Vector3();
-			cameraDir.X = MathF.Cos(cameraRotation.X) * MathF.Cos(cameraRotation.Y);
-			cameraDir.Y = MathF.Sin(cameraRotation.Y);
-			cameraDir.Z = MathF.Sin(cameraRotation.X) * MathF.Cos(cameraRotation.Y);
-
-			return Quaternion.CreateFromRotationMatrix(Matrix4x4.CreateLookTo(Vector3.Zero, cameraDir, Vector3.UnitY));
+			return Quaternionf.FromAxisAngle(Vector3f.UnitX, -cameraRotation.y) * Quaternionf.FromAxisAngle(Vector3f.UnitY, cameraRotation.x);
 		}
 	}
 }

@@ -13,10 +13,10 @@ namespace Engine.Utils
 			public int next;
 		}
 
-		public static Memory<int> Triangulate(ReadOnlySpan<Vector2> verticies, bool clockwise = true, float margin = 0.001f)
+		public static Memory<int> Triangulate(ReadOnlySpan<Vector2f> verticies, bool clockwise = true, float margin = 0.001f)
 		 => Triangulate(verticies, new List<int>(Enumerable.Range(0, verticies.Length)), clockwise, margin);
 
-		public static Memory<Vector2> ProcessHole(ReadOnlySpan<Vector2> mesh, ReadOnlySpan<Vector2> hole, float margin = 0.001f)
+		public static Memory<Vector2f> ProcessHole(ReadOnlySpan<Vector2f> mesh, ReadOnlySpan<Vector2f> hole, float margin = 0.001f)
 		{
 			int closest = -1;
 			float dist = float.MaxValue;
@@ -24,9 +24,9 @@ namespace Engine.Utils
 			Span<int> skips = stackalloc int[1];
 			for (int i = 0; i < mesh.Length; i++)
 			{
-				Vector2 v = mesh[i] - hole[0];
+				Vector2f v = mesh[i] - hole[0];
 
-				if (v.LengthSquared() > dist)
+				if (Vector2f.LengthSquared(in v) > dist)
 					continue;
 
 				skips[0] = i;
@@ -38,13 +38,13 @@ namespace Engine.Utils
 					continue;
 
 				closest = i;
-				dist = v.LengthSquared();
+				dist = Vector2f.LengthSquared(in v);
 			}
 
 			// Stitch together mesh that includes hole
 			int totalVerts = mesh.Length + hole.Length + 2;
-			Memory<Vector2> verticies = new Vector2[totalVerts];
-			SpanList<Vector2> vertBuilder = new(verticies.Span);
+			Memory<Vector2f> verticies = new Vector2f[totalVerts];
+			SpanList<Vector2f> vertBuilder = new(verticies.Span);
 
 			vertBuilder.Add(mesh.Slice(0, closest + 1));
 			vertBuilder.Add(hole);
@@ -55,7 +55,7 @@ namespace Engine.Utils
 			return verticies;
 		}
 
-		static Memory<int> Triangulate(ReadOnlySpan<Vector2> verticies, List<int> vertMap, bool clockwise, float margin)
+		static Memory<int> Triangulate(ReadOnlySpan<Vector2f> verticies, List<int> vertMap, bool clockwise, float margin)
 		{
 			List<int> indicies = new List<int>();
 			while (vertMap.Count > 3)
@@ -81,7 +81,7 @@ namespace Engine.Utils
 			return indicies.ToArray();
 		}
 
-		static bool TryFindEar(ReadOnlySpan<Vector2> verticies, ReadOnlySpan<int> vertMap, bool clockwise, float margin, out Ear ear)
+		static bool TryFindEar(ReadOnlySpan<Vector2f> verticies, ReadOnlySpan<int> vertMap, bool clockwise, float margin, out Ear ear)
 		{
 			Span<int> excludeIndicies = stackalloc int[3];
 
@@ -92,10 +92,10 @@ namespace Engine.Utils
 				int currIdx = Loop(i, vertMap.Length);
 				int nextIdx = Loop(i + 1, vertMap.Length);
 
-				Vector2 prev2 = verticies[vertMap[prev2Idx]];
-				Vector2 prev = verticies[vertMap[prevIdx]];
-				Vector2 curr = verticies[vertMap[currIdx]];
-				Vector2 next = verticies[vertMap[nextIdx]];
+				Vector2f prev2 = verticies[vertMap[prev2Idx]];
+				Vector2f prev = verticies[vertMap[prevIdx]];
+				Vector2f curr = verticies[vertMap[currIdx]];
+				Vector2f next = verticies[vertMap[nextIdx]];
 
 				var aLine = clockwise ? VectorMath.Angle(next, prev, curr) : VectorMath.Angle(curr, prev, next);
 				var aPrev = clockwise ? VectorMath.Angle(prev2, prev, curr) : VectorMath.Angle(curr, prev, prev2);
@@ -130,7 +130,7 @@ namespace Engine.Utils
 			return (idx + modulo) % modulo;
 		}
 
-		static bool IntersectAny(Vector2 p1, Vector2 p2, ReadOnlySpan<int> skips, ReadOnlySpan<Vector2> verticies, float margin)
+		static bool IntersectAny(Vector2f p1, Vector2f p2, ReadOnlySpan<int> skips, ReadOnlySpan<Vector2f> verticies, float margin)
 		{
 			for (int i = 0; i < verticies.Length - 1; i++)
 			{

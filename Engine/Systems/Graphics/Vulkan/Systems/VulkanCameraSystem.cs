@@ -34,9 +34,9 @@ namespace Engine
 		public void UpdateCamera(ref VulkanRenderContext context, in Position.Ref position, in Rotation.Ref rotation, in Camera.Ref camera, ref VkSkybox skybox)
 		{
 			UpdateSkyboxCameraUbo(ref context.skyboxUbo, camera, rotation, window);
-			context.skyboxUbo.cameraPos = new Vector3(position.x, position.y, position.z);
-			context.pbrUbo.cameraPos = new Vector3(position.x, position.y, position.z);
-			context.gizmoUbo.cameraPos = new Vector3(position.x, position.y, position.z);
+			context.skyboxUbo.cameraPos = new Vector3f(position.x, position.y, position.z);
+			context.pbrUbo.cameraPos = new Vector3f(position.x, position.y, position.z);
+			context.gizmoUbo.cameraPos = new Vector3f(position.x, position.y, position.z);
 			context.skybox = skybox;
 
 			// Skybox render
@@ -58,38 +58,38 @@ namespace Engine
 
 		static void UpdateCameraUbo(ref MeshUniformBufferObject ubo, in Camera.Ref camera, in Position.Ref position, in Rotation.Ref rotation, IWindow window)
 		{
-			ubo.view = Matrix4x4.CreateTranslation(-new Vector3(position.x, position.y, position.z)) * Matrix4x4.CreateFromQuaternion(new Quaternion(rotation.x, rotation.y, rotation.z, rotation.w));
-			//ubo.proj = Matrix4x4.CreatePerspectiveFieldOfView(camera.fov, camera.width / camera.height, camera.zNear, camera.zFar);
-			ubo.proj = Matrix4x4.CreatePerspectiveFieldOfView(camera.fov, (float)window.Size.X / (float)window.Size.Y, camera.zNear, camera.zFar);
+			ubo.view = Matrix4x4f.CreateTranslation(-new Vector3f(position.x, position.y, position.z)) * Matrix4x4f.FromQuaternion(new Quaternionf(rotation.x, rotation.y, rotation.z, rotation.w));
+			//ubo.proj = Matrix4x4f.CreatePerspectiveFieldOfView(camera.fov, camera.width / camera.height, camera.zNear, camera.zFar);
+			ubo.proj = Matrix4x4f.CreatePersperctive(camera.fov, (float)window.Size.X / (float)window.Size.Y, camera.zNear, camera.zFar);
 
-			ubo.proj.M22 *= -1; // Think this was some opengl comaptability stuff.
+			ubo.proj.m22 *= -1; // Think this was some opengl comaptability stuff.
 		}
 
 		static void UpdateSkyboxCameraUbo(ref MeshUniformBufferObject ubo, in Camera.Ref camera, in Rotation.Ref rotation, IWindow window)
 		{
-			ubo.view = Matrix4x4.CreateFromQuaternion(new Quaternion(rotation.x, rotation.y, rotation.z, rotation.w));
-			//ubo.proj = Matrix4x4.CreatePerspectiveFieldOfView(camera.fov, camera.width / camera.height, camera.zNear, camera.zFar);
-			ubo.proj = Matrix4x4.CreatePerspectiveFieldOfView(camera.fov, (float)window.Size.X / (float)window.Size.Y, camera.zNear, camera.zFar);
+			ubo.view = Matrix4x4f.FromQuaternion(new Quaternionf(rotation.x, rotation.y, rotation.z, rotation.w));
+			//ubo.proj = Matrix4x4f.CreatePerspectiveFieldOfView(camera.fov, camera.width / camera.height, camera.zNear, camera.zFar);
+			ubo.proj = Matrix4x4f.CreatePersperctive(camera.fov, (float)window.Size.X / (float)window.Size.Y, camera.zNear, camera.zFar);
 
-			ubo.proj.M22 *= -1; // Think this was some opengl comaptability stuff.
+			ubo.proj.m22 *= -1; // Think this was some opengl comaptability stuff.
 		}
 
 		static void UpdateCameraGizmoUbo(ref MeshUniformBufferObject ubo, in Camera.Ref camera, in Position.Ref position, in Rotation.Ref rotation, IWindow window)
 		{
-			ubo.view = Matrix4x4.CreateTranslation(-new Vector3(position.x, position.y, position.z)) * Matrix4x4.CreateFromQuaternion(new Quaternion(rotation.x, rotation.y, rotation.z, rotation.w));
-			ubo.proj = Matrix4x4.CreatePerspectiveFieldOfView(camera.fov, (float)window.Size.X / (float)window.Size.Y, camera.zNear, camera.zFar);
-            //ubo.proj = Matrix4x4.CreatePerspectiveFieldOfView(MathF.PI / 2, (float)window.Size.X / (float)window.Size.Y, camera.zNear, camera.zFar);
-            //ubo.proj = Matrix4x4.CreateOrthographic(10, 10, camera.zNear, camera.zFar);
+			ubo.view = Matrix4x4f.CreateTranslation(-new Vector3f(position.x, position.y, position.z)) * Matrix4x4f.FromQuaternion(new Quaternionf(rotation.x, rotation.y, rotation.z, rotation.w));
+			ubo.proj = Matrix4x4f.CreatePersperctive(camera.fov, (float)window.Size.X / (float)window.Size.Y, camera.zNear, camera.zFar);
+            //ubo.proj = Matrix4x4f.CreatePerspectiveFieldOfView(MathF.PI / 2, (float)window.Size.X / (float)window.Size.Y, camera.zNear, camera.zFar);
+            //ubo.proj = Matrix4x4f.CreateOrthographic(10, 10, camera.zNear, camera.zFar);
 
-            ubo.proj.M22 *= -1; // Think this was some opengl comaptability stuff.
+            ubo.proj.m22 *= -1; // Think this was some opengl comaptability stuff.
 		}
 
 		static void UpdateCameraGuiUbo(ref GuiUniformBufferObject ubo, in Camera.Ref camera, IWindow window)
 		{
-			//ubo.proj = Matrix4x4.CreatePerspectiveFieldOfView(camera.fov, camera.width / camera.height, camera.zNear, camera.zFar);
-			//ubo.proj = Matrix4x4.CreatePerspectiveFieldOfView(camera.fov, (float)window.Size.X / (float)window.Size.Y, camera.zNear, camera.zFar);
-			ubo.proj = Matrix4x4.CreatePerspectiveFieldOfView(1.57f, 1, 0.1f, 100);
-			ubo.screenSize = new Vector2(window.Size.X, window.Size.Y);
+			//ubo.proj = Matrix4x4f.CreatePerspectiveFieldOfView(camera.fov, camera.width / camera.height, camera.zNear, camera.zFar);
+			//ubo.proj = Matrix4x4f.CreatePerspectiveFieldOfView(camera.fov, (float)window.Size.X / (float)window.Size.Y, camera.zNear, camera.zFar);
+			ubo.proj = Matrix4x4f.CreatePersperctive(1.57f, 1, 0.1f, 100);
+			ubo.screenSize = new Vector2f(window.Size.X, window.Size.Y);
 
 			//ubo.proj.M22 *= -1; // Think this was some opengl comaptability stuff.
 		}

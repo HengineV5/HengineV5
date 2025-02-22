@@ -48,18 +48,18 @@ namespace Engine
 		[SystemUpdate, SystemLayer(0, 2)]
 		public void BufferUpdate(ref VulkanRenderContext context, in GizmoLine.Ref gizmoComp)
 		{
-			Vector3 a = new(gizmoComp.p1.x, gizmoComp.p1.y, gizmoComp.p1.z);
-			Vector3 b = new(gizmoComp.p2.x, gizmoComp.p2.y, gizmoComp.p2.z);
+			Vector3f a = new(gizmoComp.p1.x, gizmoComp.p1.y, gizmoComp.p1.z);
+			Vector3f b = new(gizmoComp.p2.x, gizmoComp.p2.y, gizmoComp.p2.z);
 
-			Vector3 ab = b - a;
+			Vector3f ab = b - a;
 
-			context.gizmoUbo.translation = Matrix4x4.CreateTranslation(a);
-			context.gizmoUbo.rotation = Matrix4x4.CreateFromQuaternion(QuaternionHelpers.RotateOnto(Vector3.UnitX, ab));
-			context.gizmoUbo.scale = Matrix4x4.CreateScale(Vector3.One * ab.Length());
+			context.gizmoUbo.translation = Matrix4x4f.CreateTranslation(a);
+			context.gizmoUbo.rotation = Matrix4x4f.FromQuaternion(QuaternionHelpers.RotateOnto(Vector3f.UnitX, ab));
+			context.gizmoUbo.scale = Matrix4x4f.CreateScale(Vector3f.One * Vector3f.Length(ab));
 
 			ref GizmoShaderInput shaderInput = ref renderContext.pipeline.GetUbo<GizmoShaderInput>(bufferIdx);
 			shaderInput.ubo.Value = context.gizmoUbo;
-			shaderInput.gizmoUbo.Value.color = new Vector3(gizmoComp.color.R, gizmoComp.color.G, gizmoComp.color.B);
+			shaderInput.gizmoUbo.Value.color = new Vector3f(gizmoComp.color.R, gizmoComp.color.G, gizmoComp.color.B);
 
 			bufferIdx++;
 		}

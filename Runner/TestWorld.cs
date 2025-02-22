@@ -28,38 +28,38 @@ namespace Runner
 			//var texture = ETexture.LoadImage("Haakon", "Images/image_2.png");
 			//var texture2 = ETexture.LoadImage("Statue", "Images/image.png");
 
-			//world.CreateObject(new(3, 0, -10), Vector3.One, meshDuck, materialDuck, 1);
+			//world.CreateObject(new(3, 0, -10), Vector3f.One, meshDuck, materialDuck, 1);
 			//world.CreateObject(new(3, 0, 10), meshMap, materialDuck, 1);
 
-			world.CreateObject(new(0, 3, -6), Vector3.One * 0.25f, meshSphere, materialSphere, 0);
-			world.CreateObject(new(10, 0, -2), Vector3.One * 0.25f, meshSphere, materialSphere, 0);
-			world.CreateObject(new(-10, 0, -2), Vector3.One * 0.25f, meshSphere, materialSphere, 0);
-			world.CreateObject(new(0, 10, -2), Vector3.One * 0.25f, meshSphere, materialSphere, 0);
+			world.CreateObject(new(0, 3, -6), Vector3f.One * 0.25f, meshSphere, materialSphere, 0);
+			world.CreateObject(new(10, 0, -2), Vector3f.One * 0.25f, meshSphere, materialSphere, 0);
+			world.CreateObject(new(-10, 0, -2), Vector3f.One * 0.25f, meshSphere, materialSphere, 0);
+			world.CreateObject(new(0, 10, -2), Vector3f.One * 0.25f, meshSphere, materialSphere, 0);
 			/*
 			*/
 
-			//world.CreateObject(new(0, 0, 0), Vector3.One * 1.25f, meshSphere, materialSphere, 0);
+			//world.CreateObject(new(0, 0, 0), Vector3f.One * 1.25f, meshSphere, materialSphere, 0);
 
-			Vector3 s = new Vector3(0, 0, 0);
-			Vector3 sd = new Vector3(2f, 1, 0);
+			Vector3f s = new Vector3f(0, 0, 0);
+			Vector3f sd = new Vector3f(2f, 1, 0);
 
-			Vector3 e = new Vector3(1, 0, 0);
-			Vector3 ed = new Vector3(-1f, 1, 0);
+			Vector3f e = new Vector3f(1, 0, 0);
+			Vector3f ed = new Vector3f(-1f, 1, 0);
 
 			for (int i = 0; i < 100; i++)
 			{
-				Vector3 c1 = Bezier.CubicBezierCurve(s, sd, ed, e, i / 100f);
-				Vector3 c2 = Bezier.CubicBezierCurve(s, sd, ed, e, (i + 1) / 100f);
+				Vector3f c1 = Bezier.CubicBezierCurve(s, sd, ed, e, i / 100f);
+				Vector3f c2 = Bezier.CubicBezierCurve(s, sd, ed, e, (i + 1) / 100f);
 
 				world.CreateGizmoLine(c1, c2, new(0, 0, 0));
 			}
 
-			world.CreateGizmo(s, Vector3.One * 0.5f, Engine.Components.GizmoType.Point, new(0.005f, 0.005f, 0.005f));
-			world.CreateGizmo(sd, Vector3.One * 0.5f, Engine.Components.GizmoType.Point, new(0.005f, 0.005f, 0.005f));
-			world.CreateGizmo(e, Vector3.One * 0.5f, Engine.Components.GizmoType.Point, new(0.005f, 0.005f, 0.005f));
-			world.CreateGizmo(ed, Vector3.One * 0.5f, Engine.Components.GizmoType.Point, new(0.005f, 0.005f, 0.005f));
+			world.CreateGizmo(s, Vector3f.One * 0.5f, Engine.Components.GizmoType.Point, new(0.005f, 0.005f, 0.005f));
+			world.CreateGizmo(sd, Vector3f.One * 0.5f, Engine.Components.GizmoType.Point, new(0.005f, 0.005f, 0.005f));
+			world.CreateGizmo(e, Vector3f.One * 0.5f, Engine.Components.GizmoType.Point, new(0.005f, 0.005f, 0.005f));
+			world.CreateGizmo(ed, Vector3f.One * 0.5f, Engine.Components.GizmoType.Point, new(0.005f, 0.005f, 0.005f));
 
-			world.CreateObject(new(0, -4, 0), Vector3.One * 4, meshPlane, materialSphere, 0);
+			world.CreateObject(new(0, -4, 0), Vector3f.One * 4, meshPlane, materialSphere, 0);
 
 			float midX = 4 / 2f;
 			float midY = 4f / 2f;
@@ -68,7 +68,7 @@ namespace Runner
 			{
 				for (int x = 0; x < 4; x++)
 				{
-					world.CreateObject(new(-midX + x * 2.1f, -midY + y * 2.1f, -5), Vector3.One, meshSphere, materialSphere, 0);
+					world.CreateObject(new(-midX + x * 2.1f, -midY + y * 2.1f, -5), Vector3f.One, meshSphere, materialSphere, 0);
 				}
 			}
 
@@ -99,7 +99,7 @@ namespace Runner
 			//var textureAo = ETexture.LoadImage("PbrGoldAo", "Images/Pbr/Default/Ao.png");
 
 			PbrMaterial material = PbrMaterial.GetDefault("PbrGold");
-			material.albedo = Vector3.One;
+			material.albedo = Vector3f.One;
 			material.albedoMap = textureAlbedo;
 			material.metallic = 1;
 			material.metallicMap = textureMetallic;

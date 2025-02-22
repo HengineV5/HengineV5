@@ -57,7 +57,7 @@ namespace Engine.Graphics
 		{
 			string str = translationManager.GetTranslation(resource.id);
 
-			List<Vector2> verticies = new List<Vector2>();
+			List<Vector2f> verticies = new List<Vector2f>();
 			List<int> indicies = new List<int>();
 
 			int offset = 0;
@@ -78,7 +78,7 @@ namespace Engine.Graphics
 						newIndicies.Span[b] += offset;
 
 					for (int b = 0; b < meshes[a].Span.Length; b++)
-						meshes[a].Span[b] += new Vector2(advanced, 0);
+						meshes[a].Span[b] += new Vector2f(advanced, 0);
 
 					verticies.AddRange(meshes[a].Span);
 					indicies.AddRange(newIndicies.Span);
@@ -92,9 +92,9 @@ namespace Engine.Graphics
 			var vertMemory = MemoryPool<GuiVertex>.Shared.Rent(verticies.Count);
 			var indexMemory = MemoryPool<ushort>.Shared.Rent(indicies.Count);
 
-			Vector2 delta = new Vector2(1000, 1000);
+			Vector2f delta = new Vector2f(1000, 1000);
 			for (int i = 0; i < verticies.Count; i++)
-				vertMemory.Memory.Span[i] = new GuiVertex(new Vector4(verticies[i].X / delta.X, 0, 1 - verticies[i].Y / delta.Y, 0), Vector2.Zero);
+				vertMemory.Memory.Span[i] = new GuiVertex(new Vector4f(verticies[i].x / delta.x, 0, 1 - verticies[i].y / delta.y, 0), Vector2f.Zero);
 
 			for (int i = 0; i < indicies.Count; i++)
 				indexMemory.Memory.Span[i] = (ushort)indicies[i];
@@ -111,16 +111,16 @@ namespace Engine.Graphics
 			};
 		}
 
-		public static List<Memory<Vector2>> ProcessMesh(in GlyphData glyphData)
+		public static List<Memory<Vector2f>> ProcessMesh(in GlyphData glyphData)
 		{
 			if (glyphData.endPtsOfContours is null)
-				return new List<Memory<Vector2>>();
+				return new List<Memory<Vector2f>>();
 
 			int offset = 0;
-			List<Memory<Vector2>> meshes = new List<Memory<Vector2>>();
+			List<Memory<Vector2f>> meshes = new List<Memory<Vector2f>>();
 			while (offset != glyphData.endPtsOfContours.Length)
 			{
-				Memory<Vector2> mesh = new Vector2[0];
+				Memory<Vector2f> mesh = new Vector2f[0];
 				offset = ProcessMeshWithHoles(glyphData, offset, ref mesh);
 
 				meshes.Add(mesh);
@@ -129,16 +129,16 @@ namespace Engine.Graphics
 			return meshes;
 		}
 
-		static int ProcessMeshWithHoles(in GlyphData glyphData, int offset, ref Memory<Vector2> mesh)
+		static int ProcessMeshWithHoles(in GlyphData glyphData, int offset, ref Memory<Vector2f> mesh)
 		{
 			// Assume first countour is always skin.
 
 			if (offset == 0)
 			{
-				mesh = new Vector2[glyphData.endPtsOfContours[offset] + 1];
+				mesh = new Vector2f[glyphData.endPtsOfContours[offset] + 1];
 				for (int i = 0; i < mesh.Length; i++)
 				{
-					mesh.Span[i] = new Vector2(glyphData.xCoords[i], glyphData.yCoords[i]);
+					mesh.Span[i] = new Vector2f(glyphData.xCoords[i], glyphData.yCoords[i]);
 				}
 			}
 			else
@@ -146,10 +146,10 @@ namespace Engine.Graphics
 				int start = glyphData.endPtsOfContours[offset - 1] + 1;
 				int end = glyphData.endPtsOfContours[offset] + 1;
 
-				mesh = new Vector2[end - start];
+				mesh = new Vector2f[end - start];
 				for (int i = 0; i < mesh.Length; i++)
 				{
-					mesh.Span[i] = new Vector2(glyphData.xCoords[start + i], glyphData.yCoords[start + i]);
+					mesh.Span[i] = new Vector2f(glyphData.xCoords[start + i], glyphData.yCoords[start + i]);
 				}
 			}
 
@@ -158,10 +158,10 @@ namespace Engine.Graphics
 				int start = glyphData.endPtsOfContours[i - 1] + 1;
 				int end = glyphData.endPtsOfContours[i] + 1;
 
-				Memory<Vector2> newMesh = new Vector2[end - start];
+				Memory<Vector2f> newMesh = new Vector2f[end - start];
 				for (int a = 0; a < newMesh.Length; a++)
 				{
-					newMesh.Span[a] = new Vector2(glyphData.xCoords[start + a], glyphData.yCoords[start + a]);
+					newMesh.Span[a] = new Vector2f(glyphData.xCoords[start + a], glyphData.yCoords[start + a]);
 				}
 
 				// If clockwise assume separate piece, else assume a hole.

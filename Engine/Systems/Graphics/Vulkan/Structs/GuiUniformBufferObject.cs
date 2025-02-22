@@ -7,13 +7,13 @@ namespace Engine
 	public struct GuiUniformBufferObject
 	{
 		[FieldOffset(0)]
-		public Matrix4x4 proj;
+		public Matrix4x4f proj;
 		[FieldOffset(64)]
-		public Vector2 screenSize;
+		public Vector2f screenSize;
 		[FieldOffset(80)]
-		public Vector4 position;
+		public Vector4f position;
 		[FieldOffset(96)]
-		public Vector4 size;
+		public Vector4f size;
 	}
 
 	[StructLayout(LayoutKind.Explicit, Pack = 16)]

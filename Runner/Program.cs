@@ -110,7 +110,7 @@ namespace Runner
 			//var materialDuck = PbrMaterial.LoadGltf("Duck", "Models/Duck/Duck.gltf");
 
             //mainWorld.CreateObject(new(3, 0, -10), Vector3.One, meshDuck, materialDuck, engineConfig.idx == 10 ? 11 : 10);
-			camRef = mainWorld.CreateCamera(camera, Vector3.Zero, skybox, engineConfig.idx);
+			camRef = mainWorld.CreateCamera(camera, Vector3f.Zero, skybox, engineConfig.idx);
 
 			engine.argIWindow.FramebufferResize += x =>
 			{
@@ -204,8 +204,8 @@ namespace Runner
 				zFar = 1000
 			};
 
-			mainWorld.CreateCamera(camera, Vector3.Zero, 10);
-			mainWorld.CreateCamera(camera, Vector3.Zero, 11);
+			mainWorld.CreateCamera(camera, Vector3f.Zero, 10);
+			mainWorld.CreateCamera(camera, Vector3f.Zero, 11);
 
 			server.Start();
 		}

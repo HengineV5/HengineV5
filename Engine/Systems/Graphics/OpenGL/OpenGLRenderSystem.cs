@@ -13,8 +13,8 @@ namespace Engine
 	public struct OpenGLRenderContext
 	{
 		public Camera camera;
-		public Vector3 cameraPosition;
-		public Quaternion cameraRotation;
+		public Vector3f cameraPosition;
+		public Quaternionf cameraRotation;
 	}
 
 	[System]
@@ -81,8 +81,8 @@ namespace Engine
 				height = camera.height,
 			};
 
-			context.cameraPosition = new Vector3(position.x, position.y, position.z);
-			context.cameraRotation = new Quaternion(rotation.x, rotation.y, rotation.z, rotation.w);
+			context.cameraPosition = new Vector3f(position.x, position.y, position.z);
+			context.cameraRotation = new Quaternionf(rotation.x, rotation.y, rotation.z, rotation.w);
 		}
 
 		[SystemUpdate, SystemLayer(1)]

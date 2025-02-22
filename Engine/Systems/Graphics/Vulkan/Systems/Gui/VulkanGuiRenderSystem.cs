@@ -64,17 +64,17 @@ namespace Engine
             ref GuiShaderInput shaderInput = ref renderContext.pipeline.GetUbo<GuiShaderInput>(bufferIdx);
 			shaderInput.ubo.Value = context.guiUbo;
 
-			shaderInput.ubo.Value.position = new Vector4(position.x, position.y, position.z, position.w);
-			shaderInput.ubo.Value.size = new Vector4(size.x, size.y, size.z, size.w);
+			shaderInput.ubo.Value.position = new Vector4f(position.x, position.y, position.z, position.w);
+			shaderInput.ubo.Value.size = new Vector4f(size.x, size.y, size.z, size.w);
 			shaderInput.guiState.Value.totalStates = textureAtlas.textures;
 
 			// Move this to type specific code.
-			Vector2 p1 = new Vector2(shaderInput.ubo.Value.position.X + shaderInput.ubo.Value.position.Y * window.Size.X, shaderInput.ubo.Value.position.Z + shaderInput.ubo.Value.position.W * window.Size.X);
-			Vector2 p2 = p1 + new Vector2(shaderInput.ubo.Value.size.X + shaderInput.ubo.Value.size.Y * window.Size.X, shaderInput.ubo.Value.size.Z + shaderInput.ubo.Value.size.W * window.Size.X);
+			Vector2f p1 = new Vector2f(shaderInput.ubo.Value.position.x + shaderInput.ubo.Value.position.y * window.Size.X, shaderInput.ubo.Value.position.z + shaderInput.ubo.Value.position.w * window.Size.X);
+			Vector2f p2 = p1 + new Vector2f(shaderInput.ubo.Value.size.x + shaderInput.ubo.Value.size.y * window.Size.X, shaderInput.ubo.Value.size.z + shaderInput.ubo.Value.size.w * window.Size.X);
 
-			Vector2 mousePos = inputHandler.GetMousePosition();
+			Vector2f mousePos = inputHandler.GetMousePosition();
             
-			if (mousePos.X > p1.X && mousePos.X < p2.X && mousePos.Y > p1.Y && mousePos.Y < p2.Y)
+			if (mousePos.x > p1.x && mousePos.x < p2.x && mousePos.y > p1.y && mousePos.y < p2.y)
 			{
 				shaderInput.guiState.Value.state = inputHandler.IsKeyDown(Silk.NET.Input.MouseButton.Left) ? 2 : 1;
 			}
@@ -124,27 +124,27 @@ namespace Engine
 			float borderSize = 1;
 
 			GuiVertex[] verticies = new GuiVertex[16];
-			verticies[0] = new(new(0, 0, 0, 0), new Vector2(0, 0));
-			verticies[1] = new(new(0, 0, 0, borderSize), new Vector2(0, 0.33f));
+			verticies[0] = new(new(0, 0, 0, 0), new Vector2f(0, 0));
+			verticies[1] = new(new(0, 0, 0, borderSize), new Vector2f(0, 0.33f));
 
-			verticies[2] = new(new(0, 0, 1, -borderSize), new Vector2(0, 0.66f));
-			verticies[3] = new(new(0, 0, 1, 0), new Vector2(0, 1));
-			verticies[4] = new(new(0, borderSize, 1, 0), new Vector2(0.33f, 1));
+			verticies[2] = new(new(0, 0, 1, -borderSize), new Vector2f(0, 0.66f));
+			verticies[3] = new(new(0, 0, 1, 0), new Vector2f(0, 1));
+			verticies[4] = new(new(0, borderSize, 1, 0), new Vector2f(0.33f, 1));
 
-			verticies[5] = new(new(1, -borderSize, 1, 0), new Vector2(0.77f, 1));
-			verticies[6] = new(new(1, 0, 1, 0), new Vector2(1, 1));
-			verticies[7] = new(new(1, 0, 1, -borderSize), new Vector2(1, 0.77f));
+			verticies[5] = new(new(1, -borderSize, 1, 0), new Vector2f(0.77f, 1));
+			verticies[6] = new(new(1, 0, 1, 0), new Vector2f(1, 1));
+			verticies[7] = new(new(1, 0, 1, -borderSize), new Vector2f(1, 0.77f));
 
-			verticies[8] = new(new(1, 0, 0, borderSize), new Vector2(1, 0.33f));
-			verticies[9] = new(new(1, 0, 0, 0), new Vector2(1, 0));
-			verticies[10] = new(new(1, -borderSize, 0, 0), new Vector2(0.77f, 0));
+			verticies[8] = new(new(1, 0, 0, borderSize), new Vector2f(1, 0.33f));
+			verticies[9] = new(new(1, 0, 0, 0), new Vector2f(1, 0));
+			verticies[10] = new(new(1, -borderSize, 0, 0), new Vector2f(0.77f, 0));
 
-			verticies[11] = new(new(0, borderSize, 0, 0), new Vector2(0.33f, 0));
+			verticies[11] = new(new(0, borderSize, 0, 0), new Vector2f(0.33f, 0));
 
-			verticies[12] = new(new(0, borderSize, 0, borderSize), new Vector2(0.33f, 0.33f));
-			verticies[13] = new(new(0, borderSize, 1, -borderSize), new Vector2(0.33f, 0.66f));
-			verticies[14] = new(new(1, -borderSize, 1, -borderSize), new Vector2(0.66f, 0.66f));
-			verticies[15] = new(new(1, -borderSize, 0, borderSize), new Vector2(0.66f, 0.33f));
+			verticies[12] = new(new(0, borderSize, 0, borderSize), new Vector2f(0.33f, 0.33f));
+			verticies[13] = new(new(0, borderSize, 1, -borderSize), new Vector2f(0.33f, 0.66f));
+			verticies[14] = new(new(1, -borderSize, 1, -borderSize), new Vector2f(0.66f, 0.66f));
+			verticies[15] = new(new(1, -borderSize, 0, borderSize), new Vector2f(0.66f, 0.33f));
 
 			ushort[] indicies = new ushort[54];
 			indicies[0] = 0;

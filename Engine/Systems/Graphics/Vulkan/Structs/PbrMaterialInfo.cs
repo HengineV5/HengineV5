@@ -7,7 +7,7 @@ namespace Engine
 	[StructLayout(LayoutKind.Sequential, Pack = 16)]
     public struct PbrMaterialInfo
     {
-        public Vector3 albedo;
+        public Vector3f albedo;
         public float metallic;
         public float roughness;
 

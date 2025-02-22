@@ -9,13 +9,13 @@ namespace Engine.Utils
 		/// Takes the counter clockwise internal angle between ba and bc
 		/// </summary>
 		/// <returns></returns>
-		public static float Angle(Vector2 a, Vector2 b, Vector2 c)
+		public static float Angle(Vector2f a, Vector2f b, Vector2f c)
 		{
-			Vector2 ba = a - b;
-			Vector2 bc = b - c;
+			Vector2f ba = a - b;
+			Vector2f bc = b - c;
 
-			float dot = ba.X * bc.X + ba.Y * bc.Y;
-			float det = ba.X * bc.Y - ba.Y * bc.X;
+			float dot = ba.x * bc.x + ba.y * bc.y;
+			float det = ba.x * bc.y - ba.y * bc.x;
 
 			return MathF.Atan2(det, dot) + MathF.PI;
 		}
@@ -24,7 +24,7 @@ namespace Engine.Utils
 		/// Check if two lines as defined by four points intersect
 		/// </summary>
 		/// <returns></returns> 
-		public static bool Intersect(Vector2 p1, Vector2 q1, Vector2 p2, Vector2 q2, float margin)
+		public static bool Intersect(Vector2f p1, Vector2f q1, Vector2f p2, Vector2f q2, float margin)
 		{
 			// Find the four orientations needed for general and 
 			// special cases 
@@ -57,13 +57,13 @@ namespace Engine.Utils
 		/// Determine if a triangle as determined by three points is oriented clockwise or counter clockwise
 		/// </summary>
 		/// <returns></returns>
-		public static bool IsClockwise(Vector2 p1, Vector2 p2, Vector2 p3)
+		public static bool IsClockwise(Vector2f p1, Vector2f p2, Vector2f p3)
 		{
-			Vector2 ab = p2 - p1;
-			Vector2 bc = p2 - p3;
+			Vector2f ab = p2 - p1;
+			Vector2f bc = p2 - p3;
 
-			Vector3 cross = Vector3.Cross(new(ab, 0), new(bc, 0));
-            return float.Sign(cross.Z) == -1;
+			Vector3f cross = Vector3f.Cross(Vector3f.FromVector2(ab), Vector3f.FromVector2(bc));
+            return float.Sign(cross.z) == -1;
 		}
 
 		/// <summary>
@@ -71,57 +71,57 @@ namespace Engine.Utils
 		/// </summary>
 		/// <param name="points"></param>
 		/// <returns></returns>
-		public static bool IsClockwise(ReadOnlySpan<Vector2> points)
+		public static bool IsClockwise(ReadOnlySpan<Vector2f> points)
 		{
 			float sum = 0;
             for (int i = 0; i < points.Length - 1; i++)
             {
-				Vector2 p1 = points[i];
-				Vector2 p2 = points[i + 1];
+				Vector2f p1 = points[i];
+				Vector2f p2 = points[i + 1];
 
-				sum += (p2.X - p1.X) * (p2.Y + p1.Y);
+				sum += (p2.x - p1.x) * (p2.y + p1.y);
             }
 
 			return float.Sign(sum) == 1;
         }
 
-		public static bool TryGetIntersection(Vector2 p1, Vector2 q1, Vector2 p2, Vector2 q2, float margin, out Vector2 i)
+		public static bool TryGetIntersection(Vector2f p1, Vector2f q1, Vector2f p2, Vector2f q2, float margin, out Vector2f i)
 		{
 			Unsafe.SkipInit(out i);
-			Vector2 a = q1 - p1;
-			Vector2 b = q2 - p2;
+			Vector2f a = q1 - p1;
+			Vector2f b = q2 - p2;
 
-			float delta = a.Y * b.X - a.X * b.Y;
+			float delta = a.y * b.x - a.x * b.y;
 
 			if (MathF.Abs(delta) < margin)
 				return false;
 
-			float k1 = ((p1.X - p2.X) * b.Y + (p2.Y - p1.Y) * b.X) / delta;
+			float k1 = ((p1.x - p2.x) * b.y + (p2.y - p1.y) * b.x) / delta;
 
-			i = new Vector2(p1.X + a.X * k1, p1.Y + a.Y * k1);
+			i = new Vector2f(p1.x + a.x * k1, p1.y + a.y * k1);
 			return true;
 		}
 
-		public static bool IsClose(Vector2 p1, Vector2 p2, float margin)
+		public static bool IsClose(Vector2f p1, Vector2f p2, float margin)
 		{
-			return MathF.Abs(p1.X - p2.X) < margin && MathF.Abs(p1.Y - p2.Y) < margin;
+			return MathF.Abs(p1.x - p2.x) < margin && MathF.Abs(p1.y - p2.y) < margin;
 		}
 
 		// Given three collinear points p, q, r, the function checks if 
 		// point q lies on line segment 'pr' 
-		public static bool OnSegment(Vector2 p, Vector2 q, Vector2 r)
+		public static bool OnSegment(Vector2f p, Vector2f q, Vector2f r)
 		{
-			if (q.X <= Math.Max(p.X, r.X) && q.X >= Math.Min(p.X, r.X) &&
-				q.Y <= Math.Max(p.Y, r.Y) && q.Y >= Math.Min(p.Y, r.Y))
+			if (q.x <= Math.Max(p.x, r.x) && q.x >= Math.Min(p.x, r.x) &&
+				q.y <= Math.Max(p.y, r.y) && q.y >= Math.Min(p.y, r.y))
 				return true;
 
 			return false;
 		}
 
 		// Distance from p to a line going trough a and b
-		public static float DistanceToLine(Vector2 a, Vector2 b, Vector2 p)
+		public static float DistanceToLine(Vector2f a, Vector2f b, Vector2f p)
 		{
-			return ((p.X - a.X) * (b.X - a.X) + (p.Y - a.Y) * (b.Y - a.Y)) / (b - a).LengthSquared();
+			return Vector2f.LengthSquared(((p.x - a.x) * (b.x - a.x) + (p.y - a.y) * (b.y - a.y)) / (b - a));
 		}
 	}
 
@@ -132,11 +132,11 @@ namespace Engine.Utils
 		// 0 --> p, q and r are collinear 
 		// 1 --> Clockwise 
 		// 2 --> Counterclockwise 
-		public static int orientation(Vector2 p, Vector2 q, Vector2 r, float margin)
+		public static int orientation(Vector2f p, Vector2f q, Vector2f r, float margin)
 		{
 			// See https://www.geeksforgeeks.org/orientation-3-ordered-points/ 
 			// for details of below formula. 
-			float val = (q.Y - p.Y) * (r.X - q.X) - (q.X - p.X) * (r.Y - q.Y);
+			float val = (q.y - p.y) * (r.x - q.x) - (q.x - p.x) * (r.y - q.y);
 
 			if (MathF.Abs(val) < margin) return 0; // collinear 
 

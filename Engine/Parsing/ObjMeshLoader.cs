@@ -14,9 +14,9 @@ namespace Engine.Parsing
 		{
 			string name = null;
 
-			List<Vector3> positions = new();
-			List<Vector3> normals = new();
-			List<Vector2> texcoords = new();
+			List<Vector3f> positions = new();
+			List<Vector3f> normals = new();
+			List<Vector2f> texcoords = new();
 
 			List<(uint, uint, uint)> triangles = new(11000);
 			Dictionary<(uint, uint, uint), uint> vertexDictionary = new();
@@ -33,13 +33,13 @@ namespace Engine.Parsing
 						name = ParseName(line);
 						break;
 					case "v":
-						positions.Add(ParseVector3(line));
+						positions.Add(ParseVector3f(line));
 						break;
 					case "vt":
-						texcoords.Add(ParseVector2(line) * -1);
+						texcoords.Add(ParseVector2f(line) * -1);
 						break;
 					case "vn":
-						normals.Add(ParseVector3(line));
+						normals.Add(ParseVector3f(line));
 						break;
 					case "f":
 						triangles.AddRange(ParseFaces(line));
@@ -87,14 +87,14 @@ namespace Engine.Parsing
 			return line[1];
 		}
 
-		static Vector3 ParseVector3(string[] line)
+		static Vector3f ParseVector3f(string[] line)
 		{
-			return new Vector3(float.Parse(line[1]), float.Parse(line[2]), float.Parse(line[3]));
+			return new Vector3f(float.Parse(line[1]), float.Parse(line[2]), float.Parse(line[3]));
 		}
 
-		static Vector2 ParseVector2(string[] line)
+		static Vector2f ParseVector2f(string[] line)
 		{
-			return new Vector2(float.Parse(line[1]), float.Parse(line[2]));
+			return new Vector2f(float.Parse(line[1]), float.Parse(line[2]));
 		}
 
 		static IEnumerable<(uint, uint, uint)> ParseFaces(string[] line)

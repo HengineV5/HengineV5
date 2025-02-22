@@ -6,17 +6,17 @@ namespace Engine
 	[StructLayout(LayoutKind.Sequential, Pack = 16)]
 	public struct MeshUniformBufferObject
 	{
-		public Matrix4x4 translation;
-		public Matrix4x4 rotation;
-		public Matrix4x4 scale;
-		public Matrix4x4 view;
-		public Matrix4x4 proj;
-		public Vector3 cameraPos;
+		public Matrix4x4f translation;
+		public Matrix4x4f rotation;
+		public Matrix4x4f scale;
+		public Matrix4x4f view;
+		public Matrix4x4f proj;
+		public Vector3f cameraPos;
 	}
 
 	[StructLayout(LayoutKind.Sequential, Pack = 16)]
 	public struct GizmoUniformBufferObject
 	{
-		public Vector3 color;
+		public Vector3f color;
 	}
 }

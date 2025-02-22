@@ -85,9 +85,9 @@ namespace Engine
 
 		static void UpdateEntityUbo(ref MeshUniformBufferObject ubo, Position.Ref position, Rotation.Ref rotation, Scale.Ref scale)
 		{
-			ubo.translation = Matrix4x4.CreateTranslation(new Vector3(position.x, position.y, position.z));
-			ubo.rotation = Matrix4x4.CreateFromQuaternion(new Quaternion(rotation.x, rotation.y, rotation.z, rotation.w));
-			ubo.scale = Matrix4x4.CreateScale(new Vector3(scale.x, scale.y, scale.z));
+			ubo.translation = Matrix4x4f.CreateTranslation(new Vector3f(position.x, position.y, position.z));
+			ubo.rotation = Matrix4x4f.FromQuaternion(new Quaternionf(rotation.x, rotation.y, rotation.z, rotation.w));
+			ubo.scale = Matrix4x4f.CreateScale(new Vector3f(scale.x, scale.y, scale.z));
 		}
 	}
 }

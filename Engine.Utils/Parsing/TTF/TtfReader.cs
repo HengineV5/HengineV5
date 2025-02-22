@@ -7,12 +7,14 @@ namespace Engine.Utils.Parsing.TTF
     {
 		public long Position => reader.BaseStream.Position;
 
-        BinaryReader reader;
+		BinaryReader reader;
+		bool invertEndianess;
 
-        public TtfReader(Stream stream)
-        {
-            reader = new BinaryReader(stream);
-        }
+		public TtfReader(Stream stream, bool isLittleEndian = false)
+		{
+			reader = new BinaryReader(stream);
+			this.invertEndianess = isLittleEndian != BitConverter.IsLittleEndian; // If system and data endianess is mismatched invert endianess
+		}
 
 		public void Dispose()
 		{
@@ -23,22 +25,22 @@ namespace Engine.Utils.Parsing.TTF
 			=> ((float)ReadInt16()) / (1 << 14);
 
 		public ulong ReadUInt64()
-			=> BitConverter.IsLittleEndian ? BinaryPrimitives.ReverseEndianness(reader.ReadUInt64()) : reader.ReadUInt64();
+			=> invertEndianess ? BinaryPrimitives.ReverseEndianness(reader.ReadUInt64()) : reader.ReadUInt64();
 
 		public long ReadInt64()
-			=> BitConverter.IsLittleEndian ? BinaryPrimitives.ReverseEndianness(reader.ReadInt64()) : reader.ReadInt64();
+			=> invertEndianess ? BinaryPrimitives.ReverseEndianness(reader.ReadInt64()) : reader.ReadInt64();
 
 		public uint ReadUInt32()
-            => BitConverter.IsLittleEndian ? BinaryPrimitives.ReverseEndianness(reader.ReadUInt32()) : reader.ReadUInt32();
+			=> invertEndianess ? BinaryPrimitives.ReverseEndianness(reader.ReadUInt32()) : reader.ReadUInt32();
 
 		public int ReadInt32()
-			=> BitConverter.IsLittleEndian ? BinaryPrimitives.ReverseEndianness(reader.ReadInt32()) : reader.ReadInt32();
+			=> invertEndianess ? BinaryPrimitives.ReverseEndianness(reader.ReadInt32()) : reader.ReadInt32();
 
 		public ushort ReadUInt16()
-			=> BitConverter.IsLittleEndian ? BinaryPrimitives.ReverseEndianness(reader.ReadUInt16()) : reader.ReadUInt16();
+			=> invertEndianess ? BinaryPrimitives.ReverseEndianness(reader.ReadUInt16()) : reader.ReadUInt16();
 
 		public short ReadInt16()
-			=> BitConverter.IsLittleEndian ? BinaryPrimitives.ReverseEndianness(reader.ReadInt16()) : reader.ReadInt16();
+			=> invertEndianess ? BinaryPrimitives.ReverseEndianness(reader.ReadInt16()) : reader.ReadInt16();
 
 		public float ReadFloat()
 			=> reader.ReadSingle();
@@ -46,16 +48,16 @@ namespace Engine.Utils.Parsing.TTF
 		public byte ReadByte()
 			=> reader.ReadByte();
 
+		public char ReadChar()
+			=> reader.ReadChar();
+
 		public sbyte ReadSByte()
 			=> reader.ReadSByte();
 
-		public void Read(Span<byte> buffer)
-            => reader.Read(buffer);
+		public int Read(Span<byte> buffer)
+			=> reader.Read(buffer);
 
-		public void Read(Span<char> buffer)
-		    => reader.Read(buffer);
-
-        public FixedArray2<byte> ReadArray2()
+		public FixedArray2<byte> ReadArray2()
         {
             FixedArray2<byte> arr = new();
             Read(arr);

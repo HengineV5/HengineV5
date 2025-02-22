@@ -53,7 +53,7 @@ namespace Engine
 
 			ref GizmoShaderInput shaderInput = ref renderContext.pipeline.GetUbo<GizmoShaderInput>(bufferIdx);
 			shaderInput.ubo.Value = context.gizmoUbo;
-			shaderInput.gizmoUbo.Value.color = new Vector3(gizmoComp.color.R, gizmoComp.color.G, gizmoComp.color.B);
+			shaderInput.gizmoUbo.Value.color = new Vector3f(gizmoComp.color.R, gizmoComp.color.G, gizmoComp.color.B);
 
 			bufferIdx++;
 		}
@@ -84,9 +84,9 @@ namespace Engine
 
 		static void UpdateEntityUbo(ref MeshUniformBufferObject ubo, in Position.Ref position, in Rotation.Ref rotation, in Scale.Ref scale)
 		{
-			ubo.translation = Matrix4x4.CreateTranslation(new Vector3(position.x, position.y, position.z));
-			ubo.rotation = Matrix4x4.CreateFromQuaternion(new Quaternion(rotation.x, rotation.y, rotation.z, rotation.w));
-			ubo.scale = Matrix4x4.CreateScale(new Vector3(scale.x, scale.y, scale.z));
+			ubo.translation = Matrix4x4f.CreateTranslation(new Vector3f(position.x, position.y, position.z));
+			ubo.rotation = Matrix4x4f.FromQuaternion(new Quaternionf(rotation.x, rotation.y, rotation.z, rotation.w));
+			ubo.scale = Matrix4x4f.CreateScale(new Vector3f(scale.x, scale.y, scale.z));
 		}
 	}
 
@@ -106,9 +106,9 @@ namespace Engine
 				{
 					name = "Line",
 					verticies = [
-						new Vertex(new(0, 0, 0), Vector3.Zero, Vector2.Zero, Vector3.Zero),
-						new Vertex(new(0.5f, 0, 0), Vector3.Zero, Vector2.Zero, Vector3.Zero),
-						new Vertex(new(1, 0, 0), Vector3.Zero, Vector2.Zero, Vector3.Zero)
+						new Vertex(new(0, 0, 0), Vector3f.Zero, Vector2f.Zero, Vector3f.Zero),
+						new Vertex(new(0.5f, 0, 0), Vector3f.Zero, Vector2f.Zero, Vector3f.Zero),
+						new Vertex(new(1, 0, 0), Vector3f.Zero, Vector2f.Zero, Vector3f.Zero)
 					],
 					indicies = [0, 1, 2]
 				};

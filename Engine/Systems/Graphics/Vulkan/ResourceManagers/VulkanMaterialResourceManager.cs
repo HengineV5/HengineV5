@@ -6,7 +6,7 @@ namespace Engine.Graphics
 {
     public struct VkPbrMaterial
     {
-        public Vector3 albedo;
+        public Vector3f albedo;
         public VkTextureBuffer albedoMap;
         public float metallic;
         public VkTextureBuffer metallicMap;

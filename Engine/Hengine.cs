@@ -55,7 +55,7 @@ namespace Engine
 			return argIWindow.IsClosing;
 		}
 
-		static void Ecs()
+		public static void Ecs()
 		{
 			new EcsBuilder()
 				.ArchType(x =>
@@ -111,7 +111,7 @@ namespace Engine
 				.Build<HengineEcs>();
 		}
 
-		public void HGine()
+		public static void HGine()
 		{
 			new HengineBuilder()
 				.Config(x =>

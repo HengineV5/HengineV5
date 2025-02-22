@@ -13,9 +13,10 @@ namespace Engine.Utils
 		/// Rotate vector v2 onto vector v2
 		/// </summary>
 		/// <returns></returns>
-		public static Quaternion RotateOnto(Vector3 v1, Vector3 v2)
+		public static Quaternionf RotateOnto(Vector3f v1, Vector3f v2)
 		{
-			return Quaternion.Normalize(new Quaternion(Vector3.Cross(v1, v2), MathF.Sqrt(v1.LengthSquared() * v2.LengthSquared()) + Vector3.Dot(v1, v2)));
+			var v = Vector3f.Cross(in v1, in v2);
+			return Quaternionf.Normalize(new Quaternionf(v.x, v.y, v.z, MathF.Sqrt(Vector3f.LengthSquared(in v1) * Vector3f.LengthSquared(in v2)) + Vector3f.Dot(v1, v2)));
 		}
 
 		/// <summary>
@@ -24,18 +25,18 @@ namespace Engine.Utils
 		/// <param name="q"></param>
 		/// <param name="v"></param>
 		/// <returns></returns>
-		public static Vector3 Multiply(Quaternion q, Vector3 v)
+		public static Vector3f Multiply(Quaternionf q, Vector3f v)
 		{
 			// Extract the vector part of the quaternion
-			Vector3 u = new(q.X, q.Y, q.Z);
+			Vector3f u = new(q.x, q.y, q.z);
 
 			// Extract the scalar part of the quaternion
-			float s = q.W;
+			float s = q.w;
 
 			// Do the math
-			return 2.0f * Vector3.Dot(u, v) * u
-					+ (s * s - Vector3.Dot(u, u)) * v
-					+ 2.0f * s * Vector3.Cross(u, v);
+			return 2.0f * Vector3f.Dot(u, v) * u
+					+ (s * s - Vector3f.Dot(u, u)) * v
+					+ 2.0f * s * Vector3f.Cross(u, v);
 		}
 	}
 }

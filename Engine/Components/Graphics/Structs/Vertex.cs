@@ -7,12 +7,12 @@ namespace Engine.Graphics
 	{
 		public static readonly uint SizeInBytes = sizeof(float) * 11; // Byte size of vertex
 
-		public Vector3 position;
-		public Vector3 normal;
-		public Vector2 textureCoordinate;
-		public Vector3 tangent;
+		public Vector3f position;
+		public Vector3f normal;
+		public Vector2f textureCoordinate;
+		public Vector3f tangent;
 
-		public Vertex(Vector3 position, Vector3 normal, Vector2 textureCoordinate, Vector3 tangent)
+		public Vertex(Vector3f position, Vector3f normal, Vector2f textureCoordinate, Vector3f tangent)
 		{
 			this.position = position;
 			this.normal = normal;
@@ -25,10 +25,10 @@ namespace Engine.Graphics
 	{
 		public static readonly uint SizeInBytes = sizeof(float) * 6; // Byte size of vertex
 
-		public Vector4 position;
-		public Vector2 textureCoordinate;
+		public Vector4f position;
+		public Vector2f textureCoordinate;
 
-		public GuiVertex(Vector4 position, Vector2 textureCoordinate)
+		public GuiVertex(Vector4f position, Vector2f textureCoordinate)
 		{
 			this.position = position;
 			this.textureCoordinate = textureCoordinate;
@@ -39,10 +39,10 @@ namespace Engine.Graphics
 	{
 		public static readonly uint SizeInBytes = sizeof(float) * 6; // Byte size of vertex
 
-		public Vector3 position;
-		public Vector3 normal;
+		public Vector3f position;
+		public Vector3f normal;
 
-		public GizmoVertex(Vector3 position, Vector3 normal)
+		public GizmoVertex(Vector3f position, Vector3f normal)
 		{
 			this.position = position;
 			this.normal = normal;

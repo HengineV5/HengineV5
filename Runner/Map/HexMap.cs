@@ -86,126 +86,126 @@ namespace Runner
 		const float OUTER_RADIUS = 1f;
 		const float INNER_RADIUS = OUTER_RADIUS * 0.866025404f;
 
-		static Memory<Vector3> HEX;
+		static Memory<Vector3f> HEX;
 
 		static HexMapBuilder()
 		{
-			HEX = new Vector3[6];
+			HEX = new Vector3f[6];
 
-			HEX.Span[0] = new Vector3(0, 0, OUTER_RADIUS);
-			HEX.Span[1] = new Vector3(INNER_RADIUS, 0, OUTER_RADIUS * 0.5f);
-			HEX.Span[2] = new Vector3(INNER_RADIUS, 0, -OUTER_RADIUS * 0.5f);
-			HEX.Span[3] = new Vector3(0, 0, -OUTER_RADIUS);
-			HEX.Span[4] = new Vector3(-INNER_RADIUS, 0, -OUTER_RADIUS * 0.5f);
-			HEX.Span[5] = new Vector3(-INNER_RADIUS, 0, OUTER_RADIUS * 0.5f);
+			HEX.Span[0] = new Vector3f(0, 0, OUTER_RADIUS);
+			HEX.Span[1] = new Vector3f(INNER_RADIUS, 0, OUTER_RADIUS * 0.5f);
+			HEX.Span[2] = new Vector3f(INNER_RADIUS, 0, -OUTER_RADIUS * 0.5f);
+			HEX.Span[3] = new Vector3f(0, 0, -OUTER_RADIUS);
+			HEX.Span[4] = new Vector3f(-INNER_RADIUS, 0, -OUTER_RADIUS * 0.5f);
+			HEX.Span[5] = new Vector3f(-INNER_RADIUS, 0, OUTER_RADIUS * 0.5f);
 		}
 
 		// Creates 1 verticies
-		public static void CreateCenterVertex(ref MeshBuilder<Vertex, uint> builder, in Vector3 pos, in Vector2 uv)
+		public static void CreateCenterVertex(ref MeshBuilder<Vertex, uint> builder, in Vector3f pos, in Vector2f uv)
 		{
-			builder.AppendVertex(new Vertex(pos, Vector3.UnitY, uv, Vector3.UnitX));
+			builder.AppendVertex(new Vertex(pos, Vector3f.UnitY, uv, Vector3f.UnitX));
 		}
 
 		// Creates 6 verticies
-		public static void CreateHexVerticies(ref MeshBuilder<Vertex, uint> builder, in Vector3 pos, in Vector3 scale, in Vector2 uv, float neighborScale, scoped Span<Vector3> neighbors)
+		public static void CreateHexVerticies(ref MeshBuilder<Vertex, uint> builder, in Vector3f pos, in Vector3f scale, in Vector2f uv, float neighborScale, scoped Span<Vector3f> neighbors)
 		{
-			Vector3 p0 = HEX.Span[0] * scale;
-			Vector3 p1 = HEX.Span[1] * scale;
-			Vector3 p2 = HEX.Span[2] * scale;
-			Vector3 p3 = HEX.Span[3] * scale;
-			Vector3 p4 = HEX.Span[4] * scale;
-			Vector3 p5 = HEX.Span[5] * scale;
+			Vector3f p0 = HEX.Span[0] * scale;
+			Vector3f p1 = HEX.Span[1] * scale;
+			Vector3f p2 = HEX.Span[2] * scale;
+			Vector3f p3 = HEX.Span[3] * scale;
+			Vector3f p4 = HEX.Span[4] * scale;
+			Vector3f p5 = HEX.Span[5] * scale;
 
-			HexNeighbors<Vector3> hexNeighbors = new(neighbors);
+			HexNeighbors<Vector3f> hexNeighbors = new(neighbors);
 
-			builder.AppendVertex(new Vertex(p0 + pos + hexNeighbors.TopRight * neighborScale, Vector3.UnitY, uv, Vector3.UnitX));
-			builder.AppendVertex(new Vertex(p1 + pos + hexNeighbors.Right * neighborScale, Vector3.UnitY, uv, Vector3.UnitX));
-			builder.AppendVertex(new Vertex(p2 + pos + hexNeighbors.BottomRight * neighborScale, Vector3.UnitY, uv, Vector3.UnitX));
-			builder.AppendVertex(new Vertex(p3 + pos + hexNeighbors.BottomLeft * neighborScale, Vector3.UnitY, uv, Vector3.UnitX));
-			builder.AppendVertex(new Vertex(p4 + pos + hexNeighbors.Left * neighborScale, Vector3.UnitY, uv, Vector3.UnitX));
-			builder.AppendVertex(new Vertex(p5 + pos + hexNeighbors.TopLeft * neighborScale, Vector3.UnitY, uv, Vector3.UnitX));
+			builder.AppendVertex(new Vertex(p0 + pos + hexNeighbors.TopRight * neighborScale, Vector3f.UnitY, uv, Vector3f.UnitX));
+			builder.AppendVertex(new Vertex(p1 + pos + hexNeighbors.Right * neighborScale, Vector3f.UnitY, uv, Vector3f.UnitX));
+			builder.AppendVertex(new Vertex(p2 + pos + hexNeighbors.BottomRight * neighborScale, Vector3f.UnitY, uv, Vector3f.UnitX));
+			builder.AppendVertex(new Vertex(p3 + pos + hexNeighbors.BottomLeft * neighborScale, Vector3f.UnitY, uv, Vector3f.UnitX));
+			builder.AppendVertex(new Vertex(p4 + pos + hexNeighbors.Left * neighborScale, Vector3f.UnitY, uv, Vector3f.UnitX));
+			builder.AppendVertex(new Vertex(p5 + pos + hexNeighbors.TopLeft * neighborScale, Vector3f.UnitY, uv, Vector3f.UnitX));
 		}
 
 		// Creates 6 verticies
-		public static void CreateHexVerticies(ref MeshBuilder<Vertex, uint> builder, in Vector3 pos, in Vector3 scale, in Vector2 uv)
+		public static void CreateHexVerticies(ref MeshBuilder<Vertex, uint> builder, in Vector3f pos, in Vector3f scale, in Vector2f uv)
 		{
-			Vector3 p0 = HEX.Span[0] * scale;
-			Vector3 p1 = HEX.Span[1] * scale;
-			Vector3 p2 = HEX.Span[2] * scale;
-			Vector3 p3 = HEX.Span[3] * scale;
-			Vector3 p4 = HEX.Span[4] * scale;
-			Vector3 p5 = HEX.Span[5] * scale;
+			Vector3f p0 = HEX.Span[0] * scale;
+			Vector3f p1 = HEX.Span[1] * scale;
+			Vector3f p2 = HEX.Span[2] * scale;
+			Vector3f p3 = HEX.Span[3] * scale;
+			Vector3f p4 = HEX.Span[4] * scale;
+			Vector3f p5 = HEX.Span[5] * scale;
 
-			builder.AppendVertex(new Vertex(p0 + pos, Vector3.UnitY, uv, Vector3.UnitX));
-			builder.AppendVertex(new Vertex(p1 + pos, Vector3.UnitY, uv, Vector3.UnitX));
-			builder.AppendVertex(new Vertex(p2 + pos, Vector3.UnitY, uv, Vector3.UnitX));
-			builder.AppendVertex(new Vertex(p3 + pos, Vector3.UnitY, uv, Vector3.UnitX));
-			builder.AppendVertex(new Vertex(p4 + pos, Vector3.UnitY, uv, Vector3.UnitX));
-			builder.AppendVertex(new Vertex(p5 + pos, Vector3.UnitY, uv, Vector3.UnitX));
+			builder.AppendVertex(new Vertex(p0 + pos, Vector3f.UnitY, uv, Vector3f.UnitX));
+			builder.AppendVertex(new Vertex(p1 + pos, Vector3f.UnitY, uv, Vector3f.UnitX));
+			builder.AppendVertex(new Vertex(p2 + pos, Vector3f.UnitY, uv, Vector3f.UnitX));
+			builder.AppendVertex(new Vertex(p3 + pos, Vector3f.UnitY, uv, Vector3f.UnitX));
+			builder.AppendVertex(new Vertex(p4 + pos, Vector3f.UnitY, uv, Vector3f.UnitX));
+			builder.AppendVertex(new Vertex(p5 + pos, Vector3f.UnitY, uv, Vector3f.UnitX));
 		}
 
 		// Creates 12 verticies
-		public static void CreateOuterHexVerticies(ref MeshBuilder<Vertex, uint> builder, in Vector3 pos, in Vector3 scale, in Vector3 bridgeScale, in Vector2 uv, float neighborScale, scoped Span<Vector3> neighbors)
+		public static void CreateOuterHexVerticies(ref MeshBuilder<Vertex, uint> builder, in Vector3f pos, in Vector3f scale, in Vector3f bridgeScale, in Vector2f uv, float neighborScale, scoped Span<Vector3f> neighbors)
 		{
-			Vector3 p0 = HEX.Span[0] * scale;
-			Vector3 p1 = HEX.Span[1] * scale;
-			Vector3 p2 = HEX.Span[2] * scale;
-			Vector3 p3 = HEX.Span[3] * scale;
-			Vector3 p4 = HEX.Span[4] * scale;
-			Vector3 p5 = HEX.Span[5] * scale;
+			Vector3f p0 = HEX.Span[0] * scale;
+			Vector3f p1 = HEX.Span[1] * scale;
+			Vector3f p2 = HEX.Span[2] * scale;
+			Vector3f p3 = HEX.Span[3] * scale;
+			Vector3f p4 = HEX.Span[4] * scale;
+			Vector3f p5 = HEX.Span[5] * scale;
 
-			Vector3 right0 = Vector3.Cross(Vector3.Normalize(p1 - p0), Vector3.UnitY) * INNER_RADIUS * bridgeScale;
-			Vector3 right1 = Vector3.Cross(Vector3.Normalize(p2 - p1), Vector3.UnitY) * INNER_RADIUS * bridgeScale;
-			Vector3 right2 = Vector3.Cross(Vector3.Normalize(p3 - p2), Vector3.UnitY) * INNER_RADIUS * bridgeScale;
-			Vector3 right3 = Vector3.Cross(Vector3.Normalize(p4 - p3), Vector3.UnitY) * INNER_RADIUS * bridgeScale;
-			Vector3 right4 = Vector3.Cross(Vector3.Normalize(p5 - p4), Vector3.UnitY) * INNER_RADIUS * bridgeScale;
-			Vector3 right5 = Vector3.Cross(Vector3.Normalize(p0 - p5), Vector3.UnitY) * INNER_RADIUS * bridgeScale;
+			Vector3f right0 = Vector3f.Cross(Vector3f.Normalize(p1 - p0), Vector3f.UnitY) * INNER_RADIUS * bridgeScale;
+			Vector3f right1 = Vector3f.Cross(Vector3f.Normalize(p2 - p1), Vector3f.UnitY) * INNER_RADIUS * bridgeScale;
+			Vector3f right2 = Vector3f.Cross(Vector3f.Normalize(p3 - p2), Vector3f.UnitY) * INNER_RADIUS * bridgeScale;
+			Vector3f right3 = Vector3f.Cross(Vector3f.Normalize(p4 - p3), Vector3f.UnitY) * INNER_RADIUS * bridgeScale;
+			Vector3f right4 = Vector3f.Cross(Vector3f.Normalize(p5 - p4), Vector3f.UnitY) * INNER_RADIUS * bridgeScale;
+			Vector3f right5 = Vector3f.Cross(Vector3f.Normalize(p0 - p5), Vector3f.UnitY) * INNER_RADIUS * bridgeScale;
 
-			HexNeighbors<Vector3> hexNeighbors = new(neighbors);
+			HexNeighbors<Vector3f> hexNeighbors = new(neighbors);
 
-			builder.AppendVertex(new Vertex(p0 + right0 + pos + hexNeighbors.TopLeft * neighborScale, Vector3.UnitY, uv, Vector3.UnitX));
-			builder.AppendVertex(new Vertex(p1 + right0 + pos + hexNeighbors.TopLeft * neighborScale, Vector3.UnitY, uv, Vector3.UnitX));
-			builder.AppendVertex(new Vertex(p1 + right1 + pos + hexNeighbors.Left * neighborScale, Vector3.UnitY, uv, Vector3.UnitX));
-			builder.AppendVertex(new Vertex(p2 + right1 + pos + hexNeighbors.Left * neighborScale, Vector3.UnitY, uv, Vector3.UnitX));
-			builder.AppendVertex(new Vertex(p2 + right2 + pos + hexNeighbors.BottomLeft * neighborScale, Vector3.UnitY, uv, Vector3.UnitX));
-			builder.AppendVertex(new Vertex(p3 + right2 + pos + hexNeighbors.BottomLeft * neighborScale, Vector3.UnitY, uv, Vector3.UnitX));
-			builder.AppendVertex(new Vertex(p3 + right3 + pos + hexNeighbors.BottomRight * neighborScale, Vector3.UnitY, uv, Vector3.UnitX));
-			builder.AppendVertex(new Vertex(p4 + right3 + pos + hexNeighbors.BottomRight * neighborScale, Vector3.UnitY, uv, Vector3.UnitX));
-			builder.AppendVertex(new Vertex(p4 + right4 + pos + hexNeighbors.Right * neighborScale, Vector3.UnitY, uv, Vector3.UnitX));
-			builder.AppendVertex(new Vertex(p5 + right4 + pos + hexNeighbors.Right * neighborScale, Vector3.UnitY, uv, Vector3.UnitX));
-			builder.AppendVertex(new Vertex(p5 + right5 + pos + hexNeighbors.TopRight * neighborScale, Vector3.UnitY, uv, Vector3.UnitX));
-			builder.AppendVertex(new Vertex(p0 + right5 + pos + hexNeighbors.TopRight * neighborScale, Vector3.UnitY, uv, Vector3.UnitX));
+			builder.AppendVertex(new Vertex(p0 + right0 + pos + hexNeighbors.TopLeft * neighborScale, Vector3f.UnitY, uv, Vector3f.UnitX));
+			builder.AppendVertex(new Vertex(p1 + right0 + pos + hexNeighbors.TopLeft * neighborScale, Vector3f.UnitY, uv, Vector3f.UnitX));
+			builder.AppendVertex(new Vertex(p1 + right1 + pos + hexNeighbors.Left * neighborScale, Vector3f.UnitY, uv, Vector3f.UnitX));
+			builder.AppendVertex(new Vertex(p2 + right1 + pos + hexNeighbors.Left * neighborScale, Vector3f.UnitY, uv, Vector3f.UnitX));
+			builder.AppendVertex(new Vertex(p2 + right2 + pos + hexNeighbors.BottomLeft * neighborScale, Vector3f.UnitY, uv, Vector3f.UnitX));
+			builder.AppendVertex(new Vertex(p3 + right2 + pos + hexNeighbors.BottomLeft * neighborScale, Vector3f.UnitY, uv, Vector3f.UnitX));
+			builder.AppendVertex(new Vertex(p3 + right3 + pos + hexNeighbors.BottomRight * neighborScale, Vector3f.UnitY, uv, Vector3f.UnitX));
+			builder.AppendVertex(new Vertex(p4 + right3 + pos + hexNeighbors.BottomRight * neighborScale, Vector3f.UnitY, uv, Vector3f.UnitX));
+			builder.AppendVertex(new Vertex(p4 + right4 + pos + hexNeighbors.Right * neighborScale, Vector3f.UnitY, uv, Vector3f.UnitX));
+			builder.AppendVertex(new Vertex(p5 + right4 + pos + hexNeighbors.Right * neighborScale, Vector3f.UnitY, uv, Vector3f.UnitX));
+			builder.AppendVertex(new Vertex(p5 + right5 + pos + hexNeighbors.TopRight * neighborScale, Vector3f.UnitY, uv, Vector3f.UnitX));
+			builder.AppendVertex(new Vertex(p0 + right5 + pos + hexNeighbors.TopRight * neighborScale, Vector3f.UnitY, uv, Vector3f.UnitX));
 		}
 
 		// Creates 12 verticies
-		public static void CreateOuterHexVerticies(ref MeshBuilder<Vertex, uint> builder, in Vector3 pos, in Vector3 scale, in Vector3 bridgeScale, in Vector2 uv)
+		public static void CreateOuterHexVerticies(ref MeshBuilder<Vertex, uint> builder, in Vector3f pos, in Vector3f scale, in Vector3f bridgeScale, in Vector2f uv)
 		{
-			Vector3 p0 = HEX.Span[0] * scale;
-			Vector3 p1 = HEX.Span[1] * scale;
-			Vector3 p2 = HEX.Span[2] * scale;
-			Vector3 p3 = HEX.Span[3] * scale;
-			Vector3 p4 = HEX.Span[4] * scale;
-			Vector3 p5 = HEX.Span[5] * scale;
+			Vector3f p0 = HEX.Span[0] * scale;
+			Vector3f p1 = HEX.Span[1] * scale;
+			Vector3f p2 = HEX.Span[2] * scale;
+			Vector3f p3 = HEX.Span[3] * scale;
+			Vector3f p4 = HEX.Span[4] * scale;
+			Vector3f p5 = HEX.Span[5] * scale;
 
-			Vector3 right0 = Vector3.Cross(Vector3.Normalize(p1 - p0), Vector3.UnitY) * INNER_RADIUS * bridgeScale;
-			Vector3 right1 = Vector3.Cross(Vector3.Normalize(p2 - p1), Vector3.UnitY) * INNER_RADIUS * bridgeScale;
-			Vector3 right2 = Vector3.Cross(Vector3.Normalize(p3 - p2), Vector3.UnitY) * INNER_RADIUS * bridgeScale;
-			Vector3 right3 = Vector3.Cross(Vector3.Normalize(p4 - p3), Vector3.UnitY) * INNER_RADIUS * bridgeScale;
-			Vector3 right4 = Vector3.Cross(Vector3.Normalize(p5 - p4), Vector3.UnitY) * INNER_RADIUS * bridgeScale;
-			Vector3 right5 = Vector3.Cross(Vector3.Normalize(p0 - p5), Vector3.UnitY) * INNER_RADIUS * bridgeScale;
+			Vector3f right0 = Vector3f.Cross(Vector3f.Normalize(p1 - p0), Vector3f.UnitY) * INNER_RADIUS * bridgeScale;
+			Vector3f right1 = Vector3f.Cross(Vector3f.Normalize(p2 - p1), Vector3f.UnitY) * INNER_RADIUS * bridgeScale;
+			Vector3f right2 = Vector3f.Cross(Vector3f.Normalize(p3 - p2), Vector3f.UnitY) * INNER_RADIUS * bridgeScale;
+			Vector3f right3 = Vector3f.Cross(Vector3f.Normalize(p4 - p3), Vector3f.UnitY) * INNER_RADIUS * bridgeScale;
+			Vector3f right4 = Vector3f.Cross(Vector3f.Normalize(p5 - p4), Vector3f.UnitY) * INNER_RADIUS * bridgeScale;
+			Vector3f right5 = Vector3f.Cross(Vector3f.Normalize(p0 - p5), Vector3f.UnitY) * INNER_RADIUS * bridgeScale;
 
-			builder.AppendVertex(new Vertex(p0 + right0 + pos, Vector3.UnitY, uv, Vector3.UnitX));
-			builder.AppendVertex(new Vertex(p1 + right0 + pos, Vector3.UnitY, uv, Vector3.UnitX));
-			builder.AppendVertex(new Vertex(p1 + right1 + pos, Vector3.UnitY, uv, Vector3.UnitX));
-			builder.AppendVertex(new Vertex(p2 + right1 + pos, Vector3.UnitY, uv, Vector3.UnitX));
-			builder.AppendVertex(new Vertex(p2 + right2 + pos, Vector3.UnitY, uv, Vector3.UnitX));
-			builder.AppendVertex(new Vertex(p3 + right2 + pos, Vector3.UnitY, uv, Vector3.UnitX));
-			builder.AppendVertex(new Vertex(p3 + right3 + pos, Vector3.UnitY, uv, Vector3.UnitX));
-			builder.AppendVertex(new Vertex(p4 + right3 + pos, Vector3.UnitY, uv, Vector3.UnitX));
-			builder.AppendVertex(new Vertex(p4 + right4 + pos, Vector3.UnitY, uv, Vector3.UnitX));
-			builder.AppendVertex(new Vertex(p5 + right4 + pos, Vector3.UnitY, uv, Vector3.UnitX));
-			builder.AppendVertex(new Vertex(p5 + right5 + pos, Vector3.UnitY, uv, Vector3.UnitX));
-			builder.AppendVertex(new Vertex(p0 + right5 + pos, Vector3.UnitY, uv, Vector3.UnitX));
+			builder.AppendVertex(new Vertex(p0 + right0 + pos, Vector3f.UnitY, uv, Vector3f.UnitX));
+			builder.AppendVertex(new Vertex(p1 + right0 + pos, Vector3f.UnitY, uv, Vector3f.UnitX));
+			builder.AppendVertex(new Vertex(p1 + right1 + pos, Vector3f.UnitY, uv, Vector3f.UnitX));
+			builder.AppendVertex(new Vertex(p2 + right1 + pos, Vector3f.UnitY, uv, Vector3f.UnitX));
+			builder.AppendVertex(new Vertex(p2 + right2 + pos, Vector3f.UnitY, uv, Vector3f.UnitX));
+			builder.AppendVertex(new Vertex(p3 + right2 + pos, Vector3f.UnitY, uv, Vector3f.UnitX));
+			builder.AppendVertex(new Vertex(p3 + right3 + pos, Vector3f.UnitY, uv, Vector3f.UnitX));
+			builder.AppendVertex(new Vertex(p4 + right3 + pos, Vector3f.UnitY, uv, Vector3f.UnitX));
+			builder.AppendVertex(new Vertex(p4 + right4 + pos, Vector3f.UnitY, uv, Vector3f.UnitX));
+			builder.AppendVertex(new Vertex(p5 + right4 + pos, Vector3f.UnitY, uv, Vector3f.UnitX));
+			builder.AppendVertex(new Vertex(p5 + right5 + pos, Vector3f.UnitY, uv, Vector3f.UnitX));
+			builder.AppendVertex(new Vertex(p0 + right5 + pos, Vector3f.UnitY, uv, Vector3f.UnitX));
 		}
 
 		public static void CreateHexIndicies(ref MeshBuilder<Vertex, uint> builder, uint offset)
@@ -281,26 +281,26 @@ namespace Runner
 
 			MeshBuilder<Vertex, uint> mapBuilder = new(verticies.Memory.Span, indicies.Memory.Span);
 
-			Span<Vector3> offsetsBridge = stackalloc Vector3[6];
-			Span<Vector3> offsetsCorner = stackalloc Vector3[6];
+			Span<Vector3f> offsetsBridge = stackalloc Vector3f[6];
+			Span<Vector3f> offsetsCorner = stackalloc Vector3f[6];
 
-			Vector3 scaling = new Vector3(INNER_RADIUS * 2, 1, OUTER_RADIUS * 1.5f) * 0.5f;
+			Vector3f scaling = new Vector3f(INNER_RADIUS * 2, 1, OUTER_RADIUS * 1.5f) * 0.5f;
 			for (int y = 0; y < map.Height; y++)
 			{
 				for (int x = 0; x < map.Width; x++)
 				{
 					// Creating a zig zag pattern, thus zagging the developer and making me look weak.
-					Vector3 hexPos = new Vector3(x + y / 2f - y / 2, 0, -y);
+					Vector3f hexPos = new Vector3f(x + y / 2f - y / 2, 0, -y);
 					hexPos *= scaling;
 
 					float tileHeight = map.Span[x, y].height;
-					Vector3 hexBaseOffset = Vector3.UnitY * tileHeight;
+					Vector3f hexBaseOffset = Vector3f.UnitY * tileHeight;
 
-					Vector3 hexScale = Vector3.One * 0.5f;
+					Vector3f hexScale = Vector3f.One * 0.5f;
 
 					int heightIdx = GetHeightIdx(map.Span[x, y].height);
-					Vector2 hexUv = Vector2.Zero / 2f;
-					hexUv += Vector2.UnitX * 0.1f * heightIdx;
+					Vector2f hexUv = Vector2f.Zero / 2f;
+					hexUv += Vector2f.UnitX * 0.1f * heightIdx;
 
 					using var n = GetNeighbors2(new HexCoord(x, y));
 					ConstructHexMesh(ref mapBuilder, map.Span[x, y], n.Memory.Span, hexPos + hexBaseOffset, hexScale, hexUv, bridgeSteps);
@@ -315,7 +315,7 @@ namespace Runner
 			return mapMesh;
 		}
 
-		static void ConstructHexMesh(ref MeshBuilder<Vertex, uint> builder, in HexCell cell, in Span<HexCell> neighbors, in Vector3 hexPos, in Vector3 hexScale, in Vector2 hexUv, int bridgeSteps)
+		static void ConstructHexMesh(ref MeshBuilder<Vertex, uint> builder, in HexCell cell, in Span<HexCell> neighbors, in Vector3f hexPos, in Vector3f hexScale, in Vector2f hexUv, int bridgeSteps)
 		{
 			using var bridgeOffsets = GetBridgeOffsets(cell, neighbors);
 			using var cornerOffsets = GetCornerOffsets(cell, neighbors);
@@ -353,39 +353,39 @@ namespace Runner
 			}
 		}
 
-		static IMemoryOwner<Vector3> GetBridgeOffsets(in HexCell cell, in Span<HexCell> neighbors)
+		static IMemoryOwner<Vector3f> GetBridgeOffsets(in HexCell cell, in Span<HexCell> neighbors)
 		{
 			float tileHeight = cell.height;
 
-			var bridgeOffsets = MemoryPool<Vector3>.Shared.Rent(6);
+			var bridgeOffsets = MemoryPool<Vector3f>.Shared.Rent(6);
 			var nNeighbors = new HexNeighbors<HexCell>(neighbors);
-			var oBridgeNeighbors = new HexNeighbors<Vector3>(bridgeOffsets.Memory.Span);
+			var oBridgeNeighbors = new HexNeighbors<Vector3f>(bridgeOffsets.Memory.Span);
 
-			oBridgeNeighbors.TopRight = Vector3.UnitY * (nNeighbors.TopRight.height - tileHeight) / 2;
-			oBridgeNeighbors.Right = Vector3.UnitY * (nNeighbors.Right.height - tileHeight) / 2;
-			oBridgeNeighbors.BottomRight = Vector3.UnitY * (nNeighbors.BottomRight.height - tileHeight) / 2;
-			oBridgeNeighbors.BottomLeft = Vector3.UnitY * (nNeighbors.BottomLeft.height - tileHeight) / 2;
-			oBridgeNeighbors.Left = Vector3.UnitY * (nNeighbors.Left.height - tileHeight) / 2;
-			oBridgeNeighbors.TopLeft = Vector3.UnitY * (nNeighbors.TopLeft.height - tileHeight) / 2;
+			oBridgeNeighbors.TopRight = Vector3f.UnitY * (nNeighbors.TopRight.height - tileHeight) / 2;
+			oBridgeNeighbors.Right = Vector3f.UnitY * (nNeighbors.Right.height - tileHeight) / 2;
+			oBridgeNeighbors.BottomRight = Vector3f.UnitY * (nNeighbors.BottomRight.height - tileHeight) / 2;
+			oBridgeNeighbors.BottomLeft = Vector3f.UnitY * (nNeighbors.BottomLeft.height - tileHeight) / 2;
+			oBridgeNeighbors.Left = Vector3f.UnitY * (nNeighbors.Left.height - tileHeight) / 2;
+			oBridgeNeighbors.TopLeft = Vector3f.UnitY * (nNeighbors.TopLeft.height - tileHeight) / 2;
 
 			return bridgeOffsets;
 		}
 
-		static IMemoryOwner<Vector3> GetCornerOffsets(in HexCell cell, in Span<HexCell> neighbors)
+		static IMemoryOwner<Vector3f> GetCornerOffsets(in HexCell cell, in Span<HexCell> neighbors)
 		{
 			float tileHeight = cell.height;
-			Vector3 hexBaseOffset = Vector3.UnitY * tileHeight;
+			Vector3f hexBaseOffset = Vector3f.UnitY * tileHeight;
 
-			var bridgeOffsets = MemoryPool<Vector3>.Shared.Rent(6);
+			var bridgeOffsets = MemoryPool<Vector3f>.Shared.Rent(6);
 			var nNeighbors = new HexNeighbors<HexCell>(neighbors);
-			var oCornerNeighbors = new HexNeighbors<Vector3>(bridgeOffsets.Memory.Span);
+			var oCornerNeighbors = new HexNeighbors<Vector3f>(bridgeOffsets.Memory.Span);
 
-			oCornerNeighbors.TopRight = Vector3.UnitY * (tileHeight + nNeighbors.TopRight.height + nNeighbors.TopLeft.height) / 3 - hexBaseOffset;
-			oCornerNeighbors.Right = Vector3.UnitY * (tileHeight + nNeighbors.TopLeft.height + nNeighbors.Left.height) / 3 - hexBaseOffset;
-			oCornerNeighbors.BottomRight = Vector3.UnitY * (tileHeight + nNeighbors.Left.height + nNeighbors.BottomLeft.height) / 3 - hexBaseOffset;
-			oCornerNeighbors.BottomLeft = Vector3.UnitY * (tileHeight + nNeighbors.BottomLeft.height + nNeighbors.BottomRight.height) / 3 - hexBaseOffset;
-			oCornerNeighbors.Left = Vector3.UnitY * (tileHeight + nNeighbors.BottomRight.height + nNeighbors.Right.height) / 3 - hexBaseOffset;
-			oCornerNeighbors.TopLeft = Vector3.UnitY * (tileHeight + nNeighbors.Right.height + nNeighbors.TopRight.height) / 3 - hexBaseOffset;
+			oCornerNeighbors.TopRight = Vector3f.UnitY * (tileHeight + nNeighbors.TopRight.height + nNeighbors.TopLeft.height) / 3 - hexBaseOffset;
+			oCornerNeighbors.Right = Vector3f.UnitY * (tileHeight + nNeighbors.TopLeft.height + nNeighbors.Left.height) / 3 - hexBaseOffset;
+			oCornerNeighbors.BottomRight = Vector3f.UnitY * (tileHeight + nNeighbors.Left.height + nNeighbors.BottomLeft.height) / 3 - hexBaseOffset;
+			oCornerNeighbors.BottomLeft = Vector3f.UnitY * (tileHeight + nNeighbors.BottomLeft.height + nNeighbors.BottomRight.height) / 3 - hexBaseOffset;
+			oCornerNeighbors.Left = Vector3f.UnitY * (tileHeight + nNeighbors.BottomRight.height + nNeighbors.Right.height) / 3 - hexBaseOffset;
+			oCornerNeighbors.TopLeft = Vector3f.UnitY * (tileHeight + nNeighbors.Right.height + nNeighbors.TopRight.height) / 3 - hexBaseOffset;
 
 			return bridgeOffsets;
 		}

@@ -38,27 +38,27 @@ namespace Engine.Utils.Parsing.GLTF
             GltfAccessor texAccessor = file.accessors[primitive.attributes.texcoord0];
             GltfAccessor indexAccessor = file.accessors[primitive.indices];
 
-            Vector3[] normals = new Vector3[normalAccessor.count];
+            Vector3f[] normals = new Vector3f[normalAccessor.count];
             ReadData(baseFolder, file, normalAccessor, normals.AsSpan());
 
-            Vector3[] positions = new Vector3[positionAccessor.count];
+            Vector3f[] positions = new Vector3f[positionAccessor.count];
             ReadData(baseFolder, file, positionAccessor, positions.AsSpan());
 
             if (normalize)
             {
-                Vector3 max = new Vector3(positionAccessor.max[0], positionAccessor.max[1], positionAccessor.max[2]);
-                Vector3 min = new Vector3(positionAccessor.min[0], positionAccessor.min[1], positionAccessor.min[2]);
+                Vector3f max = new Vector3f(positionAccessor.max[0], positionAccessor.max[1], positionAccessor.max[2]);
+                Vector3f min = new Vector3f(positionAccessor.min[0], positionAccessor.min[1], positionAccessor.min[2]);
 
                 max -= min;
-                float maxVal = MathF.Max(max.X, MathF.Max(max.Y, max.Z));
+                float maxVal = MathF.Max(max.x, MathF.Max(max.y, max.z));
 
                 for (int i = 0; i < positions.Length; i++)
                 {
-                    positions[i] = ((positions[i] - min) / maxVal) - Vector3.One * 0.5f;
+                    positions[i] = ((positions[i] - min) / maxVal) - Vector3f.One * 0.5f;
                 }
             }
 
-            Vector2[] texcoords = new Vector2[texAccessor.count];
+            Vector2f[] texcoords = new Vector2f[texAccessor.count];
             ReadData(baseFolder, file, texAccessor, texcoords.AsSpan());
 
             Vector4[] tangents = [];
@@ -82,9 +82,9 @@ namespace Engine.Utils.Parsing.GLTF
 
             for (int i = 0; i < normals.Length; i++)
             {
-                Vector3 tangent = Vector3.Zero;
+                Vector3f tangent = Vector3f.Zero;
                 if (i < tangents.Length)
-                    tangent = new Vector3(tangents[i].X, tangents[i].Y, tangents[i].Z);
+                    tangent = new Vector3f(tangents[i].X, tangents[i].Y, tangents[i].Z);
 
                 mesh.verticies[i] = new Vertex(positions[i], normals[i], texcoords[i], tangent);
             }
@@ -98,7 +98,7 @@ namespace Engine.Utils.Parsing.GLTF
             material.name = gltfMaterial.name;
 
             if (pbr.baseColorFactor != null && pbr.baseColorFactor.Length >= 3)
-                material.albedo = new Vector3(pbr.baseColorFactor[0], pbr.baseColorFactor[1], pbr.baseColorFactor[2]);
+                material.albedo = new Vector3f(pbr.baseColorFactor[0], pbr.baseColorFactor[1], pbr.baseColorFactor[2]);
 
             if (pbr.baseColorTexture != null)
             {
