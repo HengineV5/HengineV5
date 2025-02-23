@@ -1,9 +1,8 @@
 ﻿using Engine.Components.Graphics;
 using Engine.Parsing;
 using Engine.Utils.Parsing.GLTF;
+using ImageLib;
 using Silk.NET.OpenGL;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
 using System.IO;
 
 namespace Engine.Graphics
@@ -12,7 +11,7 @@ namespace Engine.Graphics
 	{
 		public string name;
 
-		public Image<Rgba32> data;
+		public ImageMemory<Rgba32> data;
 
 		public static ETexture LoadImage(string name, string filePath)
 		{
@@ -28,7 +27,7 @@ namespace Engine.Graphics
 	{
         public string name;
 
-        public Image<Rgba64> data;
+        public ImageMemory<Rgba64> data;
 
         public static ETextureHdr LoadImage(string name, string filePath)
         {
@@ -44,12 +43,12 @@ namespace Engine.Graphics
 	{
         public string name;
 
-        public Image<Rgba64> front;
-        public Image<Rgba64> back;
-        public Image<Rgba64> left;
-        public Image<Rgba64> right;
-        public Image<Rgba64> top;
-        public Image<Rgba64> bottom;
+        public ImageMemory<Rgba64> front;
+        public ImageMemory<Rgba64> back;
+        public ImageMemory<Rgba64> left;
+        public ImageMemory<Rgba64> right;
+        public ImageMemory<Rgba64> top;
+        public ImageMemory<Rgba64> bottom;
 
         public static ECubemapHdr LoadImage(string name, string frontPath, string backPath, string leftPath, string rightPath, string topPath, string bottomPath)
         {

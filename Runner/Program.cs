@@ -32,8 +32,6 @@ namespace Runner
             }
 			*/
 
-			ImageFormatSetup.HdrSetup();
-
 			var engineConfig = new EngineConfig()
 			{
 				appName = "Hengine v5",

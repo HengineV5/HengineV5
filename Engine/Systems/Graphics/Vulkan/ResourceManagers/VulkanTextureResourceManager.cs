@@ -1,7 +1,8 @@
 ﻿using EnCS;
 using EnCS.Attributes;
+using ImageLib;
+using MathLib;
 using Silk.NET.Vulkan;
-using SixLabors.ImageSharp.PixelFormats;
 using System.Buffers;
 using Buffer = Silk.NET.Vulkan.Buffer;
 using Image = Silk.NET.Vulkan.Image;
@@ -79,7 +80,7 @@ namespace Engine.Graphics
             textureBuffer.textureMemory = VulkanHelper.CreateMemory(context, textureBuffer.texture, MemoryPropertyFlags.DeviceLocalBit);
             textureBuffer.textureImageView = VulkanHelper.CreateImageView(context, textureBuffer.texture, ImageViewType.TypeCube, format, ImageAspectFlags.ColorBit, 1);
 
-            CopyCubemapBufferToDevice(context, textureBuffer, texture.data, format);
+            CopyCubemapBufferToDevice(context, textureBuffer, texture.data.Span, format);
 
             return textureBuffer;
         }
@@ -99,7 +100,7 @@ namespace Engine.Graphics
             textureBuffer.textureMemory = VulkanHelper.CreateMemory(context, textureBuffer.texture, MemoryPropertyFlags.DeviceLocalBit);
             textureBuffer.textureImageView = VulkanHelper.CreateImageView(context, textureBuffer.texture, ImageViewType.TypeCube, format, ImageAspectFlags.ColorBit, mipLevels);
 
-            CopyMipCubemapBufferToDevice(context, textureBuffer, texture.data, format, mipLevels);
+            CopyMipCubemapBufferToDevice(context, textureBuffer, texture.data.Span, format, mipLevels);
 
             return textureBuffer;
         }
@@ -116,14 +117,14 @@ namespace Engine.Graphics
             return textureBuffer;
         }
 
-        static void CopyBufferToDevice<TPixel>(VkContext context, VkTextureBuffer textureBuffer, Span<SixLabors.ImageSharp.Image<TPixel>> imgs, Format format) where TPixel : unmanaged, IPixel<TPixel>
+        static void CopyBufferToDevice<TPixel>(VkContext context, VkTextureBuffer textureBuffer, Span<ImageMemory<TPixel>> imgs, Format format) where TPixel : unmanaged, IPixel<TPixel>
 		{
             // TODO: Move command pool to context, bad to create for each mesh creating call
             uint graphicsQueueFamily = VulkanHelper.GetGraphicsQueueFamily(context);
             Queue graphicsQueue = VulkanHelper.GetQueue(context, graphicsQueueFamily);
             CommandPool commandPool = VulkanHelper.CreateCommandPool(context, graphicsQueueFamily);
 
-            int imageSize = imgs[0].Width * imgs[0].Height * imgs[0].PixelType.BitsPerPixel / 8;
+            int imageSize = imgs[0].Width * imgs[0].Height * (TPixel.BitDepth / 8) * TPixel.Channels;
             using var buff = MemoryPool<byte>.Shared.Rent(imageSize);
 
             Buffer stagingBuffer = VulkanHelper.CreateBuffer<byte>(context, BufferUsageFlags.TransferSrcBit, (uint)imageSize);
@@ -132,7 +133,7 @@ namespace Engine.Graphics
             VulkanHelper.TransitionImageLayout(context, commandPool, graphicsQueue, textureBuffer.texture, format, ImageLayout.Undefined, ImageLayout.TransferDstOptimal, (uint)imgs.Length, 1);
             for (int i = 0; i < (uint)imgs.Length; i++)
             {
-                imgs[i].CopyPixelDataTo(buff.Memory.Span);
+                imgs[i].Span.CopyTo(buff.Memory.Span);
 
                 VulkanHelper.CopyToBuffer(context, stagingBuffer, stagingBufferMemory, buff.Memory.Span);
                 VulkanHelper.CopyBufferToImage(context, commandPool, graphicsQueue, stagingBuffer, textureBuffer.texture, (uint)imgs[i].Width, (uint)imgs[i].Height, (uint)i, 0);
@@ -147,7 +148,7 @@ namespace Engine.Graphics
             }
         }
 
-        static void CopyCubemapBufferToDevice<TPixel>(VkContext context, VkTextureBuffer textureBuffer, SixLabors.ImageSharp.Image<TPixel> img, Format format) where TPixel : unmanaged, IPixel<TPixel>
+        static void CopyCubemapBufferToDevice<TPixel>(VkContext context, VkTextureBuffer textureBuffer, ImageSpan<TPixel> img, Format format) where TPixel : unmanaged, IPixel<TPixel>
         {
             // TODO: Move command pool to context, bad to create for each mesh creating call
             uint graphicsQueueFamily = VulkanHelper.GetGraphicsQueueFamily(context);
@@ -157,7 +158,7 @@ namespace Engine.Graphics
             uint sideWidth = (uint)img.Width / 4u;
             uint sideHeight = (uint)img.Height / 3u;
 
-            int bytesPerPixel = img.PixelType.BitsPerPixel / 8;
+            int bytesPerPixel = (TPixel.BitDepth / 8) * TPixel.Channels;
             int imageSize = img.Width * img.Height * bytesPerPixel;
             int rowLength = img.Width;
             using var buff = MemoryPool<byte>.Shared.Rent(imageSize);
@@ -165,7 +166,7 @@ namespace Engine.Graphics
             Buffer stagingBuffer = VulkanHelper.CreateBuffer<byte>(context, BufferUsageFlags.TransferSrcBit, (uint)imageSize);
             DeviceMemory stagingBufferMemory = VulkanHelper.CreateBufferMemory(context, stagingBuffer, MemoryPropertyFlags.HostVisibleBit | MemoryPropertyFlags.HostCoherentBit);
 
-            img.CopyPixelDataTo(buff.Memory.Span);
+            img.CopyTo(buff.Memory.Span);
             VulkanHelper.CopyToBuffer(context, stagingBuffer, stagingBufferMemory, buff.Memory.Span);
 
             VulkanHelper.TransitionImageLayout(context, commandPool, graphicsQueue, textureBuffer.texture, format, ImageLayout.Undefined, ImageLayout.TransferDstOptimal, 6, 1);
@@ -183,7 +184,7 @@ namespace Engine.Graphics
             }
         }
 
-        static void CopyMipCubemapBufferToDevice<TPixel>(VkContext context, VkTextureBuffer textureBuffer, SixLabors.ImageSharp.Image<TPixel> img, Format format, uint mipLevels) where TPixel : unmanaged, IPixel<TPixel>
+        static void CopyMipCubemapBufferToDevice<TPixel>(VkContext context, VkTextureBuffer textureBuffer, ImageSpan<TPixel> img, Format format, uint mipLevels) where TPixel : unmanaged, IPixel<TPixel>
         {
             // TODO: Move command pool to context, bad to create for each mesh creating call
             uint graphicsQueueFamily = VulkanHelper.GetGraphicsQueueFamily(context);
@@ -199,14 +200,14 @@ namespace Engine.Graphics
             uint sideWidth = (uint)imgWidth / 4u;
             uint sideHeight = (uint)imgHeight / 3u;
 
-            int bytesPerPixel = img.PixelType.BitsPerPixel / 8;
+            int bytesPerPixel = (TPixel.BitDepth / 8) * TPixel.Channels;
             int imageSize = img.Width * img.Height * bytesPerPixel;
             using var buff = MemoryPool<byte>.Shared.Rent(imageSize);
 
             Buffer stagingBuffer = VulkanHelper.CreateBuffer<byte>(context, BufferUsageFlags.TransferSrcBit, (uint)imageSize);
             DeviceMemory stagingBufferMemory = VulkanHelper.CreateBufferMemory(context, stagingBuffer, MemoryPropertyFlags.HostVisibleBit | MemoryPropertyFlags.HostCoherentBit);
 
-            img.CopyPixelDataTo(buff.Memory.Span);
+            img.CopyTo(buff.Memory.Span);
             VulkanHelper.CopyToBuffer(context, stagingBuffer, stagingBufferMemory, buff.Memory.Span);
 
             VulkanHelper.TransitionImageLayout(context, commandPool, graphicsQueue, textureBuffer.texture, format, ImageLayout.Undefined, ImageLayout.TransferDstOptimal, 6, mipLevels);

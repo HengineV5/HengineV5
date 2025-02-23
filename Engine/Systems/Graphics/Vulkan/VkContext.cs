@@ -1,4 +1,5 @@
 ﻿using EnCS;
+using ImageLib;
 using Silk.NET.Core;
 using Silk.NET.Core.Contexts;
 using Silk.NET.Core.Native;
@@ -93,7 +94,8 @@ namespace Engine
 			*/
         }
 
-		static void SaveImage(SixLabors.ImageSharp.Image<Rgba32> img)
+		/*
+		static void SaveImage(ImageMemory<Rgba32> img)
 		{
             img.ProcessPixelRows(a => {
                 for (int y = 0; y < a.Height; y++)
@@ -113,6 +115,7 @@ namespace Engine
 
             //img.Save("test.jpg", new ImageEncoder());
         }
+		*/
     }
 
 	public class VkContext
