@@ -155,7 +155,7 @@ namespace Runner
 			int i1 = (int)(lerp % buff.Length);
 			int i2 = (int)((lerp + 1) % buff.Length);
 
-			return Vector3f.Lerp(buff[i1].position, buff[i2].position, fractional);
+			return Vector3f.Lerp(in buff[i1].position, in buff[i2].position, fractional);
 		}
 
 		public static Vector3f RandomColor()

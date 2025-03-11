@@ -94,6 +94,8 @@ namespace Runner
 			Overlay overlayWorld = ecs.GetOverlay();
 
 			var skybox = Skybox.LoadSkybox("Skybox", "Images/Skybox/Default");
+			Console.WriteLine(skybox.skybox.data[600, 200]);
+
 			Camera camera = new Camera
 			{
 				width = engine.argIWindow.Size.X,

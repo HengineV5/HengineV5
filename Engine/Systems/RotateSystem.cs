@@ -104,7 +104,7 @@ namespace Engine
 		[SystemUpdate]
 		public void Update(ref EngineContext context, Camera.Ref camera, Position.Ref position, Rotation.Ref rotation)
 		{
-			window.Title = $"Hengine v5: {context.dt}";
+			window.Title = $"Hengine v5: {(context.dt)}";
 
 			if (inputHandler.IsKeyDown(MouseButton.Right) && !mousePressed)
 			{

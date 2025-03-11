@@ -33,9 +33,9 @@ namespace Engine.Utils
 			float s = q.w;
 
 			// Do the math
-			return 2.0f * Vector3f.Dot(u, v) * u
-					+ (s * s - Vector3f.Dot(u, u)) * v
-					+ 2.0f * s * Vector3f.Cross(u, v);
+			return 2.0f * Vector3f.Dot(in u, in v) * u
+					+ (s * s - Vector3f.Dot(in u, in u)) * v
+					+ 2.0f * s * Vector3f.Cross(in u, in v);
 		}
 	}
 }

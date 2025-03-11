@@ -1,6 +1,5 @@
 ﻿using Silk.NET.Vulkan;
 using EnCS;
-using SixLabors.ImageSharp.PixelFormats;
 using Image = Silk.NET.Vulkan.Image;
 using Buffer = Silk.NET.Vulkan.Buffer;
 

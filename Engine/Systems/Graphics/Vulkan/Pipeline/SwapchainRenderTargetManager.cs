@@ -2,7 +2,6 @@
 using EnCS;
 using Silk.NET.Vulkan.Video;
 using System.Buffers;
-using Silk.NET.SDL;
 using System.Runtime.CompilerServices;
 
 namespace Engine

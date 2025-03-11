@@ -123,7 +123,7 @@ namespace Engine
 			Matrix4x4f projection = Matrix4x4f.CreatePersperctive(camera.fov, camera.width / camera.height, camera.zNear, camera.zFar);
 
 			UniformMatrix4(gl, uniforms.Camera.View, false, view);
-			gl.Uniform3(uniforms.Camera.ViewPos, 1, position.x);
+			gl.Uniform3(uniforms.Camera.ViewPos, 1, in position.x);
 			UniformMatrix4(gl, uniforms.Camera.Projection, false, projection);
 		}
 

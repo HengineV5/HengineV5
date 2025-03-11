@@ -3,12 +3,9 @@ using ImageLib;
 using Silk.NET.Core;
 using Silk.NET.Core.Contexts;
 using Silk.NET.Core.Native;
-using Silk.NET.SDL;
 using Silk.NET.Vulkan;
 using Silk.NET.Vulkan.Extensions.KHR;
 using Silk.NET.Windowing;
-using SixLabors.ImageSharp.Formats;
-using SixLabors.ImageSharp.PixelFormats;
 using System.Buffers;
 using System.Runtime.InteropServices;
 using Image = Silk.NET.Vulkan.Image;
@@ -196,7 +193,7 @@ namespace Engine
 				createInfo.EnabledLayerCount = 0;
 			}
 
-			var result = vk.CreateInstance(createInfo, null, out Instance instance);
+			var result = vk.CreateInstance(in createInfo, null, out Instance instance);
 			if (result != Result.Success)
 				throw new Exception($"Failed to create vkInstance, {result}");
 
@@ -247,7 +244,7 @@ namespace Engine
 				createInfo.EnabledLayerCount = 0;
 			}
 
-			var result = vk.CreateDevice(physicalDevice, createInfo, null, out Device device);
+			var result = vk.CreateDevice(physicalDevice, in createInfo, null, out Device device);
 			if (result != Result.Success)
 				throw new Exception($"Failed to create vkDevice, {result}");
 
