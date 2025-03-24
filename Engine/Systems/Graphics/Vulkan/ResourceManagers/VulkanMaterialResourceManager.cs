@@ -1,5 +1,7 @@
 ﻿using EnCS;
 using EnCS.Attributes;
+using Microsoft.Extensions.Logging;
+using Silk.NET.OpenGL;
 
 namespace Engine.Graphics
 {
@@ -24,24 +26,28 @@ namespace Engine.Graphics
 
         Dictionary<string, uint> materialCache = new Dictionary<string, uint>();
 
-        VkContext context;
+		VkContext context;
+		ILogger logger;
 
-        public VulkanMaterialResourceManager(VkContext context)
-        {
-            this.context = context;
-        }
+		public VulkanMaterialResourceManager(ILoggerFactory factory, VkContext context)
+		{
+			this.logger = factory.CreateLogger<VulkanMaterialResourceManager>();
+			this.context = context;
+		}
 
-        public ref VkPbrMaterial Get(uint id)
+		public ref VkPbrMaterial Get(uint id)
         {
             return ref materialBuffers.Span[(int)id];
         }
 
         public uint Store(in Graphics.PbrMaterial resource)
         {
-            if (materialCache.TryGetValue(resource.name, out uint id))
+			if (materialCache.TryGetValue(resource.name, out uint id))
                 return id;
 
-            materialCache.Add(resource.name, idx);
+			logger.LogResourceManagerStore(resource.name);
+
+			materialCache.Add(resource.name, idx);
             materialBuffers.Span[(int)idx] = CreateMaterialBuffer(context, resource);
             return idx++;
         }

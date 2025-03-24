@@ -1,5 +1,6 @@
 ﻿using EnCS;
 using EnCS.Attributes;
+using Microsoft.Extensions.Logging;
 using Silk.NET.Vulkan;
 
 namespace Engine.Graphics
@@ -19,14 +20,16 @@ namespace Engine.Graphics
 
         Dictionary<string, uint> skyboxCache = new Dictionary<string, uint>();
 
-        VkContext context;
+		VkContext context;
+		ILogger logger;
 
-        public VulkanSkyboxResourceManager(VkContext context)
-        {
-            this.context = context;
-        }
+		public VulkanSkyboxResourceManager(ILoggerFactory factory, VkContext context)
+		{
+			this.logger = factory.CreateLogger<VulkanSkyboxResourceManager>();
+			this.context = context;
+		}
 
-        public ref VkSkybox Get(uint id)
+		public ref VkSkybox Get(uint id)
         {
             return ref skyboxBuffers.Span[(int)id];
         }
@@ -36,7 +39,9 @@ namespace Engine.Graphics
             if (skyboxCache.TryGetValue(resource.name, out uint id))
                 return id;
 
-            skyboxCache.Add(resource.name, idx);
+			logger.LogResourceManagerStore(resource.name);
+
+			skyboxCache.Add(resource.name, idx);
             skyboxBuffers.Span[(int)idx] = CreateSkyboxBuffer(context, resource);
 
             return idx++;

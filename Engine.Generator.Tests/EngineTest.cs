@@ -312,6 +312,11 @@ namespace Test
 		{
 
 		}
+
+		public static void Setup2(TestConfig2 config)
+		{
+
+		}
 	}
 
 	public static class NewClass
@@ -376,6 +381,7 @@ namespace Test
 
 				x.Setup(GlfwSetup.OpenGLSetup);
 				x.Setup(NewClass0.Setup);
+				x.Setup(NewClass0.Setup2);
 				x.Setup(NewClass.Setup2);
 			})
 			.Resource(x =>

@@ -19,11 +19,7 @@ namespace Engine.Graphics
 
         public static PbrMaterial LoadGltf(string name, string filePath)
         {
-            PbrMaterial material = new PbrMaterial();
-			material.albedo = Vector3f.One;
-            material.metallic = 1;
-            material.roughness = 1;
-
+            PbrMaterial material = GetDefault(name);
             GltfLoader.LoadMaterial(name, filePath, ref material);
 
 			if (string.IsNullOrEmpty(material.albedoMap.name))

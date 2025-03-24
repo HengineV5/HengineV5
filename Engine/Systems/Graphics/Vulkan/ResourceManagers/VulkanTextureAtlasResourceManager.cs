@@ -1,5 +1,6 @@
 ﻿using EnCS;
 using EnCS.Attributes;
+using Microsoft.Extensions.Logging;
 
 namespace Engine.Graphics
 {
@@ -19,9 +20,11 @@ namespace Engine.Graphics
 		Dictionary<string, uint> atlasCache = new Dictionary<string, uint>();
 
 		VkContext context;
+		ILogger logger;
 
-		public VulkanTextureAtlasResourceManager(VkContext context)
+		public VulkanTextureAtlasResourceManager(ILoggerFactory factory, VkContext context)
 		{
+			this.logger = factory.CreateLogger<VulkanTextureAtlasResourceManager>();
 			this.context = context;
 		}
 
@@ -34,6 +37,8 @@ namespace Engine.Graphics
 		{
             if (atlasCache.TryGetValue(resource.name, out uint id))
 				return id;
+
+			logger.LogResourceManagerStore(resource.name);
 
 			atlasCache.Add(resource.name, idx);
 			atlasBuffers.Span[(int)idx] = CreateAtlasBuffer(context, resource);

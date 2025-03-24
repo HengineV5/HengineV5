@@ -413,6 +413,9 @@ namespace Engine.Generator
 		{
 			List<MethodReturnType> models = new();
 
+			if (method.ReturnsVoid)
+				return models;
+
 			if (!method.ReturnType.IsTupleType)
 			{
 				models.Add(new()

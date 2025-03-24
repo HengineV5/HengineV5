@@ -121,6 +121,7 @@ namespace Engine
 					x.WithConfig<NetworkConfig>();
 					x.WithConfig<TranslationConfig>();
 
+					x.Setup(LogSetup.LoggerSetup);
 					x.Setup(Translator.TranslationSetup);
 					//x.Setup(ImageFormatSetup.HdrSetup);
 
@@ -254,6 +255,7 @@ namespace Engine
 					x.WithConfig<EngineConfig>();
 					x.WithConfig<NetworkConfig>();
 
+					x.Setup(LogSetup.LoggerSetup);
 					x.Setup(NetworkSetup.ServerSetup);
 				})
 				.Resource(x =>

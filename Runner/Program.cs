@@ -5,6 +5,7 @@ using Engine.Graphics;
 using Engine.Parsing;
 using Engine.Translation;
 using Engine.Utils.Parsing.TTF;
+using Microsoft.Extensions.Logging;
 using System.Net;
 using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
@@ -12,25 +13,32 @@ using static Engine.HengineEcs;
 
 namespace Runner
 {
+	static partial class LoggerExtensionMethods
+	{
+		[LoggerMessage(Level = LogLevel.Information, Message = "Hello World! Logging is {Description}.")]
+		public static partial void LogStartupMessage(this ILogger logger, string description);
+	}
+
 	internal class Program
 	{
 		static EnCS.ArchRef<Cam> camRef;
 
 		static void Main(string[] args)
 		{
-			/*
-			unsafe
+			using ILoggerFactory factory = LoggerFactory.Create(builder =>
 			{
-				GuiUniformBufferObject gubo = new();
-				byte* addr = (byte*)&gubo;
+				builder.AddSimpleConsole(options =>
+				{
+					options.IncludeScopes = true;
+					options.SingleLine = true;
+					options.TimestampFormat = "hh:mm:ss ";
+				});
 
-				Console.WriteLine("Size:      {0}", sizeof(GuiUniformBufferObject));
-				Console.WriteLine("Proj Offset: {0}", (byte*)&gubo.proj - addr);
-				Console.WriteLine("Screen Offset: {0}", (byte*)&gubo.screenSize - addr);
-				Console.WriteLine("Position Offset: {0}", (byte*)&gubo.position - addr);
-				Console.WriteLine("Size Offset: {0}", (byte*)&gubo.size - addr);
-            }
-			*/
+				builder.SetMinimumLevel(LogLevel.Information);
+			});
+
+			ILogger logger = factory.CreateLogger("Program");
+			logger.LogStartupMessage("configured");
 
 			var engineConfig = new EngineConfig()
 			{
@@ -45,18 +53,18 @@ namespace Runner
 
 			if (args.Length > 0 && args[0] == "server")
 			{
-				Server(engineConfig);
+				Server(factory, engineConfig);
 			}
 			else
 			{
 				if (args.Length > 1)
 					engineConfig.idx = int.Parse(args[1]);
 
-				Client(engineConfig);
+				Client(factory, engineConfig);
 			}
 		}
 
-		static void Client(EngineConfig engineConfig)
+		static void Client(ILoggerFactory factory, EngineConfig engineConfig)
 		{
 			var vulkanConfig = new VulkanConfig()
 			{
@@ -85,8 +93,8 @@ namespace Runner
 				language = "en-en",
 				units = tranlations
 			};
-
-			Hengine engine = new Hengine();
+			
+			Hengine engine = new Hengine(factory);
 			engine.Initialize(engineConfig, vulkanConfig, networkConfig, translationConfig);
 
 			var ecs = engine.GetEcs();
@@ -94,7 +102,6 @@ namespace Runner
 			Overlay overlayWorld = ecs.GetOverlay();
 
 			var skybox = Skybox.LoadSkybox("Skybox", "Images/Skybox/Default");
-			Console.WriteLine(skybox.skybox.data[600, 200]);
 
 			Camera camera = new Camera
 			{
@@ -105,10 +112,12 @@ namespace Runner
 				zFar = 1000
 			};
 
-			//var meshDuck = Mesh.LoadGltf("Duck", "Models/Duck/Duck.gltf", true);
-			//var materialDuck = PbrMaterial.LoadGltf("Duck", "Models/Duck/Duck.gltf");
+			var meshDuck = Mesh.LoadGltf("Duck", "Models/Duck/Duck.gltf", true);
+			var materialDuck = PbrMaterial.LoadGltf("Duck", "Models/Duck/Duck.gltf");
 
-            //mainWorld.CreateObject(new(3, 0, -10), Vector3.One, meshDuck, materialDuck, engineConfig.idx == 10 ? 11 : 10);
+			//Console.WriteLine(materialDuck.albedoMap.data.Width);
+
+            mainWorld.CreateObject(new(3, 0, -10), Vector3f.One, meshDuck, materialDuck, engineConfig.idx == 10 ? 11 : 10);
 			camRef = mainWorld.CreateCamera(camera, Vector3f.Zero, skybox, engineConfig.idx);
 
 			engine.argIWindow.FramebufferResize += x =>
@@ -138,7 +147,6 @@ namespace Runner
 				shape = GuiShape.Box
 			};
 			//overlayWorld.CreateGuiElement(new(30, 0, 250, 0), new(50 * 4, 0, 50 * 4, 0), buttonAtlas, prop);
-
 
 			GuiText text = new GuiText()
 			{
@@ -180,7 +188,7 @@ namespace Runner
 			engine.argIWindow.Dispose();
 		}
 
-		static void Server(EngineConfig engineConfig)
+		static void Server(ILoggerFactory factory, EngineConfig engineConfig)
 		{
 			var networkConfig = new NetworkConfig()
 			{
@@ -188,7 +196,7 @@ namespace Runner
 				port = 45567
 			};
 
-			HengineServer server = new HengineServer();
+			HengineServer server = new HengineServer(factory);
 			server.Initialize(engineConfig, networkConfig);
 
 			var ecs = server.GetEcs();

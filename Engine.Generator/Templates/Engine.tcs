@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using Engine;
+using Microsoft.Extensions.Logging;
 
 // Source file usings
 $usings~>using $usingName;<~~>\n<~
@@ -25,8 +26,9 @@ namespace $namespace
 		bool initialized = false;
 		Stopwatch sw = new Stopwatch();
 
-		public $engineName()
+		public $engineName(Microsoft.Extensions.Logging.ILoggerFactory loggerFactory)
 		{
+			this.argILoggerFactory = loggerFactory;
 		}
 
 		public $ecsName GetEcs()
@@ -41,7 +43,9 @@ namespace $namespace
 		{
 			$config~>arg|$stepName| = |$stepVarName|;<~~>\n			<~
 
-			$setup|$stepCount == 1|~>$stepTypes~>var _|$returnType|<~~>, <~ = $stepMethod($stepArguments~>$argName<~~>, <~);
+			$setup|$stepCount == 0|~>$stepMethod($stepArguments~>$argName<~~>, <~);
+			$stepUsedTypes~>arg|$returnType| = _|$returnType|;<~~>\n			<~
+			<~|$stepCount == 1|~>$stepTypes~>var _|$returnType|<~~>, <~ = $stepMethod($stepArguments~>$argName<~~>, <~);
 			$stepUsedTypes~>arg|$returnType| = _|$returnType|;<~~>\n			<~
 			<~|$stepCount > 1|~>var ($stepTypes~>_|$returnType|<~~>, <~) = $stepMethod($stepArguments~>$argName<~~>, <~);
 			$stepUsedTypes~>arg|$returnType| = _|$returnType|;<~~>\n			<~

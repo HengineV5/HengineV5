@@ -2,6 +2,7 @@
 using EnCS.Attributes;
 using Engine.Components.Graphics;
 using Engine.Graphics;
+using Microsoft.Extensions.Logging;
 using Silk.NET.OpenAL;
 using Silk.NET.Vulkan;
 using System.Buffers;
@@ -28,9 +29,11 @@ namespace Engine.Graphics
 		Dictionary<string, uint> meshCache = new Dictionary<string, uint>();
 
 		VkContext context;
+		ILogger logger;
 
-		public VulkanMeshResourceManager(VkContext context)
+		public VulkanMeshResourceManager(ILoggerFactory factory, VkContext context)
 		{
+			this.logger = factory.CreateLogger<VulkanMeshResourceManager>();
 			this.context = context;
 		}
 
@@ -41,10 +44,12 @@ namespace Engine.Graphics
 
 		public uint Store(in Graphics.Mesh mesh)
 		{
-            if (meshCache.TryGetValue(mesh.name, out uint id))
+			if (meshCache.TryGetValue(mesh.name, out uint id))
 				return id;
 
-            meshCache.Add(mesh.name, idx);
+			logger.LogResourceManagerStore(mesh.name);
+
+			meshCache.Add(mesh.name, idx);
 			meshBuffers.Span[(int)idx] = CreateMeshBuffer(context, mesh);
 			return idx++;
 		}

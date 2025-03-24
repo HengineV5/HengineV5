@@ -2,6 +2,7 @@
 using EnCS.Attributes;
 using ImageLib;
 using MathLib;
+using Microsoft.Extensions.Logging;
 using Silk.NET.Vulkan;
 using System.Buffers;
 using Buffer = Silk.NET.Vulkan.Buffer;
@@ -9,7 +10,14 @@ using Image = Silk.NET.Vulkan.Image;
 
 namespace Engine.Graphics
 {
-    public struct VkTextureBuffer
+    static partial class ResourceManagerLoggerExtensionMethods
+	{
+		[LoggerMessage(Level = LogLevel.Information, Message = "Creating resource '{name}'.")]
+		public static partial void LogResourceManagerStore(this ILogger logger, string name);
+	}
+
+
+	public struct VkTextureBuffer
 	{
 		public Image texture;
 		public DeviceMemory textureMemory;
@@ -25,9 +33,11 @@ namespace Engine.Graphics
 		Dictionary<string, uint> textureCache = new Dictionary<string, uint>();
 
 		VkContext context;
+		ILogger logger;
 
-        public VulkanTextureResourceManager(VkContext context)
+		public VulkanTextureResourceManager(ILoggerFactory factory, VkContext context)
         {
+            this.logger = factory.CreateLogger<VulkanTextureResourceManager>();
 			this.context = context;
         }
 
@@ -41,6 +51,8 @@ namespace Engine.Graphics
 			if (textureCache.TryGetValue(texture.name, out uint id))
 				return id;
 
+			logger.LogResourceManagerStore(texture.name);
+
 			textureCache.Add(texture.name, idx);
 			textureBuffers.Span[(int)idx] = CreateTextureBuffer(context, texture);
 			return idx++;
@@ -49,6 +61,8 @@ namespace Engine.Graphics
 		// TODO: Tmp, make private
 		public static VkTextureBuffer CreateTextureBuffer(VkContext context, Graphics.ETexture texture)
 		{
+            
+
             VkTextureBuffer textureBuffer = new VkTextureBuffer();
             textureBuffer.texture = VulkanHelper.CreateImage(context, new((uint)texture.data.Width, (uint)texture.data.Height, 1), ImageType.Type2D, Format.R8G8B8A8Srgb, ImageTiling.Optimal, ImageUsageFlags.TransferDstBit | ImageUsageFlags.SampledBit, ImageCreateFlags.None, 1, 1);
             textureBuffer.textureMemory = VulkanHelper.CreateMemory(context, textureBuffer.texture, MemoryPropertyFlags.DeviceLocalBit);

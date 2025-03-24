@@ -7,6 +7,7 @@ using Silk.NET.Vulkan;
 using Buffer = Silk.NET.Vulkan.Buffer;
 using System.Runtime.InteropServices;
 using System.Buffers;
+using Microsoft.Extensions.Logging;
 
 namespace Engine.Graphics
 {
@@ -28,11 +29,13 @@ namespace Engine.Graphics
 
 		Dictionary<string, uint> meshCache = new Dictionary<string, uint>();
 
+		ILogger logger;
 		VkContext context;
 		TranslationManager translationManager;
 
-		public VulkanTextResourceManager(VkContext context, TranslationManager translationManager)
+		public VulkanTextResourceManager(ILoggerFactory factory, VkContext context, TranslationManager translationManager)
 		{
+			this.logger = factory.CreateLogger<VulkanMaterialResourceManager>();
 			this.context = context;
 			this.translationManager = translationManager;
 		}
@@ -46,6 +49,8 @@ namespace Engine.Graphics
 		{
 			if (meshCache.TryGetValue(resource.id, out uint id))
 				return id;
+
+			logger.LogResourceManagerStore(resource.id);
 
 			meshCache.Add(resource.id, idx);
 			meshBuffers.Span[(int)idx] = CreateTextBuffer(context, translationManager, resource);

@@ -1,3 +1,0 @@
-Add color to vertex struct
-Investiage openEXR, would be cool to support film grade stuff
-Make my own image manipulation library
