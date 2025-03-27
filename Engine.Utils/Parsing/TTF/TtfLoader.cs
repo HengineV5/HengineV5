@@ -12,7 +12,7 @@ namespace Engine.Utils.Parsing.TTF
 	{
 		public static Font LoadFont(string path)
 		{
-			using TtfReader reader = new TtfReader(new FileStream(path, FileMode.Open));
+			using TtfReader reader = new TtfReader(new FileStream(path, FileMode.Open, FileAccess.Read));
             return Font.Load(reader);
         }
 	}

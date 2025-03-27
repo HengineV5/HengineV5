@@ -1,17 +1,26 @@
 ﻿using EnCS.Attributes;
 using Engine.Components;
 using Engine.Graphics;
+using Microsoft.Extensions.Logging;
 
 namespace Engine
 {
+	static partial class LoggerExtensionMethods
+	{
+		[LoggerMessage(Level = LogLevel.Trace, Message = "Sending: {idx} {position}, {rotation}")]
+		public static partial void LogClientSend(this ILogger logger, int idx, Vector3f position, Quaternionf rotation);
+	}
+
 	[System]
 	[SystemContext<EngineContext>]
 	public partial class ClientSendSystem
     {
+		ILogger logger;
 		IClient client;
 
-        public ClientSendSystem(IClient client)
+        public ClientSendSystem(ILoggerFactory factory, IClient client)
         {
+			this.logger = factory.CreateLogger<ClientSendSystem>();
 			this.client = client;
         }
 
@@ -29,9 +38,9 @@ namespace Engine
 			if (time < .1f / 20)
 				return;
 
-            //Console.WriteLine($"Sending: {networked.idx} {new Vector3(position.x, position.y, position.z)}, {new Quaternion(rotation.x, rotation.y, rotation.z, rotation.w)}");
+			logger.LogClientSend(networked.idx, new Vector3f(position.x, position.y, position.z), new Quaternionf(rotation.x, rotation.y, rotation.z, rotation.w));
 
-            time = 0;
+			time = 0;
             client.SendData(new NetworkPacket()
 			{
 				idx = networked.idx,

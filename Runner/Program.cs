@@ -9,14 +9,22 @@ using Microsoft.Extensions.Logging;
 using System.Net;
 using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
+using Vertical.SpectreLogger;
+using Vertical.SpectreLogger.Options;
 using static Engine.HengineEcs;
 
 namespace Runner
 {
 	static partial class LoggerExtensionMethods
 	{
-		[LoggerMessage(Level = LogLevel.Information, Message = "Hello World! Logging is {Description}.")]
-		public static partial void LogStartupMessage(this ILogger logger, string description);
+		[LoggerMessage(Level = LogLevel.Information, Message = "{engineName} v{engineVersion} started with app {appName} v{appVersion}")]
+		public static partial void LogEngineStarted(this ILogger logger, string engineName, string engineVersion, string appName, string appVersion);
+
+		[LoggerMessage(Level = LogLevel.Information, Message = "Client started with id {id}")]
+		public static partial void LogClientStarted(this ILogger logger, int id);
+
+		[LoggerMessage(Level = LogLevel.Information, Message = "Server started on {ip}:{port}")]
+		public static partial void LogServerStarted(this ILogger logger, string ip, int port);
 	}
 
 	internal class Program
@@ -27,22 +35,27 @@ namespace Runner
 		{
 			using ILoggerFactory factory = LoggerFactory.Create(builder =>
 			{
-				builder.AddSimpleConsole(options =>
+				builder.AddSpectreConsole(x =>
 				{
-					options.IncludeScopes = true;
-					options.SingleLine = true;
-					options.TimestampFormat = "hh:mm:ss ";
+					x.SetMinimumLevel(LogLevel.Trace);
+
+					//x.UseSerilogConsoleStyle();
+					//x.UseMicrosoftConsoleStyle();
+
+					x.SetMinimumLevel("Engine.Server", LogLevel.Debug);
+					x.SetMinimumLevel("Engine.Client", LogLevel.Debug);
+					x.SetMinimumLevel("Engine.ClientSendSystem", LogLevel.Debug);
+					x.SetMinimumLevel("Engine.ClientReceiveSystem", LogLevel.Debug);
+					x.SetMinimumLevel("ImageLib.Png.PngFormat", LogLevel.Warning);
 				});
 
-				builder.SetMinimumLevel(LogLevel.Information);
+				builder.SetMinimumLevel(LogLevel.Trace);
+				//builder.AddFilter((x, y) => true);
 			});
-
-			ILogger logger = factory.CreateLogger("Program");
-			logger.LogStartupMessage("configured");
 
 			var engineConfig = new EngineConfig()
 			{
-				appName = "Hengine v5",
+				appName = "Tower Shooter Survival",
 				appVersion = new Version(0, 0, 1),
 
 				engineName = "Hengine",
@@ -50,6 +63,9 @@ namespace Runner
 
 				idx = 0
 			};
+
+			ILogger logger = factory.CreateLogger("Program.Engine");
+			logger.LogEngineStarted(engineConfig.engineName, engineConfig.engineVersion.ToString(), engineConfig.appName, engineConfig.appVersion.ToString());
 
 			if (args.Length > 0 && args[0] == "server")
 			{
@@ -66,6 +82,9 @@ namespace Runner
 
 		static void Client(ILoggerFactory factory, EngineConfig engineConfig)
 		{
+			ILogger logger = factory.CreateLogger("Program.Client");
+			logger.LogClientStarted(engineConfig.idx);
+
 			var vulkanConfig = new VulkanConfig()
 			{
 				validationLayers = ["VK_LAYER_KHRONOS_validation"]
@@ -182,7 +201,7 @@ namespace Runner
 			*/
 
             //TestWorld.Load(mainWorld);
-			MapWorld.Load(mainWorld);
+			MapWorld.Load(factory.CreateLogger("MapWorld"), mainWorld);
 
 			engine.Start();
 			engine.argIWindow.Dispose();
@@ -195,6 +214,9 @@ namespace Runner
 				ipAddress = IPAddress.Parse("127.0.0.1"),
 				port = 45567
 			};
+
+			ILogger logger = factory.CreateLogger("Program.Client");
+			logger.LogServerStarted(networkConfig.ipAddress.ToString(), networkConfig.port);
 
 			HengineServer server = new HengineServer(factory);
 			server.Initialize(engineConfig, networkConfig);

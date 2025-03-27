@@ -10,6 +10,7 @@ using System.Runtime.InteropServices;
 using Engine.Graphics;
 using Engine.Parsing;
 using Engine.Translation;
+using Microsoft.Extensions.Logging;
 
 namespace Engine
 {
@@ -136,7 +137,7 @@ namespace Engine
 					x.Setup(GlfwSetup.VulkanSetup);
 					x.Setup(VulkanSetup.RenderSetup);
 
-					//x.Setup(NetworkSetup.ClientSetup);
+					x.Setup(NetworkSetup.ClientSetup);
 				})
 				.Resource(x =>
 				{
@@ -183,8 +184,8 @@ namespace Engine
 						//x.Sequential<RotateSystem>();
 						x.Sequential<MoveSystem>();
 
-						//x.Sequential<ClientSendSystem>();
-						//x.Sequential<ClientReceiveSystem>();
+						x.Sequential<ClientSendSystem>();
+						x.Sequential<ClientReceiveSystem>();
 					});
 
 					x.World<HengineEcs.Main.Interface>(x =>
@@ -268,8 +269,9 @@ namespace Engine
 						x.Sequential<ServerSystem>();
 					});
 
-					x.World<HengineEcs.Main.Interface>(x =>
+					x.World<HengineServerEcs.Main.Interface>(x =>
 					{
+						x.Pipeline<HengineServer.ServerPipeline>();
 					});
 				})
 				.Build<HengineServer, HengineServerEcs>();

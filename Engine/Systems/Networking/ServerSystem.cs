@@ -1,6 +1,7 @@
 ﻿using EnCS.Attributes;
 using Engine.Components;
 using Engine.Graphics;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -10,15 +11,23 @@ using System.Threading.Tasks;
 
 namespace Engine
 {
+	static partial class LoggerExtensionMethods
+	{
+		[LoggerMessage(Level = LogLevel.Trace, Message = "Found match: {idx} {position}, {rotation}")]
+		public static partial void LogMatchFound(this ILogger logger, int idx, Vector3f position, Quaternionf rotation);
+	}
+
 	[System]
 	[SystemContext<EngineContext>]
 	public partial class ServerSystem
 	{
+        ILogger logger;
 		IServer server;
 
-        public ServerSystem(IServer server)
+        public ServerSystem(ILoggerFactory factory, IServer server)
         {
-            this.server = server;
+            this.logger = factory.CreateLogger<ServerSystem>();
+			this.server = server;
         }
 
         public void Init()
@@ -45,9 +54,9 @@ namespace Engine
 
                 if (packet.idx == networked.idx)
                 {
-                    Console.WriteLine($"Found match: {packet.idx} {packet.position}, {packet.roation}");
+                    logger.LogMatchFound(packet.idx, packet.position, packet.roation);
 
-                    position.Set(packet.position);
+					position.Set(packet.position);
                     rotation.Set(packet.roation);
                     toRemove.Add(i);
                 }

@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using Microsoft.Extensions.Logging;
+using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
@@ -6,6 +7,15 @@ using System.Text.Json.Serialization;
 
 namespace Engine
 {
+	static partial class LoggerExtensionMethods
+	{
+		[LoggerMessage(Level = LogLevel.Information, Message = "Clients connected: {clients}")]
+		public static partial void LogClientsConnected(this ILogger logger, int clients);
+
+		[LoggerMessage(Level = LogLevel.Trace, Message = "Added packet from {i}: {idx}, {position}, {rotation}")]
+		public static partial void LogPacketAdded(this ILogger logger, int i, int idx, Vector3f position, Quaternionf rotation);
+	}
+
 	public interface IServer
 	{
 		void AcceptNewClients();
@@ -39,7 +49,7 @@ namespace Engine
 		public Quaternionf roation;
 	}
 
-	[JsonSourceGenerationOptions(IncludeFields = true)]
+	[JsonSourceGenerationOptions(IncludeFields = true, IgnoreReadOnlyFields = false)]
 	[JsonSerializable(typeof(NetworkPacket))]
 	public partial class NetworkPacketSourceGenerationContext : JsonSerializerContext
 	{
@@ -55,18 +65,22 @@ namespace Engine
 
 		private static readonly byte[] endSign = new byte[] { 9 };
 
+		ILogger logger;
 		Socket socket;
 
 		List<ConnectedClient> clients = new List<ConnectedClient>();
 		List<NetworkPacket> packets = new List<NetworkPacket>();
 
-        public Server(Socket socket)
+        public Server(ILoggerFactory factory, Socket socket)
         {
+			this.logger = factory.CreateLogger<Server>();
 			this.socket = socket;
         }
 
 		public void AcceptNewClients()
 		{
+			logger.LogInformation("Server active and listening.");
+
 			for (int i = 0; i < 2; i++)
 			{
 				Socket client = socket.Accept();
@@ -83,8 +97,8 @@ namespace Engine
 				});
 			}
 
-            Console.WriteLine($"All clients connected: {clients.Count}.");
-        }
+			logger.LogClientsConnected(clients.Count);
+		}
 
 		public void AcceptData()
 		{
@@ -115,11 +129,11 @@ namespace Engine
 					var packet = JsonSerializer.Deserialize(buff.Slice(0, length), NetworkPacketSourceGenerationContext.Default.NetworkPacket);
 					packets.Add(packet);
 
-                    Console.WriteLine($"Added packet from {i}: {packet.idx}, {packet.position}, {packet.roation}");
-                }
+					logger.LogPacketAdded(i, packet.idx, packet.position, packet.roation);
+				}
 				catch (Exception e)
 				{
-                    //Console.WriteLine($"Failed!: {e.Message}");
+					logger.LogError(e, "AcceptData failed");
                 }
 			}
 		}
@@ -138,6 +152,8 @@ namespace Engine
 				var bytes = JsonSerializer.SerializeToUtf8Bytes(packet, NetworkPacketSourceGenerationContext.Default.NetworkPacket);
 				client.socket.Send(bytes);
 				client.socket.Send(endSign);
+
+				//logger.LogInformation($"Sending packet {Encoding.UTF8.GetString(bytes)}");
 			}
 		}
 	}
@@ -151,12 +167,14 @@ namespace Engine
 
 		private static readonly byte[] endSign = new byte[] { 9 };
 
+		ILogger logger;
 		int idx;
 		Socket socket;
 		List<NetworkPacket> packets = new List<NetworkPacket>();
 
-		public Client(Socket socket, int idx)
+		public Client(ILoggerFactory factory, Socket socket, int idx)
         {
+			this.logger = factory.CreateLogger<Client>();
 			this.socket = socket;
 			this.idx = idx;
         }
@@ -214,7 +232,7 @@ namespace Engine
 
 	public class NetworkSetup
 	{
-		public static IServer ServerSetup(NetworkConfig networkConfig)
+		public static IServer ServerSetup(ILoggerFactory factory, NetworkConfig networkConfig)
 		{
 			EndPoint endPoint = new IPEndPoint(networkConfig.ipAddress, networkConfig.port);
 
@@ -222,10 +240,10 @@ namespace Engine
 			socket.Bind(endPoint);
 			socket.Listen(100);
 
-			return new Server(socket);
+			return new Server(factory, socket);
 		}
 
-		public static IClient ClientSetup(NetworkConfig networkConfig, EngineConfig engineConfig)
+		public static IClient ClientSetup(ILoggerFactory factory, NetworkConfig networkConfig, EngineConfig engineConfig)
 		{
 			EndPoint endPoint = new IPEndPoint(networkConfig.ipAddress, networkConfig.port);
 
@@ -234,9 +252,7 @@ namespace Engine
 
 			socket.Send(Encoding.UTF8.GetBytes("Test Client."));
 
-            Console.WriteLine("Connected to server!");
-
-            return new Client(socket, engineConfig.idx);
+			return new Client(factory, socket, engineConfig.idx);
 		}
 	}
 }

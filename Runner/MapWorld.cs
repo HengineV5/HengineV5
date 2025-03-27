@@ -4,6 +4,7 @@ using Engine;
 using Engine.Components;
 using Engine.Graphics;
 using Engine.Utils;
+using Microsoft.Extensions.Logging;
 using Silk.NET.Vulkan;
 using System;
 using System.Xml.Linq;
@@ -16,7 +17,7 @@ namespace Runner
 		const float OUTER_RADIUS = 1f;
 		const float INNER_RADIUS = OUTER_RADIUS * 0.866025404f;
 
-		public static void Load(Main world)
+		public static void Load(ILogger logger, Main world)
 		{
 			var materialMap = GetMapMaterial();
 
@@ -56,15 +57,15 @@ namespace Runner
 				//world.CreateGizmoLine(verticies[(int)indicies[i + 2]].position, verticies[(int)indicies[i]].position, new GizmoColor(0.0f));
 			}
 
-			float l1 = Random.Shared.NextSingle() * 6;
-			float l2 = Random.Shared.NextSingle() * 6;
+			//float l1 = Random.Shared.NextSingle() * 6;
+			//float l2 = Random.Shared.NextSingle() * 6;
 
-			//float l1 = 1.25f;
-			//float l2 = 0.5f;
+			float l1 = 1.25f;
+			float l2 = 0.5f;
 
-			Console.WriteLine($"L1: {l1}, L2: {l2}");
+			logger.Log(LogLevel.Information, $"L1: {l1}, L2: {l2}");
 
-            Vector3f zero = Vector3f.Zero;
+			Vector3f zero = Vector3f.Zero;
 			Vector3f p1 = CircularGetElement(verticies.Slice(0, vertexLength), l1);
 			//world.CreateGizmo(p1, Vector3f.One * 0.25f, GizmoType.Point, new GizmoColor(0.8f));
 
