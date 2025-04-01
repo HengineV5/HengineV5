@@ -32,7 +32,7 @@ namespace Engine
 
         public void Init()
         {
-			server.AcceptNewClients();
+			server.StartServerThread();
 		}
 
 		float time = 0;
@@ -78,7 +78,7 @@ namespace Engine
 			time = 0;
 
             //Console.WriteLine($"BroadcastingL: {new Vector3(position.x, position.y, position.z)} {new Quaternion(rotation.x, rotation.y, rotation.z, rotation.w)}");
-            server.BroadcastPacket(new NetworkPacket()
+            server.BroadcastPacket(new UpdatePacket()
 			{
 				idx = networked.idx,
 				position = new Vector3f(position.x, position.y, position.z),

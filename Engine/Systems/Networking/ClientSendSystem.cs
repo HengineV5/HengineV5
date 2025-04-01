@@ -41,7 +41,7 @@ namespace Engine
 			logger.LogClientSend(networked.idx, new Vector3f(position.x, position.y, position.z), new Quaternionf(rotation.x, rotation.y, rotation.z, rotation.w));
 
 			time = 0;
-            client.SendData(new NetworkPacket()
+            client.SendData(new UpdatePacket()
 			{
 				idx = networked.idx,
 				position = new Vector3f(position.x, position.y, position.z),
