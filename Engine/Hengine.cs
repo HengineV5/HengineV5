@@ -119,12 +119,11 @@ namespace Engine
 				{
 					x.WithConfig<EngineConfig>();
 					x.WithConfig<VulkanConfig>();
-					x.WithConfig<NetworkConfig>();
+					x.WithConfig<ClientConfig>();
 					x.WithConfig<TranslationConfig>();
 
 					x.Setup(LogSetup.LoggerSetup);
 					x.Setup(Translator.TranslationSetup);
-					//x.Setup(ImageFormatSetup.HdrSetup);
 
 					//x.Setup(GlfwSetup.OpenGLWindowSetup);
 					x.Setup(GlfwSetup.VulkanWindowSetup);
@@ -254,7 +253,7 @@ namespace Engine
 				.Config(x =>
 				{
 					x.WithConfig<EngineConfig>();
-					x.WithConfig<NetworkConfig>();
+					x.WithConfig<ServerConfig>();
 
 					x.Setup(LogSetup.LoggerSetup);
 					x.Setup(NetworkSetup.ServerSetup);

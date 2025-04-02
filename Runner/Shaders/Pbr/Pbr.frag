@@ -165,9 +165,9 @@ void main() {
 	result = result / (result + vec3(1.0));
 	result = pow(result, vec3(1.0/2.2)); 
 
-	color = vec4(result, 1.0);
+	//color = vec4(result, 1.0);
 	//color = vec4(texture(u_AlbedoMap, texCoords).rgb, 1.0);
-	//color = vec4(v_texCoord, 0.0, 1.0);
+	color = vec4(v_texCoord, 0.0, 1.0);
 
 	/*
 	float height = texture(u_DepthMap, v_texCoord).r;

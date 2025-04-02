@@ -87,12 +87,15 @@ namespace Runner
 
 			var vulkanConfig = new VulkanConfig()
 			{
-				validationLayers = ["VK_LAYER_KHRONOS_validation"]
+				//validationLayers = ["VK_LAYER_KHRONOS_validation"]
+				validationLayers = []
 			};
 
-			var networkConfig = new NetworkConfig()
+			var clientConfig = new ClientConfig()
 			{
-				ipAddress = IPAddress.Parse("127.0.0.1"),
+				doConnect = engineConfig.idx != 0,
+				serverAddress = IPAddress.Parse("92.220.68.61"),
+				//serverAddress = IPAddress.Parse("127.0.0.1"),
 				port = 45567
 			};
 
@@ -114,7 +117,7 @@ namespace Runner
 			};
 			
 			Hengine engine = new Hengine(factory);
-			engine.Initialize(engineConfig, vulkanConfig, networkConfig, translationConfig);
+			engine.Initialize(engineConfig, vulkanConfig, clientConfig, translationConfig);
 
 			var ecs = engine.GetEcs();
 			Main mainWorld = ecs.GetMain();
@@ -133,10 +136,12 @@ namespace Runner
 
 			var meshDuck = Mesh.LoadGltf("Duck", "Models/Duck/Duck.gltf", true);
 			var materialDuck = PbrMaterial.LoadGltf("Duck", "Models/Duck/Duck.gltf");
+			var meshPlane = Mesh.LoadGltf("Plane", "Models/Plane/plane.gltf");
 
-			//Console.WriteLine(materialDuck.albedoMap.data.Width);
+			logger.LogInformation(materialDuck.albedoMap.data.Width.ToString());
+			logger.LogInformation(materialDuck.albedoMap.data.Height.ToString());
 
-            mainWorld.CreateObject(new(3, 0, -10), Vector3f.One, meshDuck, materialDuck, engineConfig.idx == 10 ? 11 : 10);
+			mainWorld.CreateObject(new(3, 0, -10), Vector3f.One, meshDuck, materialDuck, engineConfig.idx == 10 ? 11 : 10);
 			camRef = mainWorld.CreateCamera(camera, Vector3f.Zero, skybox, engineConfig.idx);
 
 			engine.argIWindow.FramebufferResize += x =>
@@ -209,17 +214,19 @@ namespace Runner
 
 		static void Server(ILoggerFactory factory, EngineConfig engineConfig)
 		{
-			var networkConfig = new NetworkConfig()
+			var serverConfig = new ServerConfig()
 			{
-				ipAddress = IPAddress.Parse("127.0.0.1"),
+				//ipAddress = IPAddress.Parse("127.0.0.1"),
+				//ipAddress = IPAddress.Parse("92.220.68.61"),
+				ipAddress = IPAddress.Any,
 				port = 45567
 			};
 
 			ILogger logger = factory.CreateLogger("Program.Client");
-			logger.LogServerStarted(networkConfig.ipAddress.ToString(), networkConfig.port);
+			logger.LogServerStarted(serverConfig.ipAddress.ToString(), serverConfig.port);
 
 			HengineServer server = new HengineServer(factory);
-			server.Initialize(engineConfig, networkConfig);
+			server.Initialize(engineConfig, serverConfig);
 
 			var ecs = server.GetEcs();
 			HengineServerEcs.Main mainWorld = ecs.GetMain();

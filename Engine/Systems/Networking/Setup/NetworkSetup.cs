@@ -35,17 +35,24 @@ namespace Engine
 
 	}
 
-	public class NetworkConfig
+	public class ServerConfig
 	{
 		public IPAddress ipAddress;
 		public int port;
 	}
 
+	public class ClientConfig
+	{
+		public bool doConnect;
+		public IPAddress serverAddress;
+		public int port;
+	}
+
 	public class NetworkSetup
 	{
-		public static IServer ServerSetup(ILoggerFactory factory, NetworkConfig networkConfig)
+		public static IServer ServerSetup(ILoggerFactory factory, ServerConfig serverConfig)
 		{
-			EndPoint endPoint = new IPEndPoint(networkConfig.ipAddress, networkConfig.port);
+			EndPoint endPoint = new IPEndPoint(serverConfig.ipAddress, serverConfig.port);
 
 			Socket socket = new Socket(endPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
 			socket.Bind(endPoint);
@@ -56,14 +63,14 @@ namespace Engine
 			return new Server(factory, socket);
 		}
 
-		public static IClient ClientSetup(ILoggerFactory factory, NetworkConfig networkConfig, EngineConfig engineConfig)
+		public static IClient ClientSetup(ILoggerFactory factory, ClientConfig clientConfig, EngineConfig engineConfig)
 		{
-			EndPoint endPoint = new IPEndPoint(networkConfig.ipAddress, networkConfig.port);
+			EndPoint endPoint = new IPEndPoint(clientConfig.serverAddress, clientConfig.port);
 
 			Socket socket = new Socket(endPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
 			socket.Connect(endPoint);
 
-			socket.Send(Encoding.UTF8.GetBytes("Test Client."));
+			socket.Send(Encoding.UTF8.GetBytes($"Client {engineConfig.idx}: '{engineConfig.appName}'"));
 
 			return new Client(factory, socket, engineConfig.idx);
 		}
