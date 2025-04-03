@@ -19,8 +19,12 @@ namespace Engine.Graphics
 
         public static PbrMaterial LoadGltf(string name, string filePath)
         {
-            PbrMaterial material = GetDefault(name);
-            GltfLoader.LoadMaterial(name, filePath, ref material);
+			PbrMaterial material = new PbrMaterial();
+			material.albedo = Vector3f.One;
+			material.metallic = 1;
+			material.roughness = 1;
+
+			GltfLoader.LoadMaterial(name, filePath, ref material);
 
 			if (string.IsNullOrEmpty(material.albedoMap.name))
 				material.albedoMap = ETexture.LoadImage($"{name}_albedo", "Images/Pbr/Default/Albedo.png");
@@ -38,7 +42,7 @@ namespace Engine.Graphics
 				material.normalMap = ETexture.LoadImage($"{name}_normal", "Images/Pbr/Default/Normal.png");
 
 			if (string.IsNullOrEmpty(material.depthMap.name))
-				material.normalMap = ETexture.LoadImage($"{name}_depth", "Images/Pbr/Default/Depth.png");
+				material.depthMap = ETexture.LoadImage($"{name}_depth", "Images/Pbr/Default/Depth.png");
 
             return material;
         }

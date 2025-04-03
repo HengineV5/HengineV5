@@ -2,6 +2,7 @@
 using System.Buffers;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using UtilLib.Span;
 
 namespace Engine.Utils
 {

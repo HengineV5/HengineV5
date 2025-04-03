@@ -100,12 +100,13 @@ vec2 ParallaxMapping(vec2 texCoords, vec3 viewDir)
 
 void main() {
 	vec3 viewDir = normalize(v_TBN * v_ViewPos - v_TBN * v_pos);
-	vec2 texCoords = ParallaxMapping(v_texCoord, viewDir);
+	//vec2 texCoords = ParallaxMapping(v_texCoord, viewDir);
+	vec2 texCoords = v_texCoord;
 
 	vec3 albedo = pow(texture(u_AlbedoMap, texCoords).rgb, vec3(2.2)) * u_Material.albedo;
 	float metallic = pow(texture(u_MetallicMap, texCoords).b, 2.2) * u_Material.metallic;
 	float roughness = pow(texture(u_RoughnessMap, texCoords).r, 2.2) * u_Material.roughness;
-		
+
 	vec3 N = texture(u_NormalMap, texCoords).rgb;
 	//N = N * 2.0 - 1.0;
 	N = normalize(v_TBN * N);
@@ -159,15 +160,17 @@ void main() {
 	vec2 brdf  = texture(u_Texture, vec2(max(dot(N, V), 0.0), roughness)).rg;
 	vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);
 
+	//vec3 ambient = (kD * diffuse + specular) * ao;
 	vec3 ambient = (kD * diffuse + specular) * ao;
 	vec3 result = ambient + Lo;
 
 	result = result / (result + vec3(1.0));
 	result = pow(result, vec3(1.0/2.2)); 
 
-	//color = vec4(result, 1.0);
-	//color = vec4(texture(u_AlbedoMap, texCoords).rgb, 1.0);
-	color = vec4(v_texCoord, 0.0, 1.0);
+	color = vec4(result, 1.0);
+	//color = vec4(N, 1.0);
+	//color = vec4(texture(u_AlbedoMap, v_texCoord).rgb, 1.0);
+	//color = vec4(v_texCoord, 0.0, 1.0);
 
 	/*
 	float height = texture(u_DepthMap, v_texCoord).r;

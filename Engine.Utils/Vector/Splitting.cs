@@ -1,4 +1,5 @@
 ﻿using System.Buffers;
+using UtilLib.Span;
 
 namespace Engine.Utils
 {

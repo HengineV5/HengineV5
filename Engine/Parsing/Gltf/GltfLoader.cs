@@ -67,6 +67,14 @@ namespace Engine.Utils.Parsing.GLTF
                 tangents = new Vector4f[tangentAccessor.count];
                 ReadData(baseFolder, file, tangentAccessor, tangents.AsSpan());
             }
+            else
+            {
+				tangents = new Vector4f[normals.Length];
+				for (int i = 0; i < tangents.Length; i++)
+				{
+                    tangents[i] = Vector4f.One;
+				}
+			}
 
             ushort[] indicies = new ushort[indexAccessor.count];
             ReadData(baseFolder, file, indexAccessor, indicies.AsSpan());

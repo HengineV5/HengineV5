@@ -136,7 +136,7 @@ namespace Engine
 					x.Setup(GlfwSetup.VulkanSetup);
 					x.Setup(VulkanSetup.RenderSetup);
 
-					x.Setup(NetworkSetup.ClientSetup);
+					//x.Setup(NetworkSetup.ClientSetup);
 				})
 				.Resource(x =>
 				{
@@ -183,8 +183,8 @@ namespace Engine
 						//x.Sequential<RotateSystem>();
 						x.Sequential<MoveSystem>();
 
-						x.Sequential<ClientSendSystem>();
-						x.Sequential<ClientReceiveSystem>();
+						//x.Sequential<ClientSendSystem>();
+						//x.Sequential<ClientReceiveSystem>();
 					});
 
 					x.World<HengineEcs.Main.Interface>(x =>
