@@ -15,7 +15,7 @@
 
   <ItemGroup>
     <PackageReference Include="EnCS" Version="0.0.49" />
-    <PackageReference Include="Engine.Generator" Version="0.0.45" />
+    <PackageReference Include="Engine.Generator" Version="0.0.53" />
     <PackageReference Include="ImageLib" Version="0.0.9" />
     <PackageReference Include="MathLib" Version="0.0.22" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.3" />

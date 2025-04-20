@@ -58,7 +58,7 @@ namespace Engine
 		}
 
 		[SystemUpdate, SystemLayer(0, 2)]
-		public void BufferUpdate(ref VulkanRenderContext context, GuiProperties.Ref properties, GuiPosition.Ref position, GuiSize.Ref size, ref VkTextureAtlas textureAtlas)
+		public void BufferUpdate(ref VulkanRenderContext context, GuiProperties.Ref properties, GuiPosition.Ref position, GuiSize.Ref size, GuiState.Ref guiState, ref VkTextureAtlas textureAtlas)
 		{
             ref GuiShaderInput shaderInput = ref renderContext.pipeline.GetUbo<GuiShaderInput>(bufferIdx);
 			shaderInput.ubo.Value = context.guiUbo;
@@ -66,21 +66,9 @@ namespace Engine
 			shaderInput.ubo.Value.position = new Vector4f(position.x, position.y, position.z, position.w);
 			shaderInput.ubo.Value.size = new Vector4f(size.x, size.y, size.z, size.w);
 			shaderInput.guiState.Value.totalStates = textureAtlas.textures;
+			shaderInput.guiState.Value.state = guiState.state;
 
-			// Move this to type specific code.
-			Vector2f p1 = new Vector2f(shaderInput.ubo.Value.position.x + shaderInput.ubo.Value.position.y * window.Size.X, shaderInput.ubo.Value.position.z + shaderInput.ubo.Value.position.w * window.Size.X);
-			Vector2f p2 = p1 + new Vector2f(shaderInput.ubo.Value.size.x + shaderInput.ubo.Value.size.y * window.Size.X, shaderInput.ubo.Value.size.z + shaderInput.ubo.Value.size.w * window.Size.X);
-
-			Vector2f mousePos = inputHandler.GetMousePosition();
-            
-			if (mousePos.x > p1.x && mousePos.x < p2.x && mousePos.y > p1.y && mousePos.y < p2.y)
-			{
-				shaderInput.guiState.Value.state = inputHandler.IsKeyDown(Silk.NET.Input.MouseButton.Left) ? 2 : 1;
-			}
-			else
-				shaderInput.guiState.Value.state = 0;
-
-            VulkanRenderHelpers.UpdateGuiDescriptorSet(this.context, renderContext.pipeline.GetDescriptorSet(PipelineContainerLayer.Gui, bufferIdx), textureAtlas.atlas, sampler);
+			VulkanRenderHelpers.UpdateGuiDescriptorSet(this.context, renderContext.pipeline.GetDescriptorSet(PipelineContainerLayer.Gui, bufferIdx), textureAtlas.atlas, sampler);
 
 			t += 0.0001f;
 
@@ -88,7 +76,7 @@ namespace Engine
 		}
 
 		[SystemUpdate, SystemLayer(0, 2)]
-		public void RenderUpdate(ref VulkanRenderContext context, GuiProperties.Ref properties, GuiPosition.Ref position, GuiSize.Ref size, ref VkTextureAtlas textureAtlas)
+		public void RenderUpdate(ref VulkanRenderContext context, GuiProperties.Ref properties, GuiPosition.Ref position, GuiSize.Ref size, GuiState.Ref guiState, ref VkTextureAtlas textureAtlas)
 		{
 			switch(properties.shape)
 			{

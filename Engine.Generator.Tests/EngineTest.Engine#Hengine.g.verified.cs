@@ -15,7 +15,14 @@ namespace Test
 {
 	public partial class Hengine
 	{
+		ref struct ScheduleContext
+		{
+			public Engine.EngineContext engineContext;
+			public TestContext argTestContext;
+		}
+
 		HengineEcs ecs;
+		System.Memory<Engine.Scheduling.ScheduledAction<ScheduleContext>> jobs;
 
 		GraphicsPipeline _GraphicsPipeline;
 		PhysicsPipeline _PhysicsPipeline;
@@ -77,6 +84,12 @@ namespace Test
 
 			ecs = new HengineEcs(_MeshResourceManager);
 
+			jobs = new Engine.Scheduling.ScheduledAction<ScheduleContext>[] {
+				Ecs_Main_Interface_GraphicsPipeline,
+				Ecs_Main_Interface_PhysicsPipeline,
+				Ecs_World2_Interface_GraphicsPipeline,
+			};
+
 			initialized = true;
 		}
 
@@ -85,22 +98,21 @@ namespace Test
 			if (!initialized)
 				throw new System.Exception("Hengine must be initialized by running initialize() before start.");
 
+			Engine.Scheduling.Scheduler<ScheduleContext> scheduler = new(jobs.Span);
 			sw.Restart();
 
-			var engineContext = new EngineContext();
+			var scheduleContext = new ScheduleContext();
+			scheduleContext.engineContext = new Engine.EngineContext();
+
 			while (true)
 			{
-				engineContext.dt = sw.ElapsedMilliseconds / 1000f;
+				scheduleContext.engineContext.dt = sw.ElapsedMilliseconds / 1000f;
 				sw.Restart();
 
-				TestContext argTestContext = new TestContext();
+				// Rest args.
+				scheduleContext.argTestContext = new TestContext();
 
-				{ // Ecs.Main.Interface
-					_GraphicsPipeline.Run<Ecs.Main.Interface>(ref engineContext, ecs, ref argTestContext);
-					_PhysicsPipeline.Run<Ecs.Main.Interface>(ref engineContext, ecs);
-				}{ // Ecs.World2.Interface
-					_GraphicsPipeline.Run<Ecs.World2.Interface>(ref engineContext, ecs, ref argTestContext);
-				}
+				scheduler.ExecuteOneStep(scheduleContext.engineContext.dt, ref scheduleContext);
 
 				if (ShouldExit())
 				{
@@ -110,5 +122,15 @@ namespace Test
 				}
 			}
 		}
+
+		void Ecs_Main_Interface_GraphicsPipeline(ref ScheduleContext context)
+			=> _GraphicsPipeline.Run<Ecs.Main.Interface>(ref context.engineContext, ecs, ref context.argTestContext);
+		
+		void Ecs_Main_Interface_PhysicsPipeline(ref ScheduleContext context)
+			=> _PhysicsPipeline.Run<Ecs.Main.Interface>(ref context.engineContext, ecs);
+		
+		void Ecs_World2_Interface_GraphicsPipeline(ref ScheduleContext context)
+			=> _GraphicsPipeline.Run<Ecs.World2.Interface>(ref context.engineContext, ecs, ref context.argTestContext);
+		
 	}
 }

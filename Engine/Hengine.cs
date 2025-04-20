@@ -55,7 +55,7 @@ namespace Engine
 		{
 			return argIWindow.IsClosing;
 		}
-
+		
 		public static void Ecs()
 		{
 			new EcsBuilder()
@@ -69,7 +69,7 @@ namespace Engine
 					x.ArchType<Position, Rotation, Scale, GizmoComp>("Gizmo");
 					x.ArchType<GizmoLine>("GizmoLine");
 
-					x.ArchType<GuiProperties, GuiPosition, GuiSize, TextureAtlas>("GuiElement");
+					x.ArchType<GuiProperties, GuiPosition, GuiSize, GuiState, GuiButton, GuiDraggable, TextureAtlas>("GuiButton");
 					x.ArchType<GuiProperties, GuiPosition, TextureAtlas, GuiText>("TextElement");
 				})
 				.System(x =>
@@ -77,6 +77,9 @@ namespace Engine
 					x.System<PositionSystem>();
 					x.System<RotateSystem>();
 					x.System<MoveSystem>();
+
+					x.System<GuiButtonSystem>();
+					x.System<GuiDraggableSystem>();
 
 					x.System<OpenGLRenderSystem>();
 
@@ -95,7 +98,7 @@ namespace Engine
 				.World(x =>
 				{
 					x.World<HengineEcs.NEntity, HengineEcs.Cam, HengineEcs.Hex, HengineEcs.Gizmo, HengineEcs.GizmoLine>("Main");
-					x.World<HengineEcs.GuiElement, HengineEcs.TextElement>("Overlay");
+					x.World<HengineEcs.GuiButton, HengineEcs.TextElement>("Overlay");
 				})
 				.Resource(x =>
 				{
@@ -169,6 +172,9 @@ namespace Engine
 
 					x.Pipeline("Overlay", x =>
 					{
+						x.Sequential<GuiButtonSystem>();
+						x.Sequential<GuiDraggableSystem>();
+
 						x.Sequential<VulkanGuiRenderSystem>();
 						x.Sequential<VulkanTextRenderingSystem>();
 					});

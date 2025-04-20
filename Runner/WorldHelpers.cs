@@ -101,14 +101,16 @@ namespace Runner
 			});
 		}
 
-		public static EnCS.ArchRef<GuiElement> CreateGuiElement(this HengineEcs.Overlay world, Vector4f position, Vector4f size, TextureAtlas textureAtlas, GuiProperties properties)
+		public static EnCS.ArchRef<HengineEcs.GuiButton> CreateGuiButton(this HengineEcs.Overlay world, Vector4f position, Vector4f size, TextureAtlas textureAtlas, Engine.Components.GuiButton guiButton, GuiProperties properties)
 		{
-			var objRef = world.Create(new GuiElement());
-			GuiElement.Ref entRef = world.Get(objRef);
+			var objRef = world.Create(new HengineEcs.GuiButton());
+			HengineEcs.GuiButton.Ref entRef = world.Get(objRef);
 			entRef.GuiPosition.Set(position);
 			entRef.GuiSize.Set(size);
 			entRef.TextureAtlas.Set(textureAtlas);
 			entRef.GuiProperties.Set(properties);
+			entRef.GuiButton.Set(guiButton);
+			entRef.GuiState.Set(new());
 
 			return objRef;
 		}

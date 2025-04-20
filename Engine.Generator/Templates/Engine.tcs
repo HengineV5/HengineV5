@@ -13,7 +13,14 @@ namespace $namespace
 {
 	public partial class $engineName
 	{
+		ref struct ScheduleContext
+		{
+			public Engine.EngineContext engineContext;
+			$uniqueContextArgs~>public $argType arg$argType;<~~>\n			<~
+		}
+
 		$ecsName ecs;
+		System.Memory<Engine.Scheduling.ScheduledAction<ScheduleContext>> jobs;
 
 		$pipelines~>$pipelineName _|$pipelineName|;<~~>\n		<~
 
@@ -60,6 +67,10 @@ namespace $namespace
 
 			ecs = new $ecsName($resourceManagers~>_|$resourceManagerName|<~~>, <~);
 
+			jobs = new Engine.Scheduling.ScheduledAction<ScheduleContext>[] {
+				$worlds~>$worldPipelines~>|$worldSafeName|_|$pipelineName|,<~~>\n				<~<~~>\n				<~
+			};
+
 			initialized = true;
 		}
 
@@ -68,19 +79,21 @@ namespace $namespace
 			if (!initialized)
 				throw new System.Exception("$engineName must be initialized by running initialize() before start.");
 
+			Engine.Scheduling.Scheduler<ScheduleContext> scheduler = new(jobs.Span);
 			sw.Restart();
 
-			var engineContext = new EngineContext();
+			var scheduleContext = new ScheduleContext();
+			scheduleContext.engineContext = new Engine.EngineContext();
+
 			while (true)
 			{
-				engineContext.dt = sw.ElapsedMilliseconds / 1000f;
+				scheduleContext.engineContext.dt = sw.ElapsedMilliseconds / 1000f;
 				sw.Restart();
 
-				$uniqueContextArgs~>$argType arg$argType = new $argType();<~~>\n				<~
+				// Rest args.
+				$uniqueContextArgs~>scheduleContext.arg$argType = new $argType();<~~>\n				<~
 
-				$worlds~>{ // $worldName
-					$worldPipelines~>_|$pipelineName|.Run<|$worldName|>(ref engineContext, ecs$pipelineContextArguments~>, ref arg$argType<~);<~~>\n					<~
-				}<~
+				scheduler.ExecuteOneStep(scheduleContext.engineContext.dt, ref scheduleContext);
 
 				if (ShouldExit())
 				{
@@ -89,5 +102,9 @@ namespace $namespace
 				}
 			}
 		}
+
+		$worlds~>$worldPipelines~>void |$worldSafeName|_|$pipelineName|(ref ScheduleContext context)
+			=> _|$pipelineName|.Run<|$worldName|>(ref context.engineContext, ecs$pipelineContextArguments~>, ref context.arg$argType<~);
+		<~~>\n		<~<~~>\n		<~
 	}
 }

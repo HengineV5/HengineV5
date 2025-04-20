@@ -517,6 +517,7 @@ namespace Engine.Generator
 		{
 			var model = new Model<ReturnType>();
 			model.Set("worldName".AsSpan(), Parameter.Create(name));
+			model.Set("worldSafeName".AsSpan(), Parameter.Create(name.Replace('.', '_')));
 			model.Set("worldPipelines".AsSpan(), Parameter.CreateEnum<IModel<ReturnType>>(pipelines.Select(x => x.GetModel())));
 
 			return model;
