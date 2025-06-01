@@ -11,7 +11,7 @@ namespace Engine
 {
 	public struct OpenGLRenderContext
 	{
-		public Camera camera;
+		//public Camera camera;
 		public Vector3f cameraPosition;
 		public Quaternionf cameraRotation;
 	}
@@ -69,8 +69,9 @@ namespace Engine
 		}
 
 		[SystemUpdate, SystemLayer(0)]
-		public void CameraUpdate(ref OpenGLRenderContext context, Position.Ref position, Rotation.Ref rotation, Camera.Ref camera)
+		public void CameraUpdate(ref OpenGLRenderContext context, ref Position position, ref Rotation rotation, ref Camera camera)
 		{
+			/*
 			context.camera = new Camera()
 			{
 				zNear = camera.zNear,
@@ -79,21 +80,22 @@ namespace Engine
 				width = camera.width,
 				height = camera.height,
 			};
+			*/
 
 			context.cameraPosition = new Vector3f(position.x, position.y, position.z);
 			context.cameraRotation = new Quaternionf(rotation.x, rotation.y, rotation.z, rotation.w);
 		}
 
 		[SystemUpdate, SystemLayer(1)]
-		public unsafe void Update(ref OpenGLRenderContext context, Position.Ref position, Rotation.Ref rotation, Scale.Ref scale, ref GlMeshBuffer mesh, ref GlTextureBuffer texture)
+		public unsafe void Update(ref OpenGLRenderContext context, ref Position position, ref Rotation rotation, ref Scale scale, ref GlMeshBuffer mesh, ref GlTextureBuffer texture)
 		{
 			ShaderUniforms shaderUniforms = GetShaderUniforms(gl, shaderProgram);
 
 			gl.BindVertexArray(mesh.vao.ID);
 			gl.UseProgram((uint)shaderProgram.ID);
 
-			SetModelUniforms(position, rotation, scale, shaderUniforms);
-			SetCameraUniforms(context.camera, context.cameraPosition, context.cameraRotation, shaderUniforms);
+			SetModelUniforms(ref position, ref rotation, ref scale, shaderUniforms);
+			//SetCameraUniforms(ref context.camera, ref context.cameraPosition, ref context.cameraRotation, shaderUniforms);
 			SetMaterialUniforms(defaultMaterial, shaderUniforms);
 			SetLightUniforms(defaultLight, new Position(), shaderUniforms);
 
@@ -105,7 +107,7 @@ namespace Engine
 			window.SwapBuffers();
 		}
 
-		unsafe void SetModelUniforms(in Position.Ref position, in Rotation.Ref rotation, in Scale.Ref scale, in ShaderUniforms uniforms)
+		unsafe void SetModelUniforms(ref Position position, ref Rotation rotation, ref Scale scale, in ShaderUniforms uniforms)
 		{
 			// Model matrix components
 			Matrix4x4f translationMatrix = Matrix4x4f.CreateTranslation(new Vector3f(position.x, position.y, position.z));
@@ -117,7 +119,7 @@ namespace Engine
 			UniformMatrix4(gl, uniforms.Model.Scale, false, scaleMatrix);
 		}
 
-		unsafe void SetCameraUniforms(in Camera camera, in Position position, in Rotation rotation, in ShaderUniforms uniforms)
+		unsafe void SetCameraUniforms(ref Camera camera, ref Position position, ref Rotation rotation, ref ShaderUniforms uniforms)
 		{
 			Matrix4x4f view = Matrix4x4f.CreateTranslation(-new Vector3f(position.x, position.y, position.z)) * Matrix4x4f.FromQuaternion(new Quaternionf(rotation.x, rotation.y, rotation.z, rotation.w));
 			Matrix4x4f projection = Matrix4x4f.CreatePersperctive(camera.fov, camera.width / camera.height, camera.zNear, camera.zFar);

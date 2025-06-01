@@ -125,7 +125,7 @@ namespace Runner
 
 			var skybox = Skybox.LoadSkybox("Skybox", "Images/Skybox/Default");
 
-			Camera camera = new Camera
+			Camera.Comp camera = new Camera.Comp
 			{
 				width = engine.argIWindow.Size.X,
 				height = engine.argIWindow.Size.Y,
@@ -149,7 +149,7 @@ namespace Runner
 				Main mainWorld = ecs.GetMain();
 				var cam = mainWorld.Get(camRef);
 
-				Camera camera = new Camera
+				Camera.Comp camera = new Camera.Comp
 				{
 					width = x.X,
 					height = x.Y,
@@ -166,11 +166,11 @@ namespace Runner
             var buttonAtlas = TextureAtlas.LoadAtlas("ButtonAtlas", 3, "Images/Gui/Button/Button.png");
             var textAtlas = TextureAtlas.LoadAtlas("TextAtlas", 1, "Images/Gui/Text/Text.png");
 
-			GuiProperties prop = new GuiProperties()
+			GuiProperties.Comp prop = new GuiProperties.Comp()
 			{
 				shape = GuiShape.Box
 			};
-			overlayWorld.CreateGuiButton(new(30, 0, 250, 0), new(50 * 4, 0, 50 * 4, 0), buttonAtlas, new(), prop);
+			overlayWorld.CreateGuiButton(new(30, 0, 250, 0), new(50 * 4, 0, 50 * 4, 0), buttonAtlas, new GuiButton.Comp(), prop);
 
 			GuiText text = new GuiText()
 			{
@@ -231,7 +231,7 @@ namespace Runner
 			var ecs = server.GetEcs();
 			HengineServerEcs.Main mainWorld = ecs.GetMain();
 
-			Camera camera = new Camera
+			Camera.Comp camera = new Camera.Comp
 			{
 				width = 800,
 				height = 600,

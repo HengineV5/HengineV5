@@ -30,10 +30,10 @@ namespace Engine.Components
 	}
 
 	[Component]
-	public partial struct GizmoComp
+	public ref partial struct GizmoComp
 	{
-		public GizmoType type;
-		public GizmoColor color;
+		public ref GizmoType type;
+		public ref GizmoColor color;
 	}
 
 	public struct GizmoLinePosition
@@ -51,11 +51,11 @@ namespace Engine.Components
 	}
 
 	[Component]
-	public partial struct GizmoLine
+	public ref partial struct GizmoLine
 	{
-		public GizmoLinePosition p1;
-		public GizmoLinePosition p2;
+		public ref GizmoLinePosition p1;
+		public ref GizmoLinePosition p2;
 
-		public GizmoColor color;
+		public ref GizmoColor color;
 	}
 }

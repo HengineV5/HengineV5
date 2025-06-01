@@ -3,15 +3,10 @@
 namespace Engine.Components
 {
 	[Component]
-	public partial struct GuiButton
+	public ref partial struct GuiButton
 	{
-		public int normalState = 0;
-		public int hoverState = 1;
-		public int pressedState = 2;
-
-		public GuiButton()
-		{
-			
-		}
+		public ref int normalState;
+		public ref int hoverState;
+		public ref int pressedState;
 	}
 }

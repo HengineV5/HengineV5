@@ -261,11 +261,11 @@ namespace Runner
 		const float solidFactor = 0.75f;
 		const float blendFactor = 1 - solidFactor;
 
-		Memory2D<HexCell> map;
+		Memory2D<HexCellData> map;
 
 		public HexMap(int width, int height)
 		{
-			map = new HexCell[width, height];
+			map = new HexCellData[width, height];
 		}
 
 		public Mesh Compile()
@@ -314,7 +314,7 @@ namespace Runner
 			return mapMesh;
 		}
 
-		static void ConstructHexMesh(ref MeshBuilder<Vertex, uint> builder, in HexCell cell, in Span<HexCell> neighbors, in Vector3f hexPos, in Vector3f hexScale, in Vector2f hexUv, int bridgeSteps)
+		static void ConstructHexMesh(ref MeshBuilder<Vertex, uint> builder, in HexCellData cell, in Span<HexCellData> neighbors, in Vector3f hexPos, in Vector3f hexScale, in Vector2f hexUv, int bridgeSteps)
 		{
 			using var bridgeOffsets = GetBridgeOffsets(cell, neighbors);
 			using var cornerOffsets = GetCornerOffsets(cell, neighbors);
@@ -352,12 +352,12 @@ namespace Runner
 			}
 		}
 
-		static IMemoryOwner<Vector3f> GetBridgeOffsets(in HexCell cell, in Span<HexCell> neighbors)
+		static IMemoryOwner<Vector3f> GetBridgeOffsets(in HexCellData cell, in Span<HexCellData> neighbors)
 		{
 			float tileHeight = cell.height;
 
 			var bridgeOffsets = MemoryPool<Vector3f>.Shared.Rent(6);
-			var nNeighbors = new HexNeighbors<HexCell>(neighbors);
+			var nNeighbors = new HexNeighbors<HexCellData>(neighbors);
 			var oBridgeNeighbors = new HexNeighbors<Vector3f>(bridgeOffsets.Memory.Span);
 
 			oBridgeNeighbors.TopRight = Vector3f.UnitY * (nNeighbors.TopRight.height - tileHeight) / 2;
@@ -370,13 +370,13 @@ namespace Runner
 			return bridgeOffsets;
 		}
 
-		static IMemoryOwner<Vector3f> GetCornerOffsets(in HexCell cell, in Span<HexCell> neighbors)
+		static IMemoryOwner<Vector3f> GetCornerOffsets(in HexCellData cell, in Span<HexCellData> neighbors)
 		{
 			float tileHeight = cell.height;
 			Vector3f hexBaseOffset = Vector3f.UnitY * tileHeight;
 
 			var bridgeOffsets = MemoryPool<Vector3f>.Shared.Rent(6);
-			var nNeighbors = new HexNeighbors<HexCell>(neighbors);
+			var nNeighbors = new HexNeighbors<HexCellData>(neighbors);
 			var oCornerNeighbors = new HexNeighbors<Vector3f>(bridgeOffsets.Memory.Span);
 
 			oCornerNeighbors.TopRight = Vector3f.UnitY * (tileHeight + nNeighbors.TopRight.height + nNeighbors.TopLeft.height) / 3 - hexBaseOffset;
@@ -433,16 +433,16 @@ namespace Runner
 					n = float.Clamp(n, 0, 1);
 					n = MathF.Round(n, 2);
 
-					map.Span[x, y] = new HexCell(n);
+					map.Span[x, y] = new HexCellData(n);
 				}
 			}
 		}
 
-		public IMemoryOwner<HexCell> GetNeighbors(HexCoord hex)
+		public IMemoryOwner<HexCellData> GetNeighbors(HexCoord hex)
 		{
 			var axial = OddrToAxial(hex);
 
-			var buff = MemoryPool<HexCell>.Shared.Rent(6);
+			var buff = MemoryPool<HexCellData>.Shared.Rent(6);
 			buff.Memory.Span[0] = GetCell(axial + new HexAxialCoord(1, 0));
 			buff.Memory.Span[1] = GetCell(axial + new HexAxialCoord(1, -1));
 			buff.Memory.Span[2] = GetCell(axial + new HexAxialCoord(0, -1));
@@ -453,11 +453,11 @@ namespace Runner
 			return buff;
 		}
 
-		public IMemoryOwner<HexCell> GetNeighbors2(HexCoord hex)
+		public IMemoryOwner<HexCellData> GetNeighbors2(HexCoord hex)
 		{
 			var axial = OddrToAxial(hex);
 
-			var buff = MemoryPool<HexCell>.Shared.Rent(6);
+			var buff = MemoryPool<HexCellData>.Shared.Rent(6);
 			buff.Memory.Span[0] = GetCell(axial + new HexAxialCoord(0, -1));
 			buff.Memory.Span[1] = GetCell(axial + new HexAxialCoord(-1, 0));
 			buff.Memory.Span[2] = GetCell(axial + new HexAxialCoord(-1, 1));
@@ -469,7 +469,7 @@ namespace Runner
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public HexCell GetCellWrap(in HexCoord hex)
+		public HexCellData GetCellWrap(in HexCoord hex)
 		{
 			int x = hex.X;
 			int y = hex.Y;
@@ -484,23 +484,23 @@ namespace Runner
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public HexCell GetCell(in HexCoord hex)
+		public HexCellData GetCell(in HexCoord hex)
 		{
 			int x = hex.X;
 			int y = hex.Y;
 
 			if (x < 0 || x >= map.Width || y < 0 || y >= map.Height)
-				return new HexCell(0);
+				return new HexCellData(0);
 
 			return map.Span[x, y];
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public HexCell GetCell(in HexAxialCoord hex)
+		public HexCellData GetCell(in HexAxialCoord hex)
 			=> GetCell(AxialToOddr(hex));
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public HexCell GetCell(in HexCubeCoord hex)
+		public HexCellData GetCell(in HexCubeCoord hex)
 			=> GetCell(CubeToAxial(hex));
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]

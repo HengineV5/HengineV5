@@ -28,7 +28,7 @@ namespace Engine
 		}
 
 		[SystemUpdate]
-		public void Update(Rotation.Ref rotation)
+		public void Update(ref Rotation rotation)
 		{
 			var randX = (Random.Shared.NextSingle() - 0.5f) / 100;
 			var randY = (Random.Shared.NextSingle() - 0.5f) / 100;
@@ -102,7 +102,7 @@ namespace Engine
 		}
 
 		[SystemUpdate]
-		public void Update(ref EngineContext context, Camera.Ref camera, Position.Ref position, Rotation.Ref rotation)
+		public void Update(ref EngineContext context, ref Camera camera, ref Position position, ref Rotation rotation)
 		{
 			window.Title = $"Hengine v5: {(context.dt)}";
 
@@ -120,11 +120,11 @@ namespace Engine
 				mousePressed = false;
 			}
 
-			position.Set(UpdatePosition_New(ref context, position, rotation));
+			position.Set(UpdatePosition_New(ref context, ref position, ref rotation));
 
 			if (mousePressed)
 			{
-				rotation.Set(UpdateRotation_New(ref context, rotation));
+				rotation.Set(UpdateRotation_New(ref context, ref rotation));
 			}
 
 			if (inputHandler.IsKeyDown(Key.Escape))
@@ -139,7 +139,7 @@ namespace Engine
 			
 		}
 
-		Vector3f UpdatePosition_New(ref EngineContext context, Position.Ref position, Rotation.Ref rotation)
+		Vector3f UpdatePosition_New(ref EngineContext context, ref Position position, ref Rotation rotation)
 		{
 			Quaternionf camQ = new Quaternionf(rotation.x, rotation.y, rotation.z, rotation.w);
             Vector3f camForward = -Vector3f.Transform(Vector3f.UnitZ, Quaternionf.Inverse(in camQ));
@@ -171,7 +171,7 @@ namespace Engine
 			return delta + new Vector3f(position.x, position.y, position.z);
 		}
 
-		Quaternionf UpdateRotation_New(ref EngineContext context, Rotation.Ref rotation)
+		Quaternionf UpdateRotation_New(ref EngineContext context, ref Rotation rotation)
 		{
 			Vector2f newPos = inputHandler.GetMousePosition();
 			Vector2f mouseDelta = newPos - prevPos;

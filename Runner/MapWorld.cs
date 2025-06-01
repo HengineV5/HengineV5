@@ -76,7 +76,7 @@ namespace Runner
 
 			Vector3f start = new((-21 / 2) + 0.5f, -2, -5);
 			start = new Vector3f(0, 0, -5);
-			world.CreateHex(start, Vector3f.One, new HexCell(0), mapMesh, materialMap, 1);
+			//world.CreateHex(start, Vector3f.One, new HexCell(0), mapMesh, materialMap, 1);
 
 			int lineRes = 5;
 			Span<Vector2f> line = stackalloc Vector2f[lineRes + 1];

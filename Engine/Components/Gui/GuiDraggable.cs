@@ -3,10 +3,10 @@
 namespace Engine.Components
 {
 	[Component]
-	public partial struct GuiDraggable
+	public ref partial struct GuiDraggable
 	{
-		public float offsetX;
-		public float offsetY;
-		public int isDragging;
+		public ref float offsetX;
+		public ref float offsetY;
+		public ref int isDragging;
 	}
 }

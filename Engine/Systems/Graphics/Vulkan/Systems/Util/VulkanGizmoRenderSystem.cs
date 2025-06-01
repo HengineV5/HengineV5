@@ -46,9 +46,9 @@ namespace Engine
 		}
 
 		[SystemUpdate, SystemLayer(0, 2)]
-		public void BufferUpdate(ref VulkanRenderContext context, in Position.Ref position, in Rotation.Ref rotation, in Scale.Ref scale, in GizmoComp.Ref gizmoComp)
+		public void BufferUpdate(ref VulkanRenderContext context, ref Position position, ref Rotation rotation, ref Scale scale, ref GizmoComp gizmoComp)
 		{
-			UpdateEntityUbo(ref context.gizmoUbo, position, rotation, scale);
+			UpdateEntityUbo(ref context.gizmoUbo, ref position, ref rotation, ref scale);
 
 			ref GizmoShaderInput shaderInput = ref renderContext.pipeline.GetUbo<GizmoShaderInput>(bufferIdx);
 			shaderInput.ubo.Value = context.gizmoUbo;
@@ -58,7 +58,7 @@ namespace Engine
 		}
 
 		[SystemUpdate, SystemLayer(0, 2)]
-		public void RenderUpdate(ref VulkanRenderContext context, in Position.Ref position, in Rotation.Ref rotation, in Scale.Ref scale, in GizmoComp.Ref gizmoComp)
+		public void RenderUpdate(ref VulkanRenderContext context, ref Position position, ref Rotation rotation, ref Scale scale, ref GizmoComp gizmoComp)
 		{
 			switch (gizmoComp.type)
 			{
@@ -81,7 +81,7 @@ namespace Engine
 			renderContext.pipeline.EndRenderPass(context);
 		}
 
-		static void UpdateEntityUbo(ref MeshUniformBufferObject ubo, in Position.Ref position, in Rotation.Ref rotation, in Scale.Ref scale)
+		static void UpdateEntityUbo(ref MeshUniformBufferObject ubo, ref Position position, ref Rotation rotation, ref Scale scale)
 		{
 			ubo.translation = Matrix4x4f.CreateTranslation(new Vector3f(position.x, position.y, position.z));
 			ubo.rotation = Matrix4x4f.FromQuaternion(new Quaternionf(rotation.x, rotation.y, rotation.z, rotation.w));

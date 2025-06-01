@@ -3,13 +3,18 @@
 namespace Engine.Graphics
 {
 	[Component]
-	public partial struct HexCell
+	public ref partial struct HexCell
+	{
+		public ref float height;
+    }
+
+	public struct HexCellData
 	{
 		public float height;
 
-        public HexCell(float height)
-        {
-            this.height = height;
-        }
-    }
+		public HexCellData(float height)
+		{
+			this.height = height;
+		}
+	}
 }

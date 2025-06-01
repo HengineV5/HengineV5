@@ -5,12 +5,13 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Xml.Linq;
 using TemplateGenerator;
 
 namespace Engine.Generator
 {
-	struct EngineGeneratorData : IEquatable<EngineGeneratorData>
+	struct EngineGeneratorData : IEquatable<EngineGeneratorData>, ITemplateData
 	{
 		public string ecsName;
 		public string engineName;
@@ -34,6 +35,9 @@ namespace Engine.Generator
 		{
 			return engine.Equals(other.engine);
 		}
+
+		public string GetIdentifier()
+			=> $"Component Generator ({ns}.{ecsName}) ({location})";
 	}
 
 	class EngineGenerator : ITemplateSourceGenerator<IdentifierNameSyntax, EngineGeneratorData>
@@ -72,16 +76,19 @@ namespace Engine.Generator
 			return true;
 		}
 
-		public EngineGeneratorData? Filter(IdentifierNameSyntax node, SemanticModel semanticModel)
+		public bool TryGetData(IdentifierNameSyntax node, SemanticModel semanticModel, out EngineGeneratorData data, out List<Diagnostic> diagnostics)
 		{
+			diagnostics = new ();
+			Unsafe.SkipInit(out data);
+
 			if (node?.Parent is ClassDeclarationSyntax)
-				return null;
+				return false;
 
 			if (node?.Parent is MethodDeclarationSyntax)
-				return null;
+				return false;
 
 			if (node.Identifier.Text != "HengineBuilder")
-				return null;
+				return false;
 
 			var builderRoot = GetBuilderRoot(node);
 
@@ -94,11 +101,12 @@ namespace Engine.Generator
 			var resourceStep = builderSteps.Single(x => x.Name.Identifier.Text == "Resource");
 
 			if (!TryGetEngine(semanticModel, layoutStep, configStep, resourceStep, out EcsEngine engine))
-				return null;
+				return false;
 
 			var usings = GetUsings(node);
 
-			return new EngineGeneratorData(GetEcsName(node), GetEngineName(node), builderRoot.GetNamespace(), node.GetLocation(), engine, new(usings.ToArray()));
+			data = new EngineGeneratorData(GetEcsName(node), GetEngineName(node), builderRoot.GetNamespace(), node.GetLocation(), engine, new(usings.ToArray()));
+			return true;
 		}
 
 		public string GetName(EngineGeneratorData data)

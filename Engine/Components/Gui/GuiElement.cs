@@ -9,15 +9,9 @@ namespace Engine.Components
 	}
 
 	[Component]
-	public partial struct GuiProperties
+	public ref partial struct GuiProperties
 	{
-		public GuiShape shape;
-		public float z;
-
-		public GuiProperties(GuiShape shape, float z)
-		{
-			this.shape = shape;
-			this.z = z;
-		}
+		public ref GuiShape shape;
+		public ref float z;
 	}
 }

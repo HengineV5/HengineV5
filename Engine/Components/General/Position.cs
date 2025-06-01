@@ -3,20 +3,30 @@
 namespace Engine.Components
 {
 	[Component]
-	public partial struct Position
+	public ref partial struct Position
 	{
-		public float x;
-		public float y;
-		public float z;
+		public ref float x;
+		public ref float y;
+		public ref float z;
 
-		public Position(float x, float y, float z)
+		public static implicit operator Vector3f(Position v) => new(v.x, v.y, v.z);
+		public static implicit operator Vector2f(Position v) => new(v.x, v.y);
+	}
+
+	public static partial class Comp_Extensions
+	{
+		public static void Set(this ref Position position, Vector3f value)
 		{
-			this.x = x;
-			this.y = y;
-			this.z = z;
+			position.x = value.x;
+			position.y = value.y;
+			position.z = value.z;
 		}
 
-		public static implicit operator Position(Vector3f v) => new(v.x, v.y, v.z);
-		public static implicit operator Position(Vector2f v) => new(v.x, v.y, 0);
+		public static void Set(this ref Position position, Vector2f value)
+		{
+			position.x = value.x;
+			position.y = value.y;
+			position.z = 0;
+		}
 	}
 }

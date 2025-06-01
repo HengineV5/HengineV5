@@ -32,7 +32,7 @@ namespace Test
 			}
 
 			public void Run<TWorldInterface>(ref EngineContext argEngineContext, HengineEcs ecs, ref TestContext argTestContext)
-				where TWorldInterface : IWorld<HengineEcs, OpenGLRenderSystem, TestContext>, IWorld<HengineEcs, System2>, IWorld<HengineEcs, System3>
+				where TWorldInterface : IWorld<HengineEcs, OpenGLRenderSystem, TestContext>, IWorld<HengineEcs, System2>, IWorld<HengineEcs, System3>, allows ref struct
 			{
 				_OpenGLRenderSystem.PreRun();
 				TWorldInterface.Loop(ecs, _OpenGLRenderSystem, ref argTestContext);
@@ -63,7 +63,7 @@ namespace Test
 			}
 
 			public void Run<TWorldInterface>(ref EngineContext argEngineContext, HengineEcs ecs)
-				where TWorldInterface : IWorld<HengineEcs, System2>
+				where TWorldInterface : IWorld<HengineEcs, System2>, allows ref struct
 			{
 				
 				TWorldInterface.Loop(ecs, _System2);

@@ -44,7 +44,7 @@ namespace Engine
 		}
 
         [SystemUpdate]
-        public void Update(ref EngineContext engineContext, Position.Ref position, Rotation.Ref rotation, Camera.Ref camera, Networked.Ref networked)
+        public void Update(ref EngineContext engineContext, ref Position position, ref Rotation rotation, ref Camera camera, ref Networked networked)
         {
             var packets = server.GetPackets();
             List<int> toRemove = new List<int>();
@@ -56,8 +56,8 @@ namespace Engine
                 {
                     logger.LogMatchFound(packet.idx, packet.position, packet.roation);
 
-					position.Set(packet.position);
-                    rotation.Set(packet.roation);
+					//position.Set(packet.position);
+                    //rotation.Set(packet.roation);
                     toRemove.Add(i);
                 }
 			}
@@ -69,7 +69,7 @@ namespace Engine
         }
 
 		[SystemUpdate]
-		public void Update2(ref EngineContext engineContext, Position.Ref position, Rotation.Ref rotation, Camera.Ref camera, Networked.Ref networked)
+		public void Update2(ref EngineContext engineContext, ref Position position, ref Rotation rotation, ref Camera camera, ref Networked networked)
 		{
             time += MathF.Max(engineContext.dt, 0.00001f);
             if (time < 1.12f / 20)

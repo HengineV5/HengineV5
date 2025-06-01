@@ -20,7 +20,7 @@ namespace Engine
 		}
 
 		[SystemUpdate]
-		public void UpdateCamera(ref VulkanRenderContext context, Camera.Ref camera)
+		public void UpdateCamera(ref VulkanRenderContext context, ref Camera camera)
 		{
 		}
 

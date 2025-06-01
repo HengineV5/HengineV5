@@ -27,7 +27,7 @@ namespace $namespace
 			}
 
 			public void Run<TWorldInterface>(ref EngineContext argEngineContext, $ecsName ecs$pipelineContextArguments~>, ref $argType arg$argType<~)
-				where TWorldInterface : $pipelineSystems~>IWorld<$ecsName, |$systemName|$systemContextArgs~>, $argType<~><~~>, <~
+				where TWorldInterface : $pipelineSystems~>IWorld<$ecsName, |$systemName|$systemContextArgs~>, $argType<~><~~>, <~, allows ref struct
 			{
 				$pipelineSystems|$hasPreRun == true|~>_|$systemName|.PreRun();<~~>\n				<~
 

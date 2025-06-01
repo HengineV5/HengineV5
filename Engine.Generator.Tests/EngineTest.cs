@@ -402,13 +402,13 @@ namespace Test
 					x.Sequential<System2>();
 				});
 
-				x.World<Ecs.Main.Interface>(x =>
+				x.World<Ecs.Main>(x =>
 				{
 					x.Pipeline<Hengine.GraphicsPipeline>();
 					x.Pipeline<Hengine.PhysicsPipeline>();
 				});
 
-				x.World<Ecs.World2.Interface>(x =>
+				x.World<Ecs.World2>(x =>
 				{
 					x.Pipeline<Hengine.GraphicsPipeline>();
 				});

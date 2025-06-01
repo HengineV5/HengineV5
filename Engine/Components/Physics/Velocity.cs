@@ -3,10 +3,10 @@
 namespace Engine.Primitives
 {
 	[Component]
-	public partial struct Velocity
+	public ref partial struct Velocity
 	{
-		public float x;
-		public float y;
-		public float z;
+		public ref float x;
+		public ref float y;
+		public ref float z;
 	}
 }

@@ -3,21 +3,24 @@
 namespace Engine.Components
 {
 	[Component]
-	public partial struct GuiSize
+	public ref partial struct GuiSize
 	{
-		public float x;
-		public float y;
-		public float z;
-		public float w;
+		public ref float x;
+		public ref float y;
+		public ref float z;
+		public ref float w;
 
-		public GuiSize(float x, float y, float z, float w)
+		public static implicit operator Vector4f(GuiSize v) => new(v.x, v.y, v.z, v.w);
+	}
+
+	public static partial class GuiSize_Extensions
+	{
+		public static void Set(this ref GuiSize position, Vector4f value)
 		{
-			this.x = x;
-			this.y = y;
-			this.z = z;
-			this.w = w;
+			position.x = value.x;
+			position.y = value.y;
+			position.z = value.z;
+			position.w = value.w;
 		}
-
-		public static implicit operator GuiSize(Vector4f v) => new(v.x, v.y, v.z, v.w);
 	}
 }

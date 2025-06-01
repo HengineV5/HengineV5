@@ -12,8 +12,11 @@ namespace Engine.Generator
 			var engineGenerator = new EngineGenerator();
 			var pipelineGenerator = new PipelineGenerator();
 
-			TemplateGeneratorHelpers.RegisterTemplateGenerator(context, engineGenerator);
-			TemplateGeneratorHelpers.RegisterTemplateGenerator(context, pipelineGenerator);
+			new TemplateGeneratorBuilder()
+				.WithLogging(context)
+				.WithGenerator(context, engineGenerator)
+				.WithGenerator(context, pipelineGenerator)
+				.WithInfoFile(context);
 		}
 	}
 }

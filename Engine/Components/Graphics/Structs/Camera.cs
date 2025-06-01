@@ -3,12 +3,12 @@
 namespace Engine.Graphics
 {
 	[Component]
-	public partial struct Camera
+	public ref partial struct Camera
 	{
-		public float zNear;
-		public float zFar;
-		public float fov;
-		public float width;
-		public float height;
+		public ref float zNear;
+		public ref float zFar;
+		public ref float fov;
+		public ref float width;
+		public ref float height;
 	}
 }

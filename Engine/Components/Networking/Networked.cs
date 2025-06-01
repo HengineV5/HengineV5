@@ -8,8 +8,8 @@ using System.Threading.Tasks;
 namespace Engine.Components
 {
 	[Component]
-	public partial struct Networked
+	public ref partial struct Networked
 	{
-		public int idx;
+		public ref int idx;
 	}
 }

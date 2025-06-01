@@ -34,7 +34,7 @@ namespace Engine
 	public partial class PositionSystem
 	{
 		[SystemUpdate]
-		public void Update(Position.Ref position)
+		public void Update(ref Position position)
 		{
 		}
 
@@ -48,7 +48,6 @@ namespace Engine
 	{
 
 	}
-
 	public partial class Hengine
 	{
 		bool ShouldExit()
@@ -67,9 +66,9 @@ namespace Engine
 					x.ArchType<Position, Rotation, Camera, Skybox, Networked>("Cam");
 
 					x.ArchType<Position, Rotation, Scale, GizmoComp>("Gizmo");
-					x.ArchType<GizmoLine>("GizmoLine");
+					x.ArchType<GizmoLine>("GizmoLine1");
 
-					x.ArchType<GuiProperties, GuiPosition, GuiSize, GuiState, GuiButton, GuiDraggable, TextureAtlas>("GuiButton");
+					x.ArchType<GuiProperties, GuiPosition, GuiSize, GuiState, GuiButton, GuiDraggable, TextureAtlas>("GuiButton1");
 					x.ArchType<GuiProperties, GuiPosition, TextureAtlas, GuiText>("TextElement");
 				})
 				.System(x =>
@@ -97,8 +96,8 @@ namespace Engine
 				})
 				.World(x =>
 				{
-					x.World<HengineEcs.NEntity, HengineEcs.Cam, HengineEcs.Hex, HengineEcs.Gizmo, HengineEcs.GizmoLine>("Main");
-					x.World<HengineEcs.GuiButton, HengineEcs.TextElement>("Overlay");
+					x.World<HengineEcs.NEntity, HengineEcs.Cam, HengineEcs.Hex, HengineEcs.Gizmo, HengineEcs.GizmoLine1>("Main");
+					x.World<HengineEcs.GuiButton1, HengineEcs.TextElement>("Overlay");
 				})
 				.Resource(x =>
 				{
@@ -193,24 +192,24 @@ namespace Engine
 						//x.Sequential<ClientReceiveSystem>();
 					});
 
-					x.World<HengineEcs.Main.Interface>(x =>
+					x.World<HengineEcs.Main>(x =>
 					{
 						x.Pipeline<Hengine.CameraPipeline>();
 					});
 
-					x.World<HengineEcs.Main.Interface>(x =>
+					x.World<HengineEcs.Main>(x =>
 					{
 						x.Pipeline<Hengine.GraphicsPipeline>();
 
 						x.Pipeline<Hengine.RotatePipeline>();
 					});
 
-					x.World<HengineEcs.Overlay.Interface>(x =>
+					x.World<HengineEcs.Overlay>(x =>
 					{
 						x.Pipeline<Hengine.OverlayPipeline>();
 					});
 
-					x.World<HengineEcs.Main.Interface>(x =>
+					x.World<HengineEcs.Main>(x =>
 					{
 						x.Pipeline<Hengine.PresentPipeline>();
 					});
@@ -274,7 +273,7 @@ namespace Engine
 						x.Sequential<ServerSystem>();
 					});
 
-					x.World<HengineServerEcs.Main.Interface>(x =>
+					x.World<HengineServerEcs.Main>(x =>
 					{
 						x.Pipeline<HengineServer.ServerPipeline>();
 					});

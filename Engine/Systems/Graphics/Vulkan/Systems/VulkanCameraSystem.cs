@@ -30,9 +30,9 @@ namespace Engine
 		}
 
 		[SystemUpdate]
-		public void UpdateCamera(ref VulkanRenderContext context, in Position.Ref position, in Rotation.Ref rotation, in Camera.Ref camera, ref VkSkybox skybox)
+		public void UpdateCamera(ref VulkanRenderContext context, ref Position position, ref Rotation rotation, ref Camera camera, ref VkSkybox skybox)
 		{
-			UpdateSkyboxCameraUbo(ref context.skyboxUbo, camera, rotation, window);
+			UpdateSkyboxCameraUbo(ref context.skyboxUbo, ref camera, ref rotation, window);
 			context.skyboxUbo.cameraPos = new Vector3f(position.x, position.y, position.z);
 			context.pbrUbo.cameraPos = new Vector3f(position.x, position.y, position.z);
 			context.gizmoUbo.cameraPos = new Vector3f(position.x, position.y, position.z);
@@ -50,12 +50,12 @@ namespace Engine
 			renderContext.pipeline.ClearDepthBuffer(this.context); // Clear depth buffer because mesh rendering might go over multiple render passes, so depth buffer is loaded for each pass.
 			renderContext.pipeline.EndRenderPass(this.context);
 
-			UpdateCameraUbo(ref context.pbrUbo, camera, position, rotation, window);
-			UpdateCameraGuiUbo(ref context.guiUbo, camera, window);
-			UpdateCameraGizmoUbo(ref context.gizmoUbo, camera, position, rotation, window);
+			UpdateCameraUbo(ref context.pbrUbo, ref camera, ref position, ref rotation, window);
+			UpdateCameraGuiUbo(ref context.guiUbo, ref camera, window);
+			UpdateCameraGizmoUbo(ref context.gizmoUbo, ref camera, ref position, ref rotation, window);
 		}
 
-		static void UpdateCameraUbo(ref MeshUniformBufferObject ubo, in Camera.Ref camera, in Position.Ref position, in Rotation.Ref rotation, IWindow window)
+		static void UpdateCameraUbo(ref MeshUniformBufferObject ubo, ref Camera camera, ref Position position, ref Rotation rotation, IWindow window)
 		{
 			ubo.view = Matrix4x4f.CreateTranslation(-new Vector3f(position.x, position.y, position.z)) * Matrix4x4f.FromQuaternion(new Quaternionf(rotation.x, rotation.y, rotation.z, rotation.w));
 			//ubo.proj = Matrix4x4f.CreatePerspectiveFieldOfView(camera.fov, camera.width / camera.height, camera.zNear, camera.zFar);
@@ -64,7 +64,7 @@ namespace Engine
 			ubo.proj.m22 *= -1; // Think this was some opengl comaptability stuff.
 		}
 
-		static void UpdateSkyboxCameraUbo(ref MeshUniformBufferObject ubo, in Camera.Ref camera, in Rotation.Ref rotation, IWindow window)
+		static void UpdateSkyboxCameraUbo(ref MeshUniformBufferObject ubo, ref Camera camera, ref Rotation rotation, IWindow window)
 		{
 			ubo.view = Matrix4x4f.FromQuaternion(new Quaternionf(rotation.x, rotation.y, rotation.z, rotation.w));
 			//ubo.proj = Matrix4x4f.CreatePerspectiveFieldOfView(camera.fov, camera.width / camera.height, camera.zNear, camera.zFar);
@@ -73,7 +73,7 @@ namespace Engine
 			ubo.proj.m22 *= -1; // Think this was some opengl comaptability stuff.
 		}
 
-		static void UpdateCameraGizmoUbo(ref MeshUniformBufferObject ubo, in Camera.Ref camera, in Position.Ref position, in Rotation.Ref rotation, IWindow window)
+		static void UpdateCameraGizmoUbo(ref MeshUniformBufferObject ubo, ref Camera camera, ref Position position, ref Rotation rotation, IWindow window)
 		{
 			ubo.view = Matrix4x4f.CreateTranslation(-new Vector3f(position.x, position.y, position.z)) * Matrix4x4f.FromQuaternion(new Quaternionf(rotation.x, rotation.y, rotation.z, rotation.w));
 			ubo.proj = Matrix4x4f.CreatePersperctive(camera.fov, (float)window.Size.X / (float)window.Size.Y, camera.zNear, camera.zFar);
@@ -83,7 +83,7 @@ namespace Engine
             ubo.proj.m22 *= -1; // Think this was some opengl comaptability stuff.
 		}
 
-		static void UpdateCameraGuiUbo(ref GuiUniformBufferObject ubo, in Camera.Ref camera, IWindow window)
+		static void UpdateCameraGuiUbo(ref GuiUniformBufferObject ubo, ref Camera camera, IWindow window)
 		{
 			//ubo.proj = Matrix4x4f.CreatePerspectiveFieldOfView(camera.fov, camera.width / camera.height, camera.zNear, camera.zFar);
 			//ubo.proj = Matrix4x4f.CreatePerspectiveFieldOfView(camera.fov, (float)window.Size.X / (float)window.Size.Y, camera.zNear, camera.zFar);

@@ -64,9 +64,9 @@ namespace Engine
 		}
 
 		[SystemUpdate, SystemLayer(0, 2)]
-		public void BufferUpdate(ref VulkanRenderContext context, Position.Ref position, Rotation.Ref rotation, Scale.Ref scale, ref VkMeshBuffer mesh, ref VkPbrMaterial material)
+		public void BufferUpdate(ref VulkanRenderContext context, ref Position position, ref Rotation rotation, ref Scale scale, ref VkMeshBuffer mesh, ref VkPbrMaterial material)
 		{
-			UpdateEntityUbo(ref context.pbrUbo, position, rotation, scale);
+			UpdateEntityUbo(ref context.pbrUbo, ref position, ref rotation, ref scale);
 
 			ref PbrShaderInput shaderInput = ref renderContext.pipeline.GetUbo<PbrShaderInput>(bufferIdx);
 			shaderInput.ubo.Value = context.pbrUbo;
@@ -83,7 +83,7 @@ namespace Engine
 		}
 
 		[SystemUpdate, SystemLayer(0, 2)]
-		public void RenderUpdate(ref VulkanRenderContext context, Position.Ref position, Rotation.Ref rotation, Scale.Ref scale, ref VkMeshBuffer mesh, ref VkPbrMaterial material)
+		public void RenderUpdate(ref VulkanRenderContext context, ref Position position, ref Rotation rotation, ref Scale scale, ref VkMeshBuffer mesh, ref VkPbrMaterial material)
 		{
             renderContext.pipeline.Render(this.context, PipelineContainerLayer.Pbr, mesh.vertexBuffer, mesh.indexBuffer, mesh.indicies, updateIdx);
 			updateIdx++;
@@ -95,7 +95,7 @@ namespace Engine
 			renderContext.pipeline.EndRenderPass(context);
 		}
 
-		static void UpdateEntityUbo(ref MeshUniformBufferObject ubo, Position.Ref position, Rotation.Ref rotation, Scale.Ref scale)
+		static void UpdateEntityUbo(ref MeshUniformBufferObject ubo, ref Position position, ref Rotation rotation, ref Scale scale)
 		{
 			ubo.translation = Matrix4x4f.CreateTranslation(new Vector3f(position.x, position.y, position.z));
 			ubo.rotation = Matrix4x4f.FromQuaternion(new Quaternionf(rotation.x, rotation.y, rotation.z, rotation.w));

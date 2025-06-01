@@ -45,7 +45,7 @@ namespace Engine
 		}
 
 		[SystemUpdate, SystemLayer(0, 2)]
-		public void BufferUpdate(ref VulkanRenderContext context, in GizmoLine.Ref gizmoComp)
+		public void BufferUpdate(ref VulkanRenderContext context, ref GizmoLine gizmoComp)
 		{
 			Vector3f a = new(gizmoComp.p1.x, gizmoComp.p1.y, gizmoComp.p1.z);
 			Vector3f b = new(gizmoComp.p2.x, gizmoComp.p2.y, gizmoComp.p2.z);
@@ -64,7 +64,7 @@ namespace Engine
 		}
 
 		[SystemUpdate, SystemLayer(0, 2)]
-		public void RenderUpdate(ref VulkanRenderContext context, in GizmoLine.Ref gizmoComp)
+		public void RenderUpdate(ref VulkanRenderContext context, ref GizmoLine gizmoComp)
 		{
 			renderContext.pipeline.Render(this.context, PipelineContainerLayer.GizmoLine, line.vertexBuffer, line.indexBuffer, line.indicies, updateIdx);
 

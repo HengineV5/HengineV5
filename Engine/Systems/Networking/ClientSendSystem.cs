@@ -32,7 +32,7 @@ namespace Engine
 		}
 
         [SystemUpdate]
-		public void Update(ref EngineContext engineContext, Position.Ref position, Rotation.Ref rotation, Camera.Ref camera, Networked.Ref networked)
+		public void Update(ref EngineContext engineContext, ref Position position, ref Rotation rotation, ref Camera camera, ref Networked networked)
 		{
 			time += engineContext.dt;
 			if (time < .1f / 20)
@@ -68,7 +68,7 @@ namespace Engine
 		}
 
 		[SystemUpdate]
-		public void Update(ref EngineContext engineContext, Position.Ref position, Rotation.Ref rotation, Scale.Ref scale, Networked.Ref networked)
+		public void Update(ref EngineContext engineContext, ref Position position, ref Rotation rotation, ref Scale scale, ref Networked networked)
 		{
             var packets = client.GetPackets();
 			List<int> toRemove = new List<int>();
@@ -80,8 +80,8 @@ namespace Engine
 				{
                     //Console.WriteLine($"Found match: {packet.idx} {packet.position}, {packet.roation}");
 
-                    position.Set(packet.position);
-					rotation.Set(packet.roation);
+                    //position.Set(packet.position);
+					//rotation.Set(packet.roation); // TODO: FIx before commit
 					toRemove.Add(i);
 
                 }

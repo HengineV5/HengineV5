@@ -58,7 +58,7 @@ namespace Engine
 		}
 
 		[SystemUpdate, SystemLayer(0, 2)]
-		public void BufferUpdate(ref VulkanRenderContext context, GuiProperties.Ref properties, GuiPosition.Ref position, GuiSize.Ref size, GuiState.Ref guiState, ref VkTextureAtlas textureAtlas)
+		public void BufferUpdate(ref VulkanRenderContext context, ref GuiProperties properties, ref GuiPosition position, ref GuiSize size, ref GuiState guiState, ref VkTextureAtlas textureAtlas)
 		{
             ref GuiShaderInput shaderInput = ref renderContext.pipeline.GetUbo<GuiShaderInput>(bufferIdx);
 			shaderInput.ubo.Value = context.guiUbo;
@@ -76,7 +76,7 @@ namespace Engine
 		}
 
 		[SystemUpdate, SystemLayer(0, 2)]
-		public void RenderUpdate(ref VulkanRenderContext context, GuiProperties.Ref properties, GuiPosition.Ref position, GuiSize.Ref size, GuiState.Ref guiState, ref VkTextureAtlas textureAtlas)
+		public void RenderUpdate(ref VulkanRenderContext context, ref GuiProperties properties, ref GuiPosition position, ref GuiSize size, ref GuiState guiState, ref VkTextureAtlas textureAtlas)
 		{
 			switch(properties.shape)
 			{

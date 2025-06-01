@@ -18,7 +18,7 @@ namespace Engine
 		}
 
 		[SystemUpdate]
-		public void GuiStateUpdate(GuiProperties.Ref properties, GuiPosition.Ref position, GuiSize.Ref size, GuiState.Ref guiState, GuiButton.Ref button)
+		public void GuiStateUpdate(ref GuiProperties properties, ref GuiPosition position, ref GuiSize size, ref GuiState guiState, ref GuiButton button)
 		{
 			Vector2f windowSize = new(window.Size.X, window.Size.Y);
 			Vector4f pos = new(position.x, position.y, position.z, position.w);
@@ -51,7 +51,7 @@ namespace Engine
 		}
 
 		[SystemUpdate]
-		public void GuiDraggableUpdate(GuiPosition.Ref position, GuiSize.Ref size, GuiDraggable.Ref draggable)
+		public void GuiDraggableUpdate(ref GuiPosition position, ref GuiSize size, ref GuiDraggable draggable)
 		{
 			Vector2f windowSize = new(window.Size.X, window.Size.Y);
 			Vector4f pos = new(position.x, position.y, position.z, position.w);

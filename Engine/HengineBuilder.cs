@@ -17,7 +17,7 @@ namespace Engine
 				return this;
 			}
 
-			public HengineLayout World<T>(WorldAction world)
+			public HengineLayout World<T>(WorldAction world) where T : allows ref struct
 			{
 				return this;
 			}

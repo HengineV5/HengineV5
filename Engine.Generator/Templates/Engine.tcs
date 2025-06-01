@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using Engine;
-using Microsoft.Extensions.Logging;
 
 // Source file usings
 $usings~>using $usingName;<~~>\n<~

@@ -5,11 +5,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using TemplateGenerator;
 
 namespace Engine.Generator
 {
-	struct PipelineGeneratorData : IEquatable<PipelineGeneratorData>
+	struct PipelineGeneratorData : IEquatable<PipelineGeneratorData>, ITemplateData
 	{
 		public string ecsName;
 		public string engineName;
@@ -33,6 +34,9 @@ namespace Engine.Generator
 		{
 			return pipelines.Equals(other.pipelines);
 		}
+
+		public string GetIdentifier()
+			=> $"Component Generator ({ns}.{ecsName}) ({location})";
 	}
 
 	class PipelineGenerator : ITemplateSourceGenerator<IdentifierNameSyntax, PipelineGeneratorData>
@@ -66,16 +70,19 @@ namespace Engine.Generator
 			return true;
 		}
 
-		public PipelineGeneratorData? Filter(IdentifierNameSyntax node, SemanticModel semanticModel)
+		public bool TryGetData(IdentifierNameSyntax node, SemanticModel semanticModel, out PipelineGeneratorData data, out List<Diagnostic> diagnostics)
 		{
+			diagnostics = new();
+			Unsafe.SkipInit(out data);
+
 			if (node?.Parent is ClassDeclarationSyntax)
-				return null;
+				return false;
 
 			if (node?.Parent is MethodDeclarationSyntax)
-				return null;
+				return false;
 
 			if (node.Identifier.Text != "HengineBuilder")
-				return null;
+				return false;
 
 			var builderRoot = EngineGenerator.GetBuilderRoot(node);
 
@@ -86,11 +93,12 @@ namespace Engine.Generator
 			var layoutStep = builderSteps.Single(x => x.Name.Identifier.Text == "Layout");
 
 			if (!TryGetPipelines(semanticModel, layoutStep, out List<Pipeline> pipelines))
-				return null;
+				return false;
 
 			var usings = EngineGenerator.GetUsings(node);
 
-			return new PipelineGeneratorData(EngineGenerator.GetEcsName(node), EngineGenerator.GetEngineName(node), builderRoot.GetNamespace(), builderRoot.GetLocation(), new(pipelines.ToArray()), new(usings.ToArray()));
+			data = new PipelineGeneratorData(EngineGenerator.GetEcsName(node), EngineGenerator.GetEngineName(node), builderRoot.GetNamespace(), builderRoot.GetLocation(), new(pipelines.ToArray()), new(usings.ToArray()));
+			return true;
 		}
 
 		public string GetName(PipelineGeneratorData data)
