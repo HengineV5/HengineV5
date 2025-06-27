@@ -50,7 +50,7 @@ namespace Engine
 			shaderInput.ubo.Value = context.guiUbo;
 
 			shaderInput.ubo.Value.position = new Vector4f(position.x, position.y, position.z, position.w);
-			shaderInput.ubo.Value.size = new Vector4f(10, 0, 10, 0);
+			shaderInput.ubo.Value.size = new Vector4f(100, 0, 100, 0);
 			shaderInput.guiState.Value.totalStates = textureAtlas.textures;
 
 			VulkanRenderHelpers.UpdateGuiDescriptorSet(this.context, renderContext.pipeline.GetDescriptorSet(PipelineContainerLayer.Gui, bufferIdx), textureAtlas.atlas, sampler);

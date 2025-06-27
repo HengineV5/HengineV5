@@ -696,6 +696,7 @@
     <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.3" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.3" />
     <PackageReference Include="vertical-spectreconsolelogger" Version="0.10.1-dev.20241201.35" />
+	<PackageReference Include="UtilLib" Version="0.0.30" />
   </ItemGroup>
 
 </Project>

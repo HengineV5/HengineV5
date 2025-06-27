@@ -13,10 +13,26 @@ namespace Engine.Utils
 			public int next;
 		}
 
+		// Triangulate a polygon into a mesh
 		public static Memory<int> Triangulate(ReadOnlySpan<Vector2f> verticies, bool clockwise = true, float margin = 0.001f)
 		 => Triangulate(verticies, new List<int>(Enumerable.Range(0, verticies.Length)), clockwise, margin);
 
-		public static Memory<Vector2f> ProcessHole(ReadOnlySpan<Vector2f> mesh, ReadOnlySpan<Vector2f> hole, float margin = 0.001f)
+		public static int GetMeshWithHoleSize(scoped ReadOnlySpan<Vector2f> mesh, scoped ReadOnlySpan<Vector2f> hole)
+			=> GetMeshWithHoleSize(mesh.Length, hole.Length);
+
+		public static int GetMeshWithHoleSize(int meshVerticeis, int holeVerticies)
+			=> meshVerticeis + holeVerticies + 2;
+
+		// Add triangulatable hole into a mesh
+		public static Memory<Vector2f> AddHole(scoped ReadOnlySpan<Vector2f> mesh, scoped ReadOnlySpan<Vector2f> hole, float margin = 0.001f)
+		{
+			int totalVerts = GetMeshWithHoleSize(mesh, hole);
+			Memory<Vector2f> dest = new Vector2f[totalVerts];
+			AddHole(mesh, hole, dest.Span, margin);
+			return dest;
+		}
+
+		public static void AddHole(scoped ReadOnlySpan<Vector2f> mesh, scoped ReadOnlySpan<Vector2f> hole, scoped Span<Vector2f> dest, float margin = 0.001f)
 		{
 			int closest = -1;
 			float dist = float.MaxValue;
@@ -43,16 +59,16 @@ namespace Engine.Utils
 
 			// Stitch together mesh that includes hole
 			int totalVerts = mesh.Length + hole.Length + 2;
-			Memory<Vector2f> verticies = new Vector2f[totalVerts];
-			SpanList<Vector2f> vertBuilder = new(verticies.Span);
+			if (dest.Length < totalVerts)
+				throw new ArgumentException($"Destination span is too small, expected {totalVerts} but got {dest.Length}.");
+
+			SpanList<Vector2f> vertBuilder = new(dest);
 
 			vertBuilder.Add(mesh.Slice(0, closest + 1));
 			vertBuilder.Add(hole);
 			vertBuilder.Add(hole[0]);
 			vertBuilder.Add(mesh[closest]);
 			vertBuilder.Add(mesh.Slice(closest + 1));
-
-			return verticies;
 		}
 
 		static Memory<int> Triangulate(ReadOnlySpan<Vector2f> verticies, List<int> vertMap, bool clockwise, float margin)

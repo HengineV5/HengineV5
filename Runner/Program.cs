@@ -4,11 +4,13 @@ using Engine.Components;
 using Engine.Graphics;
 using Engine.Parsing;
 using Engine.Translation;
+using Engine.Utils;
 using Engine.Utils.Parsing.TTF;
 using Microsoft.Extensions.Logging;
 using System.Net;
 using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
+using UtilLib.Span;
 using Vertical.SpectreLogger;
 using Vertical.SpectreLogger.Options;
 using static Engine.HengineEcs;
@@ -102,7 +104,9 @@ namespace Runner
 			TranslationUnit unit = new TranslationUnit(new Dictionary<string, string>
 			{
 				//{ "en-en", "This is a test text!" }
-				{ "en-en", "The quick brown fox jumps over the lazy dog." }
+				//{ "en-en", "The quick brown fox jumps over the lazy dog." }
+				//{ "en-en", "b Hellø Wørldå!" }
+				{ "en-en", "b" }
 			});
 
 			Dictionary<string, TranslationUnit> tranlations = new Dictionary<string, TranslationUnit>()
@@ -163,7 +167,7 @@ namespace Runner
 
 			var font = TtfLoader.LoadFont("Fonts/arial.ttf");
 
-            var buttonAtlas = TextureAtlas.LoadAtlas("ButtonAtlas", 3, "Images/Gui/Button/Button.png");
+			var buttonAtlas = TextureAtlas.LoadAtlas("ButtonAtlas", 3, "Images/Gui/Button/Button.png");
             var textAtlas = TextureAtlas.LoadAtlas("TextAtlas", 1, "Images/Gui/Text/Text.png");
 
 			GuiProperties.Comp prop = new GuiProperties.Comp()
@@ -205,8 +209,70 @@ namespace Runner
 			}
 			*/
 
-            //TestWorld.Load(mainWorld);
-			MapWorld.Load(factory.CreateLogger("MapWorld"), mainWorld);
+			//TestWorld.Load(mainWorld);
+			//MapWorld.Load(factory.CreateLogger("MapWorld"), mainWorld);
+
+			var b = font.GetGlyphIndex('b');
+			Span<ushort> sections = stackalloc ushort[b.contours.Length + 1];
+			b.contours.Span.TryCopyTo(sections.Slice(1));
+			for (int i = 1; i < sections.Length; i++)
+			{
+				sections[i]++;
+			}
+
+			int res = 5;
+
+			for (int sectionIdx = 0; sectionIdx < sections.Length - 1; sectionIdx++)
+			{
+				int start = sections[sectionIdx];
+				int length = sections[sectionIdx + 1] - start;
+
+				SpanRingBuffer<GlyphVertex> section = b.coords.Span.Slice(start, length);
+
+				for (int i = 0; i < length; i++)
+				{
+					int idx = start + i;
+
+					var prev = new Vector3f((float)section[idx - 1].x / b.description.xMax, 0, -(float)section[idx - 1].y / b.description.yMax) * 2f;
+					var curr = new Vector3f((float)section[idx].x / b.description.xMax, 0, -(float)section[idx].y / b.description.yMax) * 2f;
+					var next = new Vector3f((float)section[idx + 1].x / b.description.xMax, 0, -(float)section[idx + 1].y / b.description.yMax) * 2f;
+
+					//prev += Vector3f.UnitY * 0.1f * i; // Offset to avoid z-fighting with the plane.
+					//curr += Vector3f.UnitY * 0.1f * i; // Offset to avoid z-fighting with the plane.
+					//next += Vector3f.UnitY * 0.1f * i; // Offset to avoid z-fighting with the plane.
+
+					if (!section[idx - 1].onCurve && !section[idx].onCurve && !section[idx + 1].onCurve)
+					{
+						var midPrev = prev + (curr - prev) / 2f;
+						var midNext = curr + (next - curr) / 2f;
+
+						mainWorld.CreateBezierCurve(ref midPrev, ref curr, ref midNext, res);
+					}
+					else if (section[idx - 1].onCurve && !section[idx].onCurve && !section[idx + 1].onCurve)
+					{
+						var midNext = curr + (next - curr) / 2f;
+
+						mainWorld.CreateBezierCurve(ref prev, ref curr, ref midNext, res);
+					}
+					else if (!section[idx - 1].onCurve && !section[idx].onCurve && section[idx + 1].onCurve)
+					{
+						var midPrev = prev + (curr - prev) / 2f;
+
+						mainWorld.CreateBezierCurve(ref midPrev, ref curr, ref next, res);
+					}
+					else if (section[idx - 1].onCurve && !section[idx].onCurve && section[idx + 1].onCurve)
+					{
+						mainWorld.CreateBezierCurve(ref prev, ref curr, ref next, res);
+					}
+					else if (section[idx].onCurve && section[idx + 1].onCurve)
+					{
+						mainWorld.CreateGizmoLine(curr, next, new GizmoColor(0, 1, 0));
+					}
+
+					//mainWorld.CreateGizmoLine(curr, next, new GizmoColor(0, 1, 0));
+					mainWorld.CreateGizmo(curr, Vector3f.One * 0.25f, GizmoType.Point, section[idx].onCurve ? new(1, 0, 0) : new(0, 0, 1));
+				}
+			}
 
 			engine.Start();
 			engine.argIWindow.Dispose();

@@ -8,9 +8,12 @@ using Buffer = Silk.NET.Vulkan.Buffer;
 using System.Runtime.InteropServices;
 using System.Buffers;
 using Microsoft.Extensions.Logging;
+using UtilLib.Span;
 
 namespace Engine.Graphics
 {
+	record struct GlyphRange(int start, int length, bool clockwise);
+
 	public struct VkTextBuffer
 	{
 		public Buffer vertexBuffer;
@@ -61,8 +64,11 @@ namespace Engine.Graphics
 		{
 			string str = translationManager.GetTranslation(resource.id);
 
-			List<Vector2f> verticies = new List<Vector2f>();
-			List<int> indicies = new List<int>();
+			using var vertBuff = MemoryPool<Vector2f>.Shared.Rent(10000);
+			SpanList<Vector2f> verticies = vertBuff.Memory.Span;
+
+			using var indexBuff = MemoryPool<int>.Shared.Rent(10000);
+			SpanList<int> indicies = indexBuff.Memory.Span;
 
 			int offset = 0;
 			int advanced = 0;
@@ -84,8 +90,8 @@ namespace Engine.Graphics
 					for (int b = 0; b < meshes[a].Span.Length; b++)
 						meshes[a].Span[b] += new Vector2f(advanced, 0);
 
-					verticies.AddRange(meshes[a].Span);
-					indicies.AddRange(newIndicies.Span);
+					verticies.Add(meshes[a].Span);
+					indicies.Add(newIndicies.Span);
 
 					offset += meshes[a].Length;
 				}
@@ -117,65 +123,97 @@ namespace Engine.Graphics
 
 		public static List<Memory<Vector2f>> ProcessMesh(in GlyphData glyphData)
 		{
-			if (glyphData.endPtsOfContours is null)
+			if (glyphData.contours.Length == 0)
 				return new List<Memory<Vector2f>>();
 
-			int offset = 0;
-			List<Memory<Vector2f>> meshes = new List<Memory<Vector2f>>();
-			while (offset != glyphData.endPtsOfContours.Length)
+			scoped Span<Vector2f> coords = stackalloc Vector2f[glyphData.coords.Length];
+			for (int i = 0; i < glyphData.coords.Length; i++)
 			{
-				Memory<Vector2f> mesh = new Vector2f[0];
-				offset = ProcessMeshWithHoles(glyphData, offset, ref mesh);
+				coords[i] = new (glyphData.coords.Span[i].x, glyphData.coords.Span[i].y);
+			}
 
-				meshes.Add(mesh);
+			scoped Span<GlyphRange> glyphRanges = stackalloc GlyphRange[glyphData.contours.Length];
+			GetGlyphRanges(glyphData, glyphRanges, coords);
+
+			var meshes = new List<Memory<Vector2f>>();
+			using var buff = MemoryPool<Vector2f>.Shared.Rent(glyphData.coords.Length);
+			var buffSpan = buff.Memory.Span;
+
+			for (int i = 0; i < glyphRanges.Length; i++)
+			{
+				int glyphs = FindNextMesh(glyphRanges.Slice(i + 1));
+				int meshLength = GetMeshSize(glyphRanges.Slice(i, glyphs + 1));
+
+				meshes.Add(new Vector2f[meshLength]);
+				var meshSpan = meshes[meshes.Count - 1].Span;
+
+				AddMeshHoles(meshSpan, glyphRanges.Slice(i, glyphs + 1), coords, buffSpan);
+
+				i += glyphs; // Skip to next non hole mesh.
 			}
 
 			return meshes;
 		}
 
-		static int ProcessMeshWithHoles(in GlyphData glyphData, int offset, ref Memory<Vector2f> mesh)
+		static void GetGlyphRanges(in GlyphData glyphData, scoped Span<GlyphRange> glyphs, scoped ReadOnlySpan<Vector2f> coords)
 		{
-			// Assume first countour is always skin.
-
-			if (offset == 0)
+			int totalMeshes = 0;
+			int prev = 0;
+			for (int i = 0; i < glyphData.contours.Length; i++)
 			{
-				mesh = new Vector2f[glyphData.endPtsOfContours[offset] + 1];
-				for (int i = 0; i < mesh.Length; i++)
-				{
-					mesh.Span[i] = new Vector2f(glyphData.xCoords[i], glyphData.yCoords[i]);
-				}
+				int idx = glyphData.contours.Span[i] + 1;
+				int length = idx - prev;
+
+				var slice = coords.Slice(prev, length);
+				bool clockwise = VectorMath.IsClockwise(slice);
+
+				if (clockwise)
+					totalMeshes++;
+
+				glyphs[i] = new GlyphRange(prev, length, clockwise);
+				prev = idx;
 			}
-			else
-			{
-				int start = glyphData.endPtsOfContours[offset - 1] + 1;
-				int end = glyphData.endPtsOfContours[offset] + 1;
+		}
 
-				mesh = new Vector2f[end - start];
-				for (int i = 0; i < mesh.Length; i++)
-				{
-					mesh.Span[i] = new Vector2f(glyphData.xCoords[start + i], glyphData.yCoords[start + i]);
-				}
+		static void AddMeshHoles(scoped Span<Vector2f> mesh, scoped ReadOnlySpan<GlyphRange> glyphRanges, scoped ReadOnlySpan<Vector2f> coords, scoped Span<Vector2f> buff)
+		{
+			int start = glyphRanges[0].start;
+			int length = glyphRanges[0].length;
+			coords.Slice(start, length).CopyTo(mesh);
+
+			int currLength = length;
+			for (int a = 1; a < glyphRanges.Length; a++)
+			{
+				int holeStart = glyphRanges[a].start;
+				int holeLength = glyphRanges[a].length;
+
+				Triangulation.AddHole(mesh.Slice(0, currLength), coords.Slice(holeStart, holeLength), buff);
+
+				currLength += glyphRanges[a].length + 2;
+				buff.Slice(0, currLength).CopyTo(mesh);
+			}
+		}
+
+		static int GetMeshSize(scoped ReadOnlySpan<GlyphRange> span)
+		{
+			int size = span[0].length; // First range is always skin.
+			for (int i = 1; i < span.Length; i++)
+			{
+				size = Triangulation.GetMeshWithHoleSize(size, span[i].length);
 			}
 
-			for (int i = offset + 1; i < glyphData.endPtsOfContours.Length; i++)
+			return size;
+		}
+
+		static int FindNextMesh(scoped ReadOnlySpan<GlyphRange> span)
+		{
+			for (int i = 0; i < span.Length; i++)
 			{
-				int start = glyphData.endPtsOfContours[i - 1] + 1;
-				int end = glyphData.endPtsOfContours[i] + 1;
-
-				Memory<Vector2f> newMesh = new Vector2f[end - start];
-				for (int a = 0; a < newMesh.Length; a++)
-				{
-					newMesh.Span[a] = new Vector2f(glyphData.xCoords[start + a], glyphData.yCoords[start + a]);
-				}
-
-				// If clockwise assume separate piece, else assume a hole.
-				if (!VectorMath.IsClockwise(newMesh.Span))
-					mesh = Triangulation.ProcessHole(mesh.Span, newMesh.Span);
-				else
+				if (span[i].clockwise)
 					return i;
 			}
 
-			return glyphData.endPtsOfContours.Length;
+			return span.Length;
 		}
 	}
 }

@@ -1,10 +1,15 @@
-﻿using System;
+﻿using EnCS;
+using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading.Tasks;
+using UtilLib.Span;
+using UtilLib.Stream;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Engine.Utils.Parsing.TTF
 {
@@ -12,60 +17,31 @@ namespace Engine.Utils.Parsing.TTF
 	{
 		public static Font LoadFont(string path)
 		{
-			using TtfReader reader = new TtfReader(new FileStream(path, FileMode.Open, FileAccess.Read));
+			using DataReader reader = new DataReader(new FileStream(path, FileMode.Open, FileAccess.Read));
             return Font.Load(reader);
         }
-	}
-
-	struct CmapData
-	{
-		public ushort format;
-		public ushort language;
-
-		public ushort[] endCode;
-		public ushort[] startCode;
-		public ushort[] idDelta;
-		public ushort[] idRangeOffset;
-		public ushort[] glyphIndexArray;
 	}
 
     public class Font
     {
 		GlyphData[] glyphData;
-		HmtxTable hmtx;
 
-		CmapData cmapData;
-        TtfOffsetSubtable offsetSubtable;
-        List<TtfTableDirectory> tableDirectories;
+		HmtxTable hmtx;
+		CmapTable cmapData;
 
 		// https://github.com/LayoutFarm/Typography/blob/master/Typography.OpenFont/Tables/CharacterMap.cs
 		public GlyphData GetGlyphIndex(ushort unicode)
 		{
-			//int idx = Array.BinarySearch(cmapData.endCode, unicode);
-			int idx = -1;
-            for (int i = 0; i < cmapData.endCode.Length; i++)
-            {
-                if (cmapData.endCode[i] >= unicode)
-				{
-					idx = i;
-					break;
-				}
-            }
-
-			if (cmapData.idRangeOffset[idx] == 0)
-			{
-				return glyphData[(unicode + cmapData.idDelta[idx]) % 65536];
-			}
-			else
-			{
-				int offset = cmapData.idRangeOffset[idx] / 2 + (unicode - cmapData.startCode[idx]);
-				return glyphData[offset - cmapData.idRangeOffset.Length + idx];
-			}
+			return glyphData[GetGlyphIdx(ref cmapData, unicode)];
 		}
 
 		public ushort GetGlyphAdvance(ushort unicode)
 		{
-			//int idx = Array.BinarySearch(cmapData.endCode, unicode);
+			return hmtx.hMetrics[GetGlyphIdx(ref cmapData, unicode)].advanceWidth;
+		}
+
+		static int GetGlyphIdx(ref readonly CmapTable cmapData, ushort unicode)
+		{
 			int idx = -1;
 			for (int i = 0; i < cmapData.endCode.Length; i++)
 			{
@@ -78,12 +54,12 @@ namespace Engine.Utils.Parsing.TTF
 
 			if (cmapData.idRangeOffset[idx] == 0)
 			{
-				return hmtx.hMetrics[(unicode + cmapData.idDelta[idx]) % 65536].advanceWidth;
+				return (unicode + cmapData.idDelta[idx]) % 65536;
 			}
 			else
 			{
 				int offset = cmapData.idRangeOffset[idx] / 2 + (unicode - cmapData.startCode[idx]);
-				return hmtx.hMetrics[offset - cmapData.idRangeOffset.Length + idx].advanceWidth;
+				return cmapData.glyphIndexArray[offset - cmapData.idRangeOffset.Length + idx];
 			}
 		}
 
@@ -92,10 +68,9 @@ namespace Engine.Utils.Parsing.TTF
 			=> GetGlyphIndex((ushort)unicode);
 
 
-		internal static Font Load(TtfReader reader)
+		internal static Font Load(DataReader reader)
         {
-			Font font = new();
-			font.offsetSubtable = new()
+			TtfOffsetSubtable offsetSubtable = new()
 			{
 				scalerType = reader.ReadUInt32(),
 				numTables = reader.ReadUInt16(),
@@ -104,239 +79,91 @@ namespace Engine.Utils.Parsing.TTF
 				rangeShift = reader.ReadUInt16()
 			};
 
-			font.tableDirectories = new List<TtfTableDirectory>();
-			for (int i = 0; i < font.offsetSubtable.numTables; i++)
+			if (offsetSubtable.numTables > 64)
+				throw new Exception();
+
+			SpanDictionary<TtfTableName, TtfTableDirectory> tables = new(stackalloc TtfTableName[offsetSubtable.numTables], stackalloc TtfTableDirectory[offsetSubtable.numTables]);
+			for (int i = 0; i < offsetSubtable.numTables; i++)
 			{
-				font.tableDirectories.Add(new()
+				TtfTableDirectory directory = new()
 				{
 					tag = reader.ReadArray4(),
 					checksum = reader.ReadUInt32(),
 					offset = reader.ReadUInt32(),
 					length = reader.ReadUInt32()
-				});
+				};
+
+				tables.TryAdd(directory.TagAsString(), directory);
 			}
 
-			var glyphEntry = font.tableDirectories.Single(x => x.TagAsString() == "glyf");
-			var cmapEntry = font.tableDirectories.Single(x => x.TagAsString() == "cmap");
-			var maxpEntry = font.tableDirectories.Single(x => x.TagAsString() == "maxp");
-			var headEntry = font.tableDirectories.Single(x => x.TagAsString() == "head");
-			var locaEntry = font.tableDirectories.Single(x => x.TagAsString() == "loca");
-			var hheaEntry = font.tableDirectories.Single(x => x.TagAsString() == "hhea");
-			var hmtxEntry = font.tableDirectories.Single(x => x.TagAsString() == "hmtx");
+			Font font = new();
 
-			reader.Seek(headEntry.offset);
-			var headData = ReadHeadData(reader);
+			reader.Seek(tables["head"].offset);
+			var headData = HeadTable.ReadHeadData(reader);
 
 			bool isLongVersion = headData.indexToLocFormat == 1;
 
-			reader.Seek(maxpEntry.offset);
-			var maxpData = ReadMaxpData(reader);
+			reader.Seek(tables["maxp"].offset);
+			var maxpData = MaxpTable.ReadMaxpData(reader);
 
-			reader.Seek(locaEntry.offset);
-			var locations = ReadLocationData(reader, maxpData.numGlyphs, isLongVersion);
+			reader.Seek(tables["loca"].offset);
 
-			reader.Seek(hheaEntry.offset);
-			var hheaTable = ReadHheaData(reader);
+			if (offsetSubtable.numTables > 256)
+				throw new Exception();
 
-			font.hmtx = ReadHmtxData(reader, hheaTable);
+			Span<uint> locations = stackalloc uint[maxpData.numGlyphs];
+			for (int i = 0; i < locations.Length; i++)
+			{
+				locations[i] = isLongVersion ? reader.ReadUInt32() : reader.ReadUInt16() * 2u;
+			}
 
-            reader.Seek(cmapEntry.offset);
-			font.cmapData = ReadCmapData(reader);
+			reader.Seek(tables["hhea"].offset);
+			var hheaTable = HheaTable.ReadHheaData(reader);
 
-            font.glyphData = new GlyphData[maxpData.numGlyphs - 1];
-            for (int i = 0; i < font.glyphData.Length; i++)
+			reader.Seek(tables["hmtx"].offset);
+			font.hmtx = HmtxTable.ReadHmtxData(reader, hheaTable);
+
+            reader.Seek(tables["cmap"].offset);
+			font.cmapData = CmapTable.ReadCmapData(reader);
+
+			ref var glyphEntry = ref tables["glyf"];
+			font.glyphData = new GlyphData[maxpData.numGlyphs - 1];
+
+			var countoursBuff = MemoryPool<ushort>.Shared.Rent(maxpData.maxComponentContours * 256);
+			SpanList<ushort> countoursBuffList = countoursBuff.Memory.Span;
+
+			var verticeisBuff = MemoryPool<GlyphVertex>.Shared.Rent(maxpData.maxComponentPoints * 256);
+			SpanList<GlyphVertex> verticeisBuffList = verticeisBuff.Memory.Span;
+
+			for (int i = 0; i < font.glyphData.Length; i++)
             {
 				if (locations[i + 1] - locations[i] <= 0) // Empty glyph
 					continue;
 
                 reader.Seek(glyphEntry.offset + locations[i]);
-				font.glyphData[i] = ReadGlyphData(reader, glyphEntry.offset, locations);
-            }
+
+				ref GlyphData glyphData = ref font.glyphData[i];
+				ReadGlyphDescription(reader, ref glyphData.description);
+
+				GlyphOffset offset = new();
+				ReadGlyphData(reader, ref glyphData.description, ref countoursBuffList, ref verticeisBuffList, in offset, glyphEntry.offset, locations);
+
+				glyphData.contours = new ushort[countoursBuffList.Count];
+				countoursBuff.Memory.Slice(0, countoursBuffList.Count).TryCopyTo(glyphData.contours);
+
+				glyphData.coords = new GlyphVertex[verticeisBuffList.Count];
+				verticeisBuff.Memory.Slice(0, verticeisBuffList.Count).TryCopyTo(glyphData.coords);
+
+				countoursBuffList.Clear();
+				verticeisBuffList.Clear();
+			}
 
 			return font;
 		}
 
-		static uint[] ReadLocationData(TtfReader reader, ushort glyphs, bool isLongVersion)
+		static void ReadGlyphDescription(DataReader reader, scoped ref GlyphDescription desc)
 		{
-			uint[] offsets = new uint[glyphs];
-            for (int i = 0; i < offsets.Length; i++)
-            {
-				offsets[i] = isLongVersion ? reader.ReadUInt32() : reader.ReadUInt16() * 2u;
-            }
-
-			return offsets;
-        }
-
-		static MaxpTable ReadMaxpData(TtfReader reader)
-		{
-			return new MaxpTable()
-			{
-				version = reader.ReadUInt32(),
-				numGlyphs = reader.ReadUInt16(),
-				maxPoints = reader.ReadUInt16(),
-				maxContours = reader.ReadUInt16(),
-				maxComponentPoints = reader.ReadUInt16(),
-				maxComponentContours = reader.ReadUInt16(),
-				maxZones = reader.ReadUInt16(),
-				maxTwilightPoints = reader.ReadUInt16(),
-				maxStorage = reader.ReadUInt16(),
-				maxFunctionDefs = reader.ReadUInt16(),
-				maxInstructionDefs = reader.ReadUInt16(),
-				maxStackElements = reader.ReadUInt16(),
-				maxSizeOfInstructions = reader.ReadUInt16(),
-				maxComponentElements = reader.ReadUInt16(),
-				maxComponentDepth = reader.ReadUInt16()
-			};
-		}
-
-		static HeadTable ReadHeadData(TtfReader reader)
-		{
-			return new HeadTable()
-			{
-				version = reader.ReadFloat(),
-				fontRevision = reader.ReadFloat(),
-				checksumAdjustment = reader.ReadUInt32(),
-				magicNumber = reader.ReadUInt32(),
-				flags = reader.ReadUInt16(),
-				unitsPerEm = reader.ReadUInt16(),
-				created = reader.ReadInt64(),
-				modified = reader.ReadInt64(),
-				xMin = reader.ReadInt16(),
-				yMin = reader.ReadInt16(),
-				xMax = reader.ReadInt16(),
-				yMax = reader.ReadInt16(),
-				macStyle = reader.ReadUInt16(),
-				lowestRecPPEM = reader.ReadUInt16(),
-				fontDirectionHint = reader.ReadInt16(),
-				indexToLocFormat = reader.ReadInt16(),
-				glyphDatasFormat = reader.ReadInt16(),
-			};
-		}
-
-		static HheaTable ReadHheaData(TtfReader reader)
-		{
-			HheaTable table = new HheaTable()
-			{
-				version = reader.ReadFloat(),
-				ascent = reader.ReadInt16(),
-				descent = reader.ReadInt16(),
-				lineGap = reader.ReadInt16(),
-				advanceWidthMax = reader.ReadUInt16(),
-				minLeftSideBearing = reader.ReadInt16(),
-				minRightSideBearing = reader.ReadInt16(),
-				xMaxExtent = reader.ReadInt16(),
-				caretSlopeRise = reader.ReadInt16(),
-				caretSlopeRun = reader.ReadInt16(),
-				caretOffset = reader.ReadInt16(),
-			};
-
-			// Four reserved numbers
-			reader.ReadInt16();
-			reader.ReadInt16();
-			reader.ReadInt16();
-			reader.ReadInt16();
-
-			table.metricDataFormat = reader.ReadInt16();
-			table.numOfLongHorMetrics = reader.ReadUInt16();
-
-			return table;
-		}
-
-		static HmtxTable ReadHmtxData(TtfReader reader, in HheaTable hheaTable)
-		{
-			LongHorMetric[] hMetrics = new LongHorMetric[hheaTable.numOfLongHorMetrics];
-			for (int i = 0; i < hMetrics.Length; i++)
-			{
-				hMetrics[i].advanceWidth = reader.ReadUInt16();
-				reader.ReadUInt16(); // Ignore
-			}
-
-			return new HmtxTable
-			{
-				hMetrics = hMetrics,
-			};
-		}
-
-		static CmapData ReadCmapData(TtfReader reader)
-		{
-			long cmapBase = reader.Position;
-
-			ushort version = reader.ReadUInt16();
-			ushort subtableCount = reader.ReadUInt16();
-
-			Span<CmapSubtable> subtables = stackalloc CmapSubtable[subtableCount];
-
-			for (int i = 0; i < subtableCount; i++)
-            {
-				subtables[i] = new()
-				{
-					platformID = reader.ReadUInt16(),
-					platformSpecificID = reader.ReadUInt16(),
-					offset = reader.ReadInt32()
-				};
-            }
-
-			reader.Seek(cmapBase + subtables[0].offset);
-			return ReadCmapFormat4(reader);
-        }
-
-		static CmapData ReadCmapFormat4(TtfReader reader)
-		{
-			ushort format = reader.ReadUInt16();
-			if (format != 4)
-				throw new Exception($"Parsing wrong format, expected 4 got {format}");
-
-			ushort length = reader.ReadUInt16();
-			ushort language = reader.ReadUInt16();
-			ushort segCountX2 = reader.ReadUInt16();
-			int segCount = segCountX2 / 2;
-			ushort searchRange = reader.ReadUInt16();
-			ushort entrySelector = reader.ReadUInt16();
-			ushort rangeShift = reader.ReadUInt16();
-
-			CmapData cmap = new CmapData();
-			cmap.format = format;
-			cmap.language = language;
-
-			cmap.endCode = new ushort[segCount];
-            for (int i = 0; i < cmap.endCode.Length; i++)
-            {
-				cmap.endCode[i] = reader.ReadUInt16();
-            }
-
-			ushort reservePad = reader.ReadUInt16();
-
-			cmap.startCode = new ushort[segCount];
-			for (int i = 0; i < cmap.startCode.Length; i++)
-			{
-				cmap.startCode[i] = reader.ReadUInt16();
-			}
-
-			cmap.idDelta = new ushort[segCount];
-			for (int i = 0; i < cmap.idDelta.Length; i++)
-			{
-				cmap.idDelta[i] = reader.ReadUInt16();
-			}
-
-			cmap.idRangeOffset = new ushort[segCount];
-			for (int i = 0; i < cmap.idRangeOffset.Length; i++)
-			{
-				cmap.idRangeOffset[i] = reader.ReadUInt16();
-			}
-
-			cmap.glyphIndexArray = new ushort[segCount];
-			for (int i = 0; i < cmap.glyphIndexArray.Length; i++)
-			{
-				cmap.glyphIndexArray[i] = reader.ReadUInt16();
-			}
-
-			return cmap;
-		}
-
-		static GlyphData ReadGlyphData(TtfReader reader, uint glyphStart, uint[] locations) // TODO: Not the best just passing locations here, mabye fix.
-		{
-			GlyphData glyphData = new();
-			glyphData.glyphDescription = new()
+			desc = new()
 			{
 				numberOfContours = reader.ReadInt16(),
 				xMin = reader.ReadUInt16(),
@@ -344,33 +171,52 @@ namespace Engine.Utils.Parsing.TTF
 				xMax = reader.ReadUInt16(),
 				yMax = reader.ReadUInt16()
 			};
-
-			if (glyphData.glyphDescription.numberOfContours < 0)
-				ReadCompoundGlyphs(ref glyphData, reader, glyphStart, locations);
-			else
-				ReadSimpleGlyph(ref glyphData, reader);
-
-            return glyphData;
 		}
 
-		static void ReadSimpleGlyph(ref GlyphData glyphData, TtfReader reader)
+		static void ReadGlyphData(DataReader reader, scoped ref GlyphDescription desc, scoped ref SpanList<ushort> contours, scoped ref SpanList<GlyphVertex> verticeis, ref readonly GlyphOffset offset, uint glyphStart, scoped Span<uint> locations) // TODO: Not the best just passing locations here, mabye fix.
 		{
-			glyphData.endPtsOfContours = new ushort[glyphData.glyphDescription.numberOfContours];
-			for (int i = 0; i < glyphData.endPtsOfContours.Length; i++)
+			if (desc.numberOfContours < 0)
 			{
-				glyphData.endPtsOfContours[i] = reader.ReadUInt16();
+				ReadCompoundGlyphs(reader, ref desc, ref contours, ref verticeis, in offset, glyphStart, locations);
+			}
+			else
+			{
+				var c = contours.Reserve(desc.numberOfContours);
+				ReadSimpleGlyphContours(reader, ref c, offset.contourOffset);
+
+				var v = verticeis.Reserve(c[c.Length - 1] + 1 - offset.contourOffset); // Get the last vertex idx
+				ReadSimpleGlyph(reader, ref v, in offset.vertexOffset);
+			}
+		}
+		
+		static void ReadSimpleGlyphContours(DataReader reader, scoped ref Span<ushort> contours, ushort offset)
+		{
+			for (int i = 0; i < contours.Length; i++)
+			{
+				contours[i] = (ushort)(reader.ReadUInt16() + offset);
 			}
 
 			ushort instructionLength = reader.ReadUInt16();
+			reader.Seek(reader.Position + instructionLength);
+
+			#region Unused
+			/*
 			byte[] instructions = new byte[instructionLength];
 			for (int i = 0; i < instructions.Length; i++)
 			{
 				instructions[i] = reader.ReadByte();
 			}
+			*/
+			#endregion
+		}
 
-			int numPoints = glyphData.endPtsOfContours[glyphData.glyphDescription.numberOfContours - 1] + 1;
-			SimpleGlyphFlag[] flags = new SimpleGlyphFlag[numPoints];
-			for (int i = 0; i < numPoints; i++)
+		static void ReadSimpleGlyph(DataReader reader, scoped ref Span<GlyphVertex> verticeis, ref readonly GlyphVertex offset)
+		{
+			if (verticeis.Length > 1024)
+				throw new Exception();
+
+			Span<SimpleGlyphFlag> flags = stackalloc SimpleGlyphFlag[verticeis.Length];
+			for (int i = 0; i < flags.Length; i++)
 			{
 				SimpleGlyphFlag flag = (SimpleGlyphFlag)reader.ReadByte();
 				flags[i] = flag;
@@ -382,23 +228,31 @@ namespace Engine.Utils.Parsing.TTF
 				}
 			}
 
-			glyphData.xCoords = new int[numPoints];
-			glyphData.yCoords = new int[numPoints];
+			ReadCoords(reader, verticeis, flags, SimpleGlyphFlag.XByte, SimpleGlyphFlag.XSignOrSame, static (ref v, coord) =>
+			{
+				v.x = coord;
+			});
 
-			ReadCoords(reader, glyphData.xCoords, flags, SimpleGlyphFlag.XByte, SimpleGlyphFlag.XSignOrSame);
-			ReadCoords(reader, glyphData.yCoords, flags, SimpleGlyphFlag.YByte, SimpleGlyphFlag.YSignOrSame);
+			ReadCoords(reader, verticeis, flags, SimpleGlyphFlag.YByte, SimpleGlyphFlag.YSignOrSame, static (ref v, coord) =>
+			{
+				v.y = coord;
+			});
+
+			for (int i = 0; i < verticeis.Length; i++)
+			{
+				verticeis[i].onCurve = flags[i].HasFlag(SimpleGlyphFlag.OnCurve);
+
+				verticeis[i].x += offset.x;
+				verticeis[i].y += offset.y;
+			}
 		}
 
-		static void ReadCompoundGlyphs(ref GlyphData glyphData, TtfReader reader, uint glyphStart, uint[] locations)
+		static void ReadCompoundGlyphs(DataReader reader, scoped ref GlyphDescription desc, scoped ref SpanList<ushort> contours, scoped ref SpanList<GlyphVertex> verticeis, ref readonly GlyphOffset offset, uint glyphStart, scoped Span<uint> locations)
 		{
-            glyphData.endPtsOfContours = Array.Empty<ushort>();
-			glyphData.xCoords = Array.Empty<int>();
-			glyphData.yCoords = Array.Empty<int>();
-
-			while (ReadCompoundGlyph(ref glyphData, reader, glyphStart, locations)) { } // Read untill there are no more components
+			while (ReadCompoundGlyph(reader, ref desc, ref contours, ref verticeis, in offset, glyphStart, locations)) { } // Read untill there are no more components
 		}
 
-		static bool ReadCompoundGlyph(ref GlyphData glyphData, TtfReader reader, uint glyphStart, uint[] locations)
+		static bool ReadCompoundGlyph(DataReader reader, scoped ref GlyphDescription desc, scoped ref SpanList<ushort> contours, scoped ref SpanList<GlyphVertex> verticeis, ref readonly GlyphOffset offset, uint glyphStart, scoped Span<uint> locations)
 		{
 			CompoundGlyphFlag flag = (CompoundGlyphFlag)reader.ReadUInt16();
 			ushort glyphIndex = reader.ReadUInt16();
@@ -460,54 +314,71 @@ namespace Engine.Utils.Parsing.TTF
 
 			long currPosition = reader.Position;
 			reader.Seek(glyphStart + locations[glyphIndex]);
-			var compoundGlyph = ReadGlyphData(reader, glyphStart, locations);
+
+			int startContour = contours.Count;
+			int startVertex = verticeis.Count;
+
+			GlyphData compountGlyph = new();
+			ReadGlyphDescription(reader, ref compountGlyph.description);
+
+			GlyphOffset newOffset = new()
+			{
+				contourOffset = (ushort)(startVertex + offset.contourOffset),
+				vertexOffset = new()
+				{
+					x = offsetX + offset.vertexOffset.x,
+					y = offsetY + offset.vertexOffset.y
+				}
+			};
+
+			ReadGlyphData(reader, ref compountGlyph.description, ref contours, ref verticeis, in newOffset, glyphStart, locations);
+
+			//var compoundGlyph = ReadGlyphData(reader, glyphStart, locations);
 			reader.Seek(currPosition);
 
-            for (int i = 0; i < compoundGlyph.endPtsOfContours.Length; i++)
+			/*
+            for (int i = 0; i < compoundGlyph.contours.Length; i++)
 			{
-				compoundGlyph.endPtsOfContours[i] += (ushort)glyphData.xCoords.Length;
+				compoundGlyph.contours.Span[i] += (ushort)compountGlyph.coords.Length;
 			}
 
-			for (int i = 0; i < compoundGlyph.xCoords.Length; i++)
+			for (int i = 0; i < compoundGlyph.coords.Length; i++)
 			{
-				compoundGlyph.xCoords[i] += offsetX;
-				compoundGlyph.yCoords[i] += offsetY;
+				compoundGlyph.coords.Span[i].x += offsetX;
+				compoundGlyph.coords.Span[i].y += offsetY;
 			}
 
-			glyphData.endPtsOfContours = ArrayHelpers.Join(glyphData.endPtsOfContours.AsMemory(), compoundGlyph.endPtsOfContours.AsMemory());
-			glyphData.xCoords = ArrayHelpers.Join(glyphData.xCoords.AsMemory(), compoundGlyph.xCoords.AsMemory());
-			glyphData.yCoords = ArrayHelpers.Join(glyphData.yCoords.AsMemory(), compoundGlyph.yCoords.AsMemory());
+			compountGlyph.contours = ArrayHelpers.Join(compountGlyph.contours, compoundGlyph.contours);
+			compountGlyph.coords = ArrayHelpers.Join(compountGlyph.coords, compoundGlyph.coords);
+			*/
 
-            return flag.HasFlag(CompoundGlyphFlag.MoreComponents);
+			return flag.HasFlag(CompoundGlyphFlag.MoreComponents);
 		}
 
-		static void ReadCoords(TtfReader reader, Span<int> array, Span<SimpleGlyphFlag> flags, SimpleGlyphFlag isByte, SimpleGlyphFlag signOrSame)
+		private delegate void ReadCoordsDelegate(ref GlyphVertex vertex, int coord);
+
+		static void ReadCoords(DataReader reader, Span<GlyphVertex> vertices, Span<SimpleGlyphFlag> flags, SimpleGlyphFlag isByte, SimpleGlyphFlag signOrSame, ReadCoordsDelegate f)
 		{
-			array[0] = 0;
+			int prev = 0;
+			for (int i = 0; i < flags.Length; i++)
+			{
+				int curr = 0;
 
-			if (flags[0].HasFlag(isByte))
-			{
-				array[0] = reader.ReadByte() * (flags[0].HasFlag(signOrSame) ? 1 : -1);
-			}
-			else if(!flags[0].HasFlag(signOrSame))
-			{
-				array[0] = reader.ReadInt16();
-			}
-
-			for (int i = 1; i < array.Length; i++)
-			{
 				if (flags[i].HasFlag(isByte))
 				{
-					array[i] = array[i - 1] + reader.ReadByte() * (flags[i].HasFlag(signOrSame) ? 1 : -1);
+					curr = prev + reader.ReadByte() * (flags[i].HasFlag(signOrSame) ? 1 : -1);
 				}
 				else if(flags[i].HasFlag(signOrSame))
 				{
-					array[i] = array[i - 1];
+					curr = prev;
 				}
 				else
 				{
-					array[i] = array[i - 1] + reader.ReadInt16();
+					curr = prev + reader.ReadInt16();
 				}
+
+				f(ref vertices[i], curr);
+				prev = curr;
 			}
 		}
 	}

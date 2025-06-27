@@ -18,7 +18,7 @@
 	  <PackageReference Include="EnCS.Generator" Version="0.0.122"/>
 	  <PackageReference Include="Engine.Generator" Version="0.0.67" />
       <PackageReference Include="ImageLib" Version="0.0.9" />
-      <PackageReference Include="MathLib" Version="0.0.22" />
+      <PackageReference Include="MathLib" Version="0.0.25" />
       <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.3" />
       <PackageReference Include="Silk.NET" Version="2.22.0" />
   </ItemGroup>

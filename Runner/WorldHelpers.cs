@@ -1,6 +1,7 @@
 ﻿using Engine;
 using Engine.Components;
 using Engine.Graphics;
+using Engine.Utils;
 using static Engine.HengineEcs;
 
 namespace Runner
@@ -52,6 +53,17 @@ namespace Runner
 			});
 
 			return objRef;
+		}
+
+		public static void CreateBezierCurve(this Main world, ref readonly Vector3f p1, ref readonly Vector3f p2, ref readonly Vector3f p3, int res)
+		{
+			var prev = p1;
+			for (int a = 1; a <= res; a++)
+			{
+				var curr = Bezier.QuadraticBezierCurve(p1, p2, p3, a / (float)res);
+				world.CreateGizmoLine(prev, curr, new GizmoColor(0, 1, 0));
+				prev = curr;
+			}
 		}
 
 		public static EnCS.ArchRef<Hex> CreateHex(this Main world, Vector3f pos, Vector3f scale, HexCell hexCell, Mesh mesh, PbrMaterial material, int idx)
