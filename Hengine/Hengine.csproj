@@ -1,0 +1,48 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Features>InterceptorsPreview</Features>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+	<IsAotCompatible>true</IsAotCompatible>
+  
+	<InterceptorsPreviewNamespaces>Hengine</InterceptorsPreviewNamespaces>
+
+	<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+  </PropertyGroup>
+
+  <ItemGroup>
+      <PackageReference Include="EnCS" Version="0.0.64" />
+	  <PackageReference Include="EnCS.Generator" Version="0.0.122"/>
+	  <PackageReference Include="Hengine.Generator" Version="0.0.67" />
+      <PackageReference Include="ImageLib" Version="0.0.9" />
+      <PackageReference Include="MathLib" Version="0.0.25" />
+      <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.3" />
+      <PackageReference Include="Silk.NET" Version="2.22.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Hengine.Translation\Hengine.Translation.csproj" />
+    <ProjectReference Include="..\Hengine.Utils\Hengine.Utils.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Systems\Physics\" />
+  </ItemGroup>
+	
+	
+	<!--
+<PropertyGroup>
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+    <CompilerGeneratedFilesOutputPath>$(ProjectDir)Generated</CompilerGeneratedFilesOutputPath>
+  </PropertyGroup>
+  <Target Name="SkipSourceGeneratedFiles" BeforeTargets="CoreCompile">
+    <ItemGroup>
+      <Compile Remove="Generated/**/*" />
+    </ItemGroup>
+  </Target>
+	-->
+
+</Project>

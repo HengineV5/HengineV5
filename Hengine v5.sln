@@ -5,15 +5,15 @@ VisualStudioVersion = 17.8.34004.107
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Runner", "Runner\Runner.csproj", "{5A80D66E-B2DE-4DA9-8148-7EAB0D66A796}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Engine", "Engine\Engine.csproj", "{2052AD7F-2D34-492D-A73F-FC6D6EFBA211}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Hengine", "Hengine\Hengine.csproj", "{2052AD7F-2D34-492D-A73F-FC6D6EFBA211}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Engine.Generator", "Engine.Generator\Engine.Generator.csproj", "{7A09A869-8DB0-475E-94D5-E75A9B665865}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Hengine.Generator", "Hengine.Generator\Hengine.Generator.csproj", "{7A09A869-8DB0-475E-94D5-E75A9B665865}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Engine.Generator.Tests", "Engine.Generator.Tests\Engine.Generator.Tests.csproj", "{319996AB-769D-46EE-9A2B-6CF126940DFB}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Hengine.Generator.Tests", "Hengine.Generator.Tests\Hengine.Generator.Tests.csproj", "{319996AB-769D-46EE-9A2B-6CF126940DFB}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Engine.Utils", "Engine.Utils\Engine.Utils.csproj", "{156D79F2-3A31-4F29-9BE1-B52A47187328}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Hengine.Utils", "Hengine.Utils\Hengine.Utils.csproj", "{156D79F2-3A31-4F29-9BE1-B52A47187328}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Engine.Translation", "Engine.Translation\Engine.Translation.csproj", "{1E1A0A75-6655-4934-BD53-11114FB0744F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hengine.Translation", "Hengine.Translation\Hengine.Translation.csproj", "{1E1A0A75-6655-4934-BD53-11114FB0744F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

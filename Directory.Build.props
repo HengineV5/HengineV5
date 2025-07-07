@@ -1,0 +1,14 @@
+<Project>
+	<PropertyGroup>
+		<!-- MinVer settings -->
+		<MinVerTagPrefix>v</MinVerTagPrefix>
+		
+		<!-- NuGet defaults -->
+		<Authors>Henrik9864</Authors>
+		<Company>Henke</Company>
+		<RepositoryUrl>https://github.com/HengineV5/HengineV5.git</RepositoryUrl>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<RepositoryType>git</RepositoryType>
+		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+	</PropertyGroup>
+</Project>

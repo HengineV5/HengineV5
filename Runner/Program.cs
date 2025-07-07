@@ -1,11 +1,11 @@
 ﻿using CommunityToolkit.HighPerformance;
-using Engine;
-using Engine.Components;
-using Engine.Graphics;
-using Engine.Parsing;
-using Engine.Translation;
-using Engine.Utils;
-using Engine.Utils.Parsing.TTF;
+using Hengine;
+using Hengine.Components;
+using Hengine.Graphics;
+using Hengine.Parsing;
+using Hengine.Translation;
+using Hengine.Utils;
+using Hengine.Utils.Parsing.TTF;
 using Microsoft.Extensions.Logging;
 using System.Net;
 using System.Runtime.InteropServices;
@@ -13,7 +13,7 @@ using System.Runtime.Serialization;
 using UtilLib.Span;
 using Vertical.SpectreLogger;
 using Vertical.SpectreLogger.Options;
-using static Engine.HengineEcs;
+using static Hengine.HengineEcs;
 
 namespace Runner
 {
@@ -44,10 +44,10 @@ namespace Runner
 					//x.UseSerilogConsoleStyle();
 					//x.UseMicrosoftConsoleStyle();
 
-					x.SetMinimumLevel("Engine.Server", LogLevel.Debug);
-					x.SetMinimumLevel("Engine.Client", LogLevel.Debug);
-					x.SetMinimumLevel("Engine.ClientSendSystem", LogLevel.Debug);
-					x.SetMinimumLevel("Engine.ClientReceiveSystem", LogLevel.Debug);
+					x.SetMinimumLevel("Hengine.Server", LogLevel.Debug);
+					x.SetMinimumLevel("Hengine.Client", LogLevel.Debug);
+					x.SetMinimumLevel("Hengine.ClientSendSystem", LogLevel.Debug);
+					x.SetMinimumLevel("Hengine.ClientReceiveSystem", LogLevel.Debug);
 					x.SetMinimumLevel("ImageLib.Png.PngFormat", LogLevel.Warning);
 				});
 
@@ -66,7 +66,7 @@ namespace Runner
 				idx = 0
 			};
 
-			ILogger logger = factory.CreateLogger("Program.Engine");
+			ILogger logger = factory.CreateLogger("Program.Hengine");
 			logger.LogEngineStarted(engineConfig.engineName, engineConfig.engineVersion.ToString(), engineConfig.appName, engineConfig.appVersion.ToString());
 
 			if (args.Length > 0 && args[0] == "server")

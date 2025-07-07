@@ -1,9 +1,9 @@
 ﻿using CommunityToolkit.HighPerformance;
 using EnCS;
-using Engine.Graphics;
+using Hengine.Graphics;
 using System.Buffers;
 using System.Runtime.CompilerServices;
-using static Engine.HengineEcs;
+using static Hengine.HengineEcs;
 
 namespace Runner
 {

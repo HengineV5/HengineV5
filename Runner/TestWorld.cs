@@ -1,6 +1,6 @@
-﻿using Engine.Graphics;
-using Engine.Utils;
-using static Engine.HengineEcs;
+﻿using Hengine.Graphics;
+using Hengine.Utils;
+using static Hengine.HengineEcs;
 
 namespace Runner
 {
@@ -53,10 +53,10 @@ namespace Runner
 				world.CreateGizmoLine(c1, c2, new(0, 0, 0));
 			}
 
-			world.CreateGizmo(s, Vector3f.One * 0.5f, Engine.Components.GizmoType.Point, new(0.005f, 0.005f, 0.005f));
-			world.CreateGizmo(sd, Vector3f.One * 0.5f, Engine.Components.GizmoType.Point, new(0.005f, 0.005f, 0.005f));
-			world.CreateGizmo(e, Vector3f.One * 0.5f, Engine.Components.GizmoType.Point, new(0.005f, 0.005f, 0.005f));
-			world.CreateGizmo(ed, Vector3f.One * 0.5f, Engine.Components.GizmoType.Point, new(0.005f, 0.005f, 0.005f));
+			world.CreateGizmo(s, Vector3f.One * 0.5f, Hengine.Components.GizmoType.Point, new(0.005f, 0.005f, 0.005f));
+			world.CreateGizmo(sd, Vector3f.One * 0.5f, Hengine.Components.GizmoType.Point, new(0.005f, 0.005f, 0.005f));
+			world.CreateGizmo(e, Vector3f.One * 0.5f, Hengine.Components.GizmoType.Point, new(0.005f, 0.005f, 0.005f));
+			world.CreateGizmo(ed, Vector3f.One * 0.5f, Hengine.Components.GizmoType.Point, new(0.005f, 0.005f, 0.005f));
 
 			world.CreateObject(new(0, -4, 0), Vector3f.One * 4, meshPlane, materialSphere, 0);
 

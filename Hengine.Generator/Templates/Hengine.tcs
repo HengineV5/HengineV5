@@ -1,0 +1,109 @@
+using System.Runtime.Intrinsics;
+using System.Runtime.CompilerServices;
+using System.Diagnostics;
+using System.Threading;
+using System.Threading.Tasks;
+using Hengine;
+
+// Source file usings
+$usings~>using $usingName;<~~>\n<~
+
+namespace $namespace
+{
+	public partial class $engineName
+	{
+		ref struct ScheduleContext
+		{
+			public Hengine.EngineContext engineContext;
+			$uniqueContextArgs~>public $argType arg$argType;<~~>\n			<~
+		}
+
+		$ecsName ecs;
+		System.Memory<Hengine.Scheduling.ScheduledAction<ScheduleContext>> jobs;
+
+		$pipelines~>$pipelineName _|$pipelineName|;<~~>\n		<~
+
+		$uniqueArgs~>public $argType $argName;<~~>\n		<~
+
+		$config~>$stepName arg|$stepName|;<~~>\n		<~
+
+		$resourceManagers~>|$resourceManagerNamespace|.|$resourceManagerName| _|$resourceManagerName|;<~~>\n		<~
+
+		bool initialized = false;
+		Stopwatch sw = new Stopwatch();
+
+		public $engineName(Microsoft.Extensions.Logging.ILoggerFactory loggerFactory)
+		{
+			this.argILoggerFactory = loggerFactory;
+		}
+
+		public $ecsName GetEcs()
+		{
+			if (!initialized)
+				throw new System.Exception("$engineName must be initialized by running before GetEcs() can be called.");
+
+			return ecs;
+		}
+
+		public void Initialize($config~>$stepName $stepVarName<~~>, <~)
+		{
+			$config~>arg|$stepName| = |$stepVarName|;<~~>\n			<~
+
+			$setup|$stepCount == 0|~>$stepMethod($stepArguments~>$argName<~~>, <~);
+			$stepUsedTypes~>arg|$returnType| = _|$returnType|;<~~>\n			<~
+			<~|$stepCount == 1|~>$stepTypes~>var _|$returnType|<~~>, <~ = $stepMethod($stepArguments~>$argName<~~>, <~);
+			$stepUsedTypes~>arg|$returnType| = _|$returnType|;<~~>\n			<~
+			<~|$stepCount > 1|~>var ($stepTypes~>_|$returnType|<~~>, <~) = $stepMethod($stepArguments~>$argName<~~>, <~);
+			$stepUsedTypes~>arg|$returnType| = _|$returnType|;<~~>\n			<~
+			<~~>\n			<~
+
+			$resourceManagers~>var arg|$resourceManagerName| = new |$resourceManagerNamespace|.|$resourceManagerName|($resourceManagerArguments~>$argName<~~>, <~);
+			_|$resourceManagerName| = arg|$resourceManagerName|;<~~>\n			<~
+
+			$pipelines~>_|$pipelineName| = new $pipelineName($uniqueArgs~>$argName<~~>, <~);<~~>\n			<~
+
+			$pipelines~>_|$pipelineName|.Init();<~~>\n			<~
+
+			ecs = new $ecsName($resourceManagers~>_|$resourceManagerName|<~~>, <~);
+
+			jobs = new Hengine.Scheduling.ScheduledAction<ScheduleContext>[] {
+				$worlds~>$worldPipelines~>|$worldSafeName|_|$pipelineName|,<~~>\n				<~<~~>\n				<~
+			};
+
+			initialized = true;
+		}
+
+		public void Start()
+		{
+			if (!initialized)
+				throw new System.Exception("$engineName must be initialized by running initialize() before start.");
+
+			Hengine.Scheduling.Scheduler<ScheduleContext> scheduler = new(jobs.Span);
+			sw.Restart();
+
+			var scheduleContext = new ScheduleContext();
+			scheduleContext.engineContext = new Hengine.EngineContext();
+
+			while (true)
+			{
+				scheduleContext.engineContext.dt = sw.ElapsedMilliseconds / 1000f;
+				sw.Restart();
+
+				// Rest args.
+				$uniqueContextArgs~>scheduleContext.arg$argType = new $argType();<~~>\n				<~
+
+				scheduler.ExecuteOneStep(scheduleContext.engineContext.dt, ref scheduleContext);
+
+				if (ShouldExit())
+				{
+					$pipelines~>_|$pipelineName|.Dispose();<~~>\n					<~
+					break;
+				}
+			}
+		}
+
+		$worlds~>$worldPipelines~>void |$worldSafeName|_|$pipelineName|(ref ScheduleContext context)
+			=> _|$pipelineName|.Run<|$worldName|>(ref context.engineContext, ecs$pipelineContextArguments~>, ref context.arg$argType<~);
+		<~~>\n		<~<~~>\n		<~
+	}
+}
