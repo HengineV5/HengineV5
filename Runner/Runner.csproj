@@ -8,6 +8,7 @@
     <PublishAot>true</PublishAot>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Configurations>Debug;Release;Debug (local-deps);Release (local-deps)</Configurations>
+    <IsPackable>false</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>

@@ -8,6 +8,10 @@
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<LangVersion>preview</LangVersion>
 		<Configurations>Debug;Release;Debug (local-deps);Release (local-deps)</Configurations>
+
+		<!-- Nuget -->
+		<PackageId>Henke.Hengine.Utils</PackageId>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -18,6 +22,7 @@
 		<PackageReference Include="Henke.EnCS" Version="0.0.108" />
 		<PackageReference Include="Henke.MathLib" Version="0.0.26" />
 		<PackageReference Include="Henke.UtilLib" Version="0.0.37" />
+		<None Include="README.md" Pack="true" PackagePath="\" />
 	</ItemGroup>
 
 </Project>

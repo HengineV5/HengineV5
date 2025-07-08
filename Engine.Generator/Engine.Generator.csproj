@@ -8,13 +8,15 @@
 
 		<!-- Nuget -->
 		<PackageId>Henke.Hengine.Generator</PackageId>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
 
 		<!-- We don't want to reference the source generator dll directly in consuming projects -->
 		<IncludeBuildOutput>false</IncludeBuildOutput>
 
 		<!-- Ensure we don't use any API that might be problematic -->
 		<EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
-		<!-- Copy NuGet package DLLs to build output, so we can access TemplateGenerator.dll in Runner -->
+		<!-- Copy NuGet package DLLs to build output, so we can access TemplateGenerator.dll in
+		Runner -->
 		<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
 	</PropertyGroup>
 
@@ -37,17 +39,23 @@
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
 		</PackageReference>
-		<PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.4" Pack="true" PrivateAssets="all" />
-		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.6.0" Pack="true" PrivateAssets="all" />
-		<PackageReference Include="Henke.TemplateGenerator" Version="1.0.79" Pack="true" GeneratePathProperty="true" />
+		<PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.4" Pack="true"
+			PrivateAssets="all" />
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.6.0" Pack="true"
+			PrivateAssets="all" />
+		<PackageReference Include="Henke.TemplateGenerator" Version="1.0.79" Pack="true"
+			GeneratePathProperty="true" />
+		<None Include="README.md" Pack="true" PackagePath="\" />
 	</ItemGroup>
 
 	<Target Name="GetDependencyTargetPaths" AfterTargets="ResolvePackageDependenciesForBuild">
 		<ItemGroup>
 			<!-- This ensures the library will be packaged as a source generator when we use `dotnet
 			pack` -->
-			<None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
-			<None Include="$(PkgTemplateGen)\lib\netstandard2.0\*.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+			<None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true"
+				PackagePath="analyzers/dotnet/cs" Visible="false" />
+			<None Include="$(PkgTemplateGen)\lib\netstandard2.0\*.dll" Pack="true"
+				PackagePath="analyzers/dotnet/cs" Visible="false" />
 		</ItemGroup>
 	</Target>
 
