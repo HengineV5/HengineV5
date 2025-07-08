@@ -5,12 +5,50 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-	<PublishAot>true</PublishAot>
-	<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <PublishAot>true</PublishAot>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Configurations>Debug;Release;Debug (local-deps);Release (local-deps)</Configurations>
+    <IsPackable>false</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Engine\Engine.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.HighPerformance" Version="8.2.2" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.3" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.3" />
+    <PackageReference Include="vertical-spectreconsolelogger" Version="0.10.1-dev.20241201.35" />
+  </ItemGroup>
+
+  <!-- 
+	For developing locally, by cloning all repos and putting them in the same directory:
+		henke/
+			HengineV5/
+      ImageLib/
+      MathLib/
+      UtilLib/
+      EnCS/
+	This setting allows you to use local projects instead of NuGet packages.  
+
+	NOTE:
+		Visual Studio will refuse to resolve include paths outside current directory.
+		As such, whenever changing TO this profile, you must run the following command
+		in PowerShell/terminal:
+			`dotnet restore -p:UseLocalProjects=true`
+		It is persistent accross clean, rebuild, relaunching Visual Studio, etc. Only
+		when changing to this profile.
+	-->
+  <PropertyGroup
+    Condition="'$(Configuration)'=='Debug (local-deps)' Or '$(Configuration)'=='Release (local-deps)'">
+    <UseLocalProjects>true</UseLocalProjects>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(UseLocalProjects)' != 'true'">
+    <PackageReference Include="Henke.UtilLib" Version="0.0.37" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(UseLocalProjects)' == 'true'">
+    <ProjectReference Include="..\..\UtilLib\UtilLib\UtilLib.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -200,7 +238,8 @@
     <None Update="Models\Sponza\textures\arch_stone_wall_01_Roughness.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Models\Sponza\textures\arch_stone_wall_01_Roughnessarch_stone_wall_01_Metalness.png">
+    <None
+      Update="Models\Sponza\textures\arch_stone_wall_01_Roughnessarch_stone_wall_01_Metalness.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Models\Sponza\textures\brickwall_01_BaseColor.png">
@@ -245,7 +284,8 @@
     <None Update="Models\Sponza\textures\ceiling_plaster_01_Roughness.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Models\Sponza\textures\ceiling_plaster_01_Roughnessceiling_plaster_01_Metalness.png">
+    <None
+      Update="Models\Sponza\textures\ceiling_plaster_01_Roughnessceiling_plaster_01_Metalness.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Models\Sponza\textures\ceiling_plaster_02_BaseColor.png">
@@ -260,7 +300,8 @@
     <None Update="Models\Sponza\textures\ceiling_plaster_02_Roughness.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Models\Sponza\textures\ceiling_plaster_02_Roughnessceiling_plaster_01_Metalness.png">
+    <None
+      Update="Models\Sponza\textures\ceiling_plaster_02_Roughnessceiling_plaster_01_Metalness.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Models\Sponza\textures\col_1stfloor_BaseColor.png">
@@ -290,7 +331,8 @@
     <None Update="Models\Sponza\textures\col_brickwall_01_Roughness.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Models\Sponza\textures\col_brickwall_01_Roughnesscolumn_brickwall_01_Metalness.png">
+    <None
+      Update="Models\Sponza\textures\col_brickwall_01_Roughnesscolumn_brickwall_01_Metalness.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Models\Sponza\textures\col_brickwall_01_Roughnesscol_brickwall_01_Metalness.png">
@@ -323,7 +365,8 @@
     <None Update="Models\Sponza\textures\col_head_2ndfloor_02_Roughness.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Models\Sponza\textures\col_head_2ndfloor_02_Roughnesscol_head_2ndfloor_02_Metalness.png">
+    <None
+      Update="Models\Sponza\textures\col_head_2ndfloor_02_Roughnesscol_head_2ndfloor_02_Metalness.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Models\Sponza\textures\col_head_2ndfloor_03_BaseColor.png">
@@ -338,7 +381,8 @@
     <None Update="Models\Sponza\textures\col_head_2ndfloor_03_Roughness.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Models\Sponza\textures\col_head_2ndfloor_03_Roughnesscol_head_2ndfloor_03_Metalness.png">
+    <None
+      Update="Models\Sponza\textures\col_head_2ndfloor_03_Roughnesscol_head_2ndfloor_03_Metalness.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Models\Sponza\textures\curtain_fabric_blue_BaseColor.png">
@@ -368,10 +412,12 @@
     <None Update="Models\Sponza\textures\dirt_decal_01_alpha.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Models\Sponza\textures\dirt_decal_01_dirt_decal_01_mask_alpha_dirt_decal_Opacity.png">
+    <None
+      Update="Models\Sponza\textures\dirt_decal_01_dirt_decal_01_mask_alpha_dirt_decal_Opacity.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Models\Sponza\textures\dirt_decal_01_dirt_decal_01_mask_gltf_alpha_dirt_decal_Opacity.png">
+    <None
+      Update="Models\Sponza\textures\dirt_decal_01_dirt_decal_01_mask_gltf_alpha_dirt_decal_Opacity.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Models\Sponza\textures\dirt_decal_01_invmask.png">
@@ -398,7 +444,8 @@
     <None Update="Models\Sponza\textures\door_stoneframe_01_Roughness.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Models\Sponza\textures\door_stoneframe_01_Roughnessdoor_stoneframe_01_Metalness.png">
+    <None
+      Update="Models\Sponza\textures\door_stoneframe_01_Roughnessdoor_stoneframe_01_Metalness.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Models\Sponza\textures\door_stoneframe_02_BaseColor.png">
@@ -413,7 +460,8 @@
     <None Update="Models\Sponza\textures\door_stoneframe_02_Roughness.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Models\Sponza\textures\door_stoneframe_02_Roughnessdoor_stoneframe_02_Metalness.png">
+    <None
+      Update="Models\Sponza\textures\door_stoneframe_02_Roughnessdoor_stoneframe_02_Metalness.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Models\Sponza\textures\floor_tiles_01_BaseColor.png">
@@ -506,7 +554,8 @@
     <None Update="Models\Sponza\textures\stones_2ndfloor_01_Roughness.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Models\Sponza\textures\stones_2ndfloor_01_Roughnessstones_2ndfloor_01_Metalness.png">
+    <None
+      Update="Models\Sponza\textures\stones_2ndfloor_01_Roughnessstones_2ndfloor_01_Metalness.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Models\Sponza\textures\stone_01_tile_BaseColor.png">
@@ -689,14 +738,6 @@
     <Folder Include="Models\Plane\" />
     <Folder Include="Models\Sponza\" />
     <Folder Include="Shaders\Gui\" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="CommunityToolkit.HighPerformance" Version="8.2.2" />
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.3" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.3" />
-    <PackageReference Include="vertical-spectreconsolelogger" Version="0.10.1-dev.20241201.35" />
-	<PackageReference Include="UtilLib" Version="0.0.30" />
   </ItemGroup>
 
 </Project>
