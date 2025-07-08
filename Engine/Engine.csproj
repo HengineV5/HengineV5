@@ -13,7 +13,7 @@
     <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
 
     <!-- Nuget -->
-		<PackageId>Henke.Hengine</PackageId>
+    <PackageId>Henke.Hengine</PackageId>
   </PropertyGroup>
 
   <ItemGroup>
@@ -77,6 +77,7 @@
   <ItemGroup Condition="'$(UseLocalProjects)' == 'true'">
     <ProjectReference Include="..\..\EnCS\EnCS\EnCS.csproj" />
     <ProjectReference Include="..\..\EnCS\EnCS.Generator\EnCS.Generator.csproj" />
+    <Analyzer Include="..\..\EnCS\EnCS.Generator\bin\$(Configuration)\netstandard2.0\EnCS.Generator.dll" />
     <ProjectReference Include="..\..\ImageLib\ImageLib\ImageLib.csproj" />
     <ProjectReference Include="..\..\MathLib\MathLib\MathLib.csproj" />
   </ItemGroup>
