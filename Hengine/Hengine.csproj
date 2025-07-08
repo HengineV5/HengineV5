@@ -6,34 +6,98 @@
     <Nullable>enable</Nullable>
     <Features>InterceptorsPreview</Features>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-	<IsAotCompatible>true</IsAotCompatible>
-  
-	<InterceptorsPreviewNamespaces>Hengine</InterceptorsPreviewNamespaces>
+    <IsAotCompatible>true</IsAotCompatible>
 
-	<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+    <InterceptorsPreviewNamespaces>Hengine</InterceptorsPreviewNamespaces>
+
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+
+    <Configurations>Debug;Release;Debug (local-deps);Release (local-deps)</Configurations>
   </PropertyGroup>
 
   <ItemGroup>
-      <PackageReference Include="EnCS" Version="0.0.64" />
-	  <PackageReference Include="EnCS.Generator" Version="0.0.122"/>
-	  <PackageReference Include="Hengine.Generator" Version="0.0.67" />
-      <PackageReference Include="ImageLib" Version="0.0.9" />
-      <PackageReference Include="MathLib" Version="0.0.25" />
-      <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.3" />
-      <PackageReference Include="Silk.NET" Version="2.22.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.3" />
+    <PackageReference Include="Silk.NET" Version="2.22.0" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="MinVer" Version="6.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
     <ProjectReference Include="..\Hengine.Translation\Hengine.Translation.csproj" />
     <ProjectReference Include="..\Hengine.Utils\Hengine.Utils.csproj" />
   </ItemGroup>
 
   <ItemGroup>
+    <!--
+			Roslyn does not fully support ProjectReference declare analyzer dependencies: 
+			https://github.com/dotnet/roslyn/issues/18093
+			
+			Specifically, transitive dependencies does not work (which in our case is TemplateGenerator.dll).
+			So we:
+			 - use ProjectReference to ensure .dll's are built
+		 	 - use Analyzer Include to ensure the generators are included in the build
+		-->
+    <ProjectReference Include="..\Hengine.Generator\Hengine.Generator.csproj" />
+    <Analyzer Include="..\Hengine.Generator\bin\$(Configuration)\netstandard2.0\Hengine.Generator.dll" />
+    <Analyzer
+      Include="..\Hengine.Generator\bin\$(Configuration)\netstandard2.0\TemplateGenerator.dll" />
+  </ItemGroup>
+
+  <!-- 
+	For developing locally, by cloning all repos and putting them in the same directory:
+		henke/
+			HengineV5/
+      ImageLib/
+      MathLib/
+      UtilLib/
+      EnCS/
+	This setting allows you to use local projects instead of NuGet packages.  
+
+	NOTE:
+		Visual Studio will refuse to resolve include paths outside current directory.
+		As such, whenever changing TO this profile, you must run the following command
+		in PowerShell/terminal:
+			`dotnet restore -p:UseLocalProjects=true`
+		It is persistent accross clean, rebuild, relaunching Visual Studio, etc. Only
+		when changing to this profile.
+	-->
+  <PropertyGroup
+    Condition="'$(Configuration)'=='Debug (local-deps)' Or '$(Configuration)'=='Release (local-deps)'">
+    <UseLocalProjects>true</UseLocalProjects>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(UseLocalProjects)' != 'true'">
+    <PackageReference Include="Henke.EnCS" Version="0.0.108" />
+    <PackageReference Include="Henke.EnCS.Generator" Version="0.0.108" />
+    <PackageReference Include="Henke.ImageLib" Version="0.0.10" />
+    <PackageReference Include="Henke.MathLib" Version="0.0.26" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(UseLocalProjects)' == 'true'">
+    <ProjectReference Include="..\..\EnCS\EnCS\EnCS.csproj" />
+    <ProjectReference Include="..\..\EnCS\EnCS.Generator\EnCS.Generator.csproj" />
+    <ProjectReference Include="..\..\ImageLib\ImageLib\ImageLib.csproj" />
+    <ProjectReference Include="..\..\MathLib\MathLib\MathLib.csproj" />
+    <!-- <ProjectReference Include="..\..\UtilLib\UtilLib\UtilLib.csproj" /> transitive dependency
+    of ImageLib -->
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Templates\Pipeline.tcs" />
+    <EmbeddedResource Include="Templates\Hengine.tcs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="Templates\Hengine.tcs" />
+    <None Remove="Templates\Pipeline.tcs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Folder Include="Systems\Physics\" />
   </ItemGroup>
-	
-	
-	<!--
+
+
+  <!--
 <PropertyGroup>
     <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     <CompilerGeneratedFilesOutputPath>$(ProjectDir)Generated</CompilerGeneratedFilesOutputPath>

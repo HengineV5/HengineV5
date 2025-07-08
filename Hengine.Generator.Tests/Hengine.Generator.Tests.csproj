@@ -7,6 +7,7 @@
 
 		<IsPackable>false</IsPackable>
 		<IsTestProject>true</IsTestProject>
+		<Configurations>Debug;Release;Debug (local-deps);Release (local-deps)</Configurations>
 	</PropertyGroup>
 
 	<ItemGroup>

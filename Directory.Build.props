@@ -1,8 +1,10 @@
 <Project>
 	<PropertyGroup>
+		<PackageOutputPath>../artifacts</PackageOutputPath>
+
 		<!-- MinVer settings -->
 		<MinVerTagPrefix>v</MinVerTagPrefix>
-		
+
 		<!-- NuGet defaults -->
 		<Authors>Henrik9864</Authors>
 		<Company>Henke</Company>
@@ -11,4 +13,14 @@
 		<RepositoryType>git</RepositoryType>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 	</PropertyGroup>
+
+	<!-- Override MSBuild's automatic DefineConstants generation for configurations with invalid characters -->
+	<Target Name="FixDefineConstants" BeforeTargets="CoreCompile">
+		<PropertyGroup Condition="'$(Configuration)'=='Debug (local-deps)'">
+			<DefineConstants>DEBUG;TRACE;LOCAL_DEPS</DefineConstants>
+		</PropertyGroup>
+		<PropertyGroup Condition="'$(Configuration)'=='Release (local-deps)'">
+			<DefineConstants>RELEASE;LOCAL_DEPS</DefineConstants>
+		</PropertyGroup>
+	</Target>
 </Project>
