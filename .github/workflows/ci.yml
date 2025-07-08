@@ -1,0 +1,24 @@
+name: CI/CD Pipeline
+
+on:
+  workflow_dispatch: # Allow running the workflow manually from the GitHub UI
+  push:
+    branches:
+      - "*"
+    tags:
+      - "v*"
+  pull_request:
+    branches:
+      - "*"
+
+permissions:
+  contents: write
+
+jobs:
+  dotnet:
+    uses: HengineV5/.github/.github/workflows/dotnet-ci.yml@main
+    with:
+      nuget-packageid: "Henke.Hengine"
+      test-step: false
+    secrets:
+      NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
