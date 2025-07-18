@@ -4,9 +4,11 @@
 
 layout(location = 0) in vec4 position;
 layout(location = 1) in vec2 texCoord;
+layout(location = 2) in uint inverted;
 
 layout(location = 0) out vec2 v_texCoord;
 layout(location = 1) out vec3 v_pos;
+layout(location = 2) out uint v_inverted;
 
 layout(binding = 0) uniform UniformBufferObject {
     mat4 proj;
@@ -15,8 +17,6 @@ layout(binding = 0) uniform UniformBufferObject {
     vec4 position;
     vec4 size;
 } u_Ubo;
-
-vec2 size = vec2(1024, 1024);
 
 void main() {
     vec2 relativePosition = vec2(position.x * u_Ubo.size.x + u_Ubo.position.x + position.y, position.z * u_Ubo.size.z + u_Ubo.position.z + position.w);
@@ -35,4 +35,5 @@ void main() {
 
     vec2 screenTexCoor = guiPos * u_Ubo.screenSize;
     v_texCoord = vec2(texCoord);
+    v_inverted = inverted;
 }

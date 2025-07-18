@@ -306,7 +306,8 @@ namespace Engine
 
 		static Memory<VertexInputAttributeDescription> GetGuiAttributeDescription()
 		{
-			Memory<VertexInputAttributeDescription> description = new VertexInputAttributeDescription[2];
+			Memory<VertexInputAttributeDescription> description = new VertexInputAttributeDescription[3];
+
 			// Vertex Position
 			description.Span[0].Binding = 0;
 			description.Span[0].Location = 0;
@@ -318,6 +319,12 @@ namespace Engine
 			description.Span[1].Location = 1;
 			description.Span[1].Format = Format.R32G32Sfloat;
 			description.Span[1].Offset = sizeof(float) * 4;
+
+			// Invert Curve
+			description.Span[2].Binding = 0;
+			description.Span[2].Location = 2;
+			description.Span[2].Format = Format.R32Uint;
+			description.Span[2].Offset = sizeof(float) * 6;
 
 			return description;
 		}

@@ -333,25 +333,7 @@ namespace Engine.Utils.Parsing.TTF
 
 			ReadGlyphData(reader, ref compountGlyph.description, ref contours, ref verticeis, in newOffset, glyphStart, locations);
 
-			//var compoundGlyph = ReadGlyphData(reader, glyphStart, locations);
 			reader.Seek(currPosition);
-
-			/*
-            for (int i = 0; i < compoundGlyph.contours.Length; i++)
-			{
-				compoundGlyph.contours.Span[i] += (ushort)compountGlyph.coords.Length;
-			}
-
-			for (int i = 0; i < compoundGlyph.coords.Length; i++)
-			{
-				compoundGlyph.coords.Span[i].x += offsetX;
-				compoundGlyph.coords.Span[i].y += offsetY;
-			}
-
-			compountGlyph.contours = ArrayHelpers.Join(compountGlyph.contours, compoundGlyph.contours);
-			compountGlyph.coords = ArrayHelpers.Join(compountGlyph.coords, compoundGlyph.coords);
-			*/
-
 			return flag.HasFlag(CompoundGlyphFlag.MoreComponents);
 		}
 

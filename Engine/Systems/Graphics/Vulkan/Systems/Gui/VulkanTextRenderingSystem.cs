@@ -48,6 +48,7 @@ namespace Engine
 		{
 			ref GuiShaderInput shaderInput = ref renderContext.pipeline.GetUbo<GuiShaderInput>(bufferIdx);
 			shaderInput.ubo.Value = context.guiUbo;
+			shaderInput.guiState.Value.bezier = true;
 
 			shaderInput.ubo.Value.position = new Vector4f(position.x, position.y, position.z, position.w);
 			shaderInput.ubo.Value.size = new Vector4f(100, 0, 100, 0);

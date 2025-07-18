@@ -62,6 +62,7 @@ namespace Engine
 		{
             ref GuiShaderInput shaderInput = ref renderContext.pipeline.GetUbo<GuiShaderInput>(bufferIdx);
 			shaderInput.ubo.Value = context.guiUbo;
+			shaderInput.guiState.Value.bezier = false;
 
 			shaderInput.ubo.Value.position = new Vector4f(position.x, position.y, position.z, position.w);
 			shaderInput.ubo.Value.size = new Vector4f(size.x, size.y, size.z, size.w);
@@ -105,6 +106,8 @@ namespace Engine
 	public static class GuiMeshes
 	{
 		public static GuiMesh Box => BoxMesh();
+
+		public static GuiMesh Bezier => BezierMesh();
 
 		static GuiMesh BoxMesh()
 		{
@@ -205,6 +208,25 @@ namespace Engine
 			indicies[51] = 12;
 			indicies[52] = 13;
 			indicies[53] = 14;
+
+			return new GuiMesh()
+			{
+				verticies = verticies,
+				indicies = indicies
+			};
+		}
+
+		static GuiMesh BezierMesh()
+		{
+			GuiVertex[] verticies = new GuiVertex[3];
+			verticies[0] = new(new(0, 0, 0, 0), new Vector2f(0, 0));
+			verticies[1] = new(new(0, 100, 0, 0), new Vector2f(0.5f, 0));
+			verticies[2] = new(new(0, 100, 0, -100), new Vector2f(1, 1));
+
+			ushort[] indicies = new ushort[3];
+			indicies[0] = 0;
+			indicies[1] = 1;
+			indicies[2] = 2;
 
 			return new GuiMesh()
 			{

@@ -93,12 +93,12 @@ namespace Engine
         public unsafe GraphicsPipelineBuilder WithColorBlend()
         {
 			colorBlendAttatchment.ColorWriteMask = ColorComponentFlags.RBit | ColorComponentFlags.GBit | ColorComponentFlags.BBit | ColorComponentFlags.ABit;
-			colorBlendAttatchment.BlendEnable = false;
-			colorBlendAttatchment.SrcColorBlendFactor = BlendFactor.One;
-			colorBlendAttatchment.DstColorBlendFactor = BlendFactor.Zero;
+			colorBlendAttatchment.BlendEnable = true;
+			colorBlendAttatchment.SrcColorBlendFactor = BlendFactor.SrcAlpha;
+			colorBlendAttatchment.DstColorBlendFactor = BlendFactor.OneMinusSrcAlpha;
 			colorBlendAttatchment.ColorBlendOp = BlendOp.Add;
 			colorBlendAttatchment.SrcAlphaBlendFactor = BlendFactor.One;
-			colorBlendAttatchment.DstAlphaBlendFactor = BlendFactor.One;
+			colorBlendAttatchment.DstAlphaBlendFactor = BlendFactor.Zero;
 			colorBlendAttatchment.AlphaBlendOp = BlendOp.Add;
 
 			colorBlendStateCreateInfo.SType = StructureType.PipelineColorBlendStateCreateInfo;

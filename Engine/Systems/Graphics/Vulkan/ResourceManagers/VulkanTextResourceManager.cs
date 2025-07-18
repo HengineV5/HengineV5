@@ -1,14 +1,20 @@
 ﻿using EnCS;
 using EnCS.Attributes;
+using Engine.Components;
 using Engine.Translation;
-using Engine.Utils.Parsing.TTF;
 using Engine.Utils;
-using Silk.NET.Vulkan;
-using Buffer = Silk.NET.Vulkan.Buffer;
-using System.Runtime.InteropServices;
-using System.Buffers;
+using Engine.Utils.Mesh;
+using Engine.Utils.Parsing.TTF;
+using LightLexer.Helpers;
 using Microsoft.Extensions.Logging;
+using Silk.NET.Vulkan;
+using System;
+using System.Buffers;
+using System.Runtime.InteropServices;
+using UtilLib.Extensions;
 using UtilLib.Span;
+using static System.Net.Mime.MediaTypeNames;
+using Buffer = Silk.NET.Vulkan.Buffer;
 
 namespace Engine.Graphics
 {
@@ -67,44 +73,39 @@ namespace Engine.Graphics
 			using var vertBuff = MemoryPool<Vector2f>.Shared.Rent(10000);
 			SpanList<Vector2f> verticies = vertBuff.Memory.Span;
 
+			using var uvBuff = MemoryPool<Vector3f>.Shared.Rent(10000);
+			SpanList<Vector3f> uvs = uvBuff.Memory.Span;
+
 			using var indexBuff = MemoryPool<int>.Shared.Rent(10000);
 			SpanList<int> indicies = indexBuff.Memory.Span;
 
-			int offset = 0;
 			int advanced = 0;
 			for (int i = 0; i < str.Length; i++)
 			{
 				var glyph = resource.font.GetGlyphIndex(str[i]);
-				var advance = resource.font.GetGlyphAdvance(str[i]);
-				if (advance < 100) // TODO: Make less hacky, this is for space.
-					advance = 1200;
+				var toAdvance = resource.font.GetGlyphAdvance(str[i]);
+				if (toAdvance < 100) // TODO: Make less hacky, this is for space.
+					toAdvance = 1200;
 
-                var meshes = ProcessMesh(glyph);
-				for (int a = 0; a < meshes.Count; a++)
+				if (glyph.contours.Length == 0)
 				{
-					Memory<int> newIndicies = Triangulation.Triangulate(meshes[a].Span);
-
-					for (int b = 0; b < newIndicies.Length; b++)
-						newIndicies.Span[b] += offset;
-
-					for (int b = 0; b < meshes[a].Span.Length; b++)
-						meshes[a].Span[b] += new Vector2f(advanced, 0);
-
-					verticies.Add(meshes[a].Span);
-					indicies.Add(newIndicies.Span);
-
-					offset += meshes[a].Length;
+					advanced += toAdvance;
+					continue;
 				}
 
-				advanced += advance;
+                ProcessMesh(glyph, ref verticies, ref uvs, ref indicies, advanced);
+
+				advanced += toAdvance;
 			}
 
-			var vertMemory = MemoryPool<GuiVertex>.Shared.Rent(verticies.Count);
-			var indexMemory = MemoryPool<ushort>.Shared.Rent(indicies.Count);
+			using var vertMemory = MemoryPool<GuiVertex>.Shared.Rent(verticies.Count);
+			using var indexMemory = MemoryPool<ushort>.Shared.Rent(indicies.Count);
+
+			float scale = 1;
 
 			Vector2f delta = new Vector2f(1000, 1000);
 			for (int i = 0; i < verticies.Count; i++)
-				vertMemory.Memory.Span[i] = new GuiVertex(new Vector4f(verticies[i].x / delta.x, 0, 1 - verticies[i].y / delta.y, 0), Vector2f.Zero);
+				vertMemory.Memory.Span[i] = new GuiVertex(new Vector4f(verticies[i].x / delta.x, 0, 1 - verticies[i].y / delta.y, 0) * scale, new(uvs[i].x, uvs[i].y), uvs[i].z == 1);
 
 			for (int i = 0; i < indicies.Count; i++)
 				indexMemory.Memory.Span[i] = (ushort)indicies[i];
@@ -121,42 +122,54 @@ namespace Engine.Graphics
 			};
 		}
 
-		public static List<Memory<Vector2f>> ProcessMesh(in GlyphData glyphData)
+		static void ProcessMesh(in GlyphData glyphData, scoped ref SpanList<Vector2f> verticeis, scoped ref SpanList<Vector3f> uvs, scoped ref SpanList<int> indicies, int advance)
 		{
-			if (glyphData.contours.Length == 0)
-				return new List<Memory<Vector2f>>();
-
-			scoped Span<Vector2f> coords = stackalloc Vector2f[glyphData.coords.Length];
-			for (int i = 0; i < glyphData.coords.Length; i++)
-			{
-				coords[i] = new (glyphData.coords.Span[i].x, glyphData.coords.Span[i].y);
-			}
-
 			scoped Span<GlyphRange> glyphRanges = stackalloc GlyphRange[glyphData.contours.Length];
-			GetGlyphRanges(glyphData, glyphRanges, coords);
+			GetGlyphRanges(glyphData, glyphRanges);
 
-			var meshes = new List<Memory<Vector2f>>();
 			using var buff = MemoryPool<Vector2f>.Shared.Rent(glyphData.coords.Length);
 			var buffSpan = buff.Memory.Span;
 
 			for (int i = 0; i < glyphRanges.Length; i++)
 			{
 				int glyphs = FindNextMesh(glyphRanges.Slice(i + 1));
-				int meshLength = GetMeshSize(glyphRanges.Slice(i, glyphs + 1));
+				int innerMeshLength = GetInnerMeshSize(glyphRanges.Slice(i, glyphs + 1), glyphData.coords.Span);
+				int curveMeshLength = GetCurveMeshSize(glyphRanges.Slice(i, glyphs + 1), glyphData.coords.Span);
 
-				meshes.Add(new Vector2f[meshLength]);
-				var meshSpan = meshes[meshes.Count - 1].Span;
+				int innerOffset = verticeis.Count;
+				var innerMeshSpan = verticeis.Reserve(innerMeshLength);
+				uvs.Reserve(innerMeshLength);
 
-				AddMeshHoles(meshSpan, glyphRanges.Slice(i, glyphs + 1), coords, buffSpan);
+				int curveOffset = verticeis.Count;
+				var curveMeshSpan = verticeis.Reserve(curveMeshLength);
+				var curvedUvsSpan = uvs.Reserve(curveMeshLength);
+
+				CreateInnerMesh(innerMeshSpan, glyphRanges.Slice(i, glyphs + 1), glyphData.coords.Span, buffSpan);
+				CreateCurveMesh(curveMeshSpan, curvedUvsSpan, glyphRanges.Slice(i, glyphs + 1), glyphData.coords.Span);
+
+				Memory<int> newIndicies = Triangulation.Triangulate(innerMeshSpan);
+				var indiciesSpan = indicies.Reserve(newIndicies.Length);
+				newIndicies.Span.CopyTo(indiciesSpan);
+
+				indiciesSpan.ForEach((ref int i) => i += innerOffset);
+				innerMeshSpan.ForEach((ref Vector2f i) => i += new Vector2f(advance, 0));
+				curveMeshSpan.ForEach((ref Vector2f i) => i += new Vector2f(advance, 0));
+
+				var curveIndiciesSpan = indicies.Reserve(curveMeshLength);
+				CreateCurveMeshIndicies(curveMeshSpan, curveIndiciesSpan, curveOffset);
 
 				i += glyphs; // Skip to next non hole mesh.
 			}
-
-			return meshes;
 		}
 
-		static void GetGlyphRanges(in GlyphData glyphData, scoped Span<GlyphRange> glyphs, scoped ReadOnlySpan<Vector2f> coords)
+		static void GetGlyphRanges(in GlyphData glyphData, scoped Span<GlyphRange> glyphs)
 		{
+			scoped Span<Vector2f> coords = stackalloc Vector2f[glyphData.coords.Length];
+			for (int i = 0; i < glyphData.coords.Length; i++)
+			{
+				coords[i] = new(glyphData.coords.Span[i].x, glyphData.coords.Span[i].y);
+			}
+
 			int totalMeshes = 0;
 			int prev = 0;
 			for (int i = 0; i < glyphData.contours.Length; i++)
@@ -175,34 +188,214 @@ namespace Engine.Graphics
 			}
 		}
 
-		static void AddMeshHoles(scoped Span<Vector2f> mesh, scoped ReadOnlySpan<GlyphRange> glyphRanges, scoped ReadOnlySpan<Vector2f> coords, scoped Span<Vector2f> buff)
+		static int CreateInnerMesh(scoped Span<Vector2f> mesh, scoped ReadOnlySpan<GlyphRange> glyphRanges, scoped ReadOnlySpan<GlyphVertex> vertices, scoped Span<Vector2f> buff)
 		{
-			int start = glyphRanges[0].start;
-			int length = glyphRanges[0].length;
-			coords.Slice(start, length).CopyTo(mesh);
+			scoped Span<Vector2f> buff2 = stackalloc Vector2f[128];
 
-			int currLength = length;
-			for (int a = 1; a < glyphRanges.Length; a++)
+			int currLength = CopyInnerMesh(in glyphRanges[0], vertices, mesh);
+			for (int i = 1; i < glyphRanges.Length; i++)
 			{
-				int holeStart = glyphRanges[a].start;
-				int holeLength = glyphRanges[a].length;
+				buff2.Clear();
+				int holeLength = CopyInnerMesh(in glyphRanges[i], vertices, buff2);
 
-				Triangulation.AddHole(mesh.Slice(0, currLength), coords.Slice(holeStart, holeLength), buff);
+				Triangulation.AddHole(mesh.Slice(0, currLength), buff2.Slice(0, holeLength), buff);
 
-				currLength += glyphRanges[a].length + 2;
+				currLength += holeLength + 2;
 				buff.Slice(0, currLength).CopyTo(mesh);
+			}
+
+			return currLength;
+		}
+
+		static int CopyInnerMesh(ref readonly GlyphRange range, scoped ReadOnlySpan<GlyphVertex> vertices, scoped Span<Vector2f> mesh)
+		{
+			scoped ReadOnlySpanRingBuffer<GlyphVertex> section = vertices.Slice(range.start, range.length);
+			scoped SpanList<Vector2f> meshBuilder = mesh;
+
+			for (int i = 0; i < range.length; i++)
+			{
+				ref readonly var prev = ref section[i - 1];
+				ref readonly var curr = ref section[i];
+				ref readonly var next = ref section[i + 1];
+
+				if (curr.onCurve && next.onCurve)
+				{
+					meshBuilder.Add(new Vector2f(next.x, next.y));
+				}
+				else if (!curr.onCurve)
+				{
+					(Vector2f prevPos, Vector2f currPos, Vector2f nextPos) = GetInnerTriangle(in prev, in curr, in next);
+
+					var ab = currPos - prevPos;
+					var ac = nextPos - prevPos;
+					ac = new(ac.y, -ac.x); // Create orthogonal vector
+
+					var dot = Vector2f.Dot(in ab, in ac);
+
+					if (dot > 0)
+						meshBuilder.Add(currPos);
+
+					meshBuilder.Add(nextPos);
+				}
+			}
+
+			return meshBuilder.Count;
+		}
+
+		static (Vector2f, Vector2f, Vector2f) GetInnerTriangle(ref readonly GlyphVertex prev, ref readonly GlyphVertex curr, ref readonly GlyphVertex next)
+		{
+			Vector2f prevPos = new Vector2f(prev.x, prev.y);
+			Vector2f currPos = new Vector2f(curr.x, curr.y);
+			Vector2f nextPos = new Vector2f(next.x, next.y);
+
+			if (!curr.onCurve && !next.onCurve)
+			{
+				Vector2f midNext = currPos + (nextPos - currPos) / 2f;
+
+				return (prevPos, currPos, midNext);
+			}
+			else if (!curr.onCurve && next.onCurve)
+			{
+				return (prevPos, currPos, nextPos);
+			}
+
+			return (prevPos, currPos, nextPos);
+		}
+
+		static int CreateCurveMesh(scoped Span<Vector2f> mesh, scoped Span<Vector3f> uvs, scoped ReadOnlySpan<GlyphRange> glyphRanges, scoped ReadOnlySpan<GlyphVertex> vertices)
+		{
+			scoped SpanList<Vector2f> meshBuilder = mesh;
+			scoped SpanList<Vector3f> uvBuilder = uvs;
+
+			int length = 0;
+			for (int i = 0; i < glyphRanges.Length; i++)
+			{
+				scoped ReadOnlySpanRingBuffer<GlyphVertex> section = vertices.Slice(glyphRanges[i].start, glyphRanges[i].length);
+
+				length += CopyCurveMesh(ref meshBuilder, ref uvBuilder, in glyphRanges[i], section);
+			}
+
+			return length;
+		}
+
+		static int CopyCurveMesh(scoped ref SpanList<Vector2f> mesh, scoped ref SpanList<Vector3f> uvs, ref readonly GlyphRange range, scoped ReadOnlySpanRingBuffer<GlyphVertex> section)
+		{
+			for (int i = 0; i < range.length; i++)
+			{
+				ref readonly var prev = ref section[i - 1];
+				ref readonly var curr = ref section[i];
+				ref readonly var next = ref section[i + 1];
+
+				if (curr.onCurve)
+					continue;
+
+				Vector2f prevPos = new Vector2f(prev.x, prev.y);
+				Vector2f currPos = new Vector2f(curr.x, curr.y);
+				Vector2f nextPos = new Vector2f(next.x, next.y);
+
+				Vector2f midPrev = prevPos + (currPos - prevPos) / 2f;
+				Vector2f midNext = currPos + (nextPos - currPos) / 2f;
+
+				mesh.Add(prev.onCurve ? prevPos : midPrev);
+				mesh.Add(currPos);
+				mesh.Add(next.onCurve ? nextPos : midNext);
+
+				var ab = currPos - prevPos;
+				var ac = nextPos - prevPos;
+				ac = new(ac.y, -ac.x); // Create orthogonal vector
+
+				var dot = Vector2f.Dot(in ab, in ac);
+				bool inverted = dot > 0;
+
+				uvs.Add(new Vector3f(0, 0, inverted ? 1 : 0));
+				uvs.Add(new Vector3f(0.5f, 0, inverted ? 1 : 0));
+				uvs.Add(new Vector3f(1, 1, inverted ? 1 : 0));
+			}
+
+			return uvs.Count;
+		}
+
+		static void CreateCurveMeshIndicies(scoped ReadOnlySpan<Vector2f> mesh, scoped Span<int> indices, int offset)
+		{
+			for (int i = 0; i < mesh.Length; i+=3)
+			{
+				indices[i + 0] = i + offset;
+				indices[i + 1] = i + offset + 1;
+				indices[i + 2] = i + offset + 2;
 			}
 		}
 
-		static int GetMeshSize(scoped ReadOnlySpan<GlyphRange> span)
+		static int GetInnerMeshSize(scoped ReadOnlySpan<GlyphRange> glyphRanges, scoped ReadOnlySpan<GlyphVertex> vertices)
 		{
-			int size = span[0].length; // First range is always skin.
-			for (int i = 1; i < span.Length; i++)
+			int size = GetInnerLength(in glyphRanges[0], vertices); // First range is always skin.
+			for (int i = 1; i < glyphRanges.Length; i++)
 			{
-				size = Triangulation.GetMeshWithHoleSize(size, span[i].length);
+				size = Triangulation.GetMeshWithHoleSize(size, GetInnerLength(in glyphRanges[i], vertices));
 			}
 
 			return size;
+		}
+
+		static int GetCurveMeshSize(scoped ReadOnlySpan<GlyphRange> glyphRanges, scoped ReadOnlySpan<GlyphVertex> vertices)
+		{
+			int size = 0;
+			for (int i = 0; i < glyphRanges.Length; i++)
+			{
+				size += GetCurveMeshLength(in glyphRanges[i], vertices);
+			}
+
+			return size;
+		}
+
+		static int GetInnerLength(ref readonly GlyphRange range, scoped ReadOnlySpan<GlyphVertex> vertices)
+		{
+			scoped ReadOnlySpanRingBuffer<GlyphVertex> section = vertices.Slice(range.start, range.length);
+
+			int length = 0;
+			for (int i = 0; i < range.length; i++)
+			{
+				ref readonly var prev = ref section[i - 1];
+				ref readonly var curr = ref section[i];
+				ref readonly var next = ref section[i + 1];
+
+				if (curr.onCurve && next.onCurve)
+				{
+					length++;
+				}
+				else if (!curr.onCurve)
+				{
+					length++;
+
+					(Vector2f prevPos, Vector2f currPos, Vector2f nextPos) = GetInnerTriangle(in prev, in curr, in next);
+
+					var ab = currPos - prevPos;
+					var ac = nextPos - prevPos;
+					ac = new(ac.y, -ac.x); // Create orthogonal vector
+
+					var dot = Vector2f.Dot(in ab, in ac);
+
+					if (dot > 0)
+						length++;
+				}
+			}
+
+			return length;
+		}
+
+		static int GetCurveMeshLength(ref readonly GlyphRange range, scoped ReadOnlySpan<GlyphVertex> vertices)
+		{
+			scoped ReadOnlySpanRingBuffer<GlyphVertex> section = vertices.Slice(range.start, range.length);
+
+			int length = 0;
+			for (int i = 0; i < range.length; i++)
+			{
+				ref readonly var curr = ref section[i];
+
+				if (!curr.onCurve)
+					length += 3;
+			}
+
+			return length;
 		}
 
 		static int FindNextMesh(scoped ReadOnlySpan<GlyphRange> span)

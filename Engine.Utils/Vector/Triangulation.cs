@@ -1,6 +1,8 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Buffers;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using UtilLib.Span;
+using UtilLib.Extensions;
 
 namespace Engine.Utils
 {
@@ -12,10 +14,6 @@ namespace Engine.Utils
 			public int curr;
 			public int next;
 		}
-
-		// Triangulate a polygon into a mesh
-		public static Memory<int> Triangulate(ReadOnlySpan<Vector2f> verticies, bool clockwise = true, float margin = 0.001f)
-		 => Triangulate(verticies, new List<int>(Enumerable.Range(0, verticies.Length)), clockwise, margin);
 
 		public static int GetMeshWithHoleSize(scoped ReadOnlySpan<Vector2f> mesh, scoped ReadOnlySpan<Vector2f> hole)
 			=> GetMeshWithHoleSize(mesh.Length, hole.Length);
@@ -71,19 +69,27 @@ namespace Engine.Utils
 			vertBuilder.Add(mesh.Slice(closest + 1));
 		}
 
-		static Memory<int> Triangulate(ReadOnlySpan<Vector2f> verticies, List<int> vertMap, bool clockwise, float margin)
+		public static Memory<int> Triangulate(ReadOnlySpan<Vector2f> verticies, bool clockwise = true, float margin = 0.001f)
 		{
+			using var vertMapBuff = MemoryPool<int>.Shared.Rent(verticies.Length);
+			SpanList<int> vertMap = vertMapBuff.Memory.Span.Slice(0, verticies.Length);
+			for (int i = 0; i < verticies.Length; i++)
+			{
+				vertMap.Add(i);
+			}
+
 			List<int> indicies = new List<int>();
 			while (vertMap.Count > 3)
 			{
-				if (!TryFindEar(verticies, CollectionsMarshal.AsSpan(vertMap), clockwise, margin, out Ear ear))
+				var vms = vertMap.AsSpan();
+				if (!TryFindEar(verticies, vertMap.AsSpan(), clockwise, margin, out Ear ear))
 					throw new Exception("Unable to complete mesh triangualtion.");
 
 				indicies.Add(ear.prev);
 				indicies.Add(ear.curr);
 				indicies.Add(ear.next);
 
-				vertMap.Remove(ear.curr);
+				vertMap.RemoveElement(in ear.curr);
 			}
 
 			// Remaining verticies should be excatly one ear
@@ -97,21 +103,16 @@ namespace Engine.Utils
 			return indicies.ToArray();
 		}
 
-		static bool TryFindEar(ReadOnlySpan<Vector2f> verticies, ReadOnlySpan<int> vertMap, bool clockwise, float margin, out Ear ear)
+		static bool TryFindEar(scoped ReadOnlySpanRingBuffer<Vector2f> verticies, scoped ReadOnlySpanRingBuffer<int> vertMap, bool clockwise, float margin, out Ear ear)
 		{
 			Span<int> excludeIndicies = stackalloc int[3];
 
 			for (int i = 1; i < vertMap.Length + 2; i++)
 			{
-				int prev2Idx = Loop(i - 2, vertMap.Length);
-				int prevIdx = Loop(i - 1, vertMap.Length);
-				int currIdx = Loop(i, vertMap.Length);
-				int nextIdx = Loop(i + 1, vertMap.Length);
-
-				Vector2f prev2 = verticies[vertMap[prev2Idx]];
-				Vector2f prev = verticies[vertMap[prevIdx]];
-				Vector2f curr = verticies[vertMap[currIdx]];
-				Vector2f next = verticies[vertMap[nextIdx]];
+				Vector2f prev2 = verticies[vertMap[i - 2]];
+				Vector2f prev = verticies[vertMap[i - 1]];
+				Vector2f curr = verticies[vertMap[i]];
+				Vector2f next = verticies[vertMap[i + 1]];
 
 				var aLine = clockwise ? VectorMath.Angle(next, prev, curr) : VectorMath.Angle(curr, prev, next);
 				var aPrev = clockwise ? VectorMath.Angle(prev2, prev, curr) : VectorMath.Angle(curr, prev, prev2);
@@ -120,16 +121,16 @@ namespace Engine.Utils
 				if (aCurr >= MathF.PI || aPrev < aLine || MathF.Abs(aCurr - MathF.PI) < margin)
 					continue;
 
-				excludeIndicies[0] = vertMap[prevIdx];
-				excludeIndicies[1] = vertMap[currIdx];
-				excludeIndicies[2] = vertMap[nextIdx];
+				excludeIndicies[0] = vertMap[i - 1];
+				excludeIndicies[1] = vertMap[i];
+				excludeIndicies[2] = vertMap[i + 1];
 				if (!IntersectAny(prev, next, excludeIndicies, verticies, margin))
 				{
 					ear = new Ear()
 					{
-						prev = vertMap[prevIdx],
-						curr = vertMap[currIdx],
-						next = vertMap[nextIdx]
+						prev = vertMap[i - 1],
+						curr = vertMap[i],
+						next = vertMap[i + 1]
 					};
 
 					return true;
@@ -146,7 +147,7 @@ namespace Engine.Utils
 			return (idx + modulo) % modulo;
 		}
 
-		static bool IntersectAny(Vector2f p1, Vector2f p2, ReadOnlySpan<int> skips, ReadOnlySpan<Vector2f> verticies, float margin)
+		static bool IntersectAny(Vector2f p1, Vector2f p2, scoped ReadOnlySpan<int> skips, scoped ReadOnlySpanRingBuffer<Vector2f> verticies, float margin)
 		{
 			for (int i = 0; i < verticies.Length - 1; i++)
 			{

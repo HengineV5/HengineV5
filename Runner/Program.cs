@@ -6,6 +6,7 @@ using Engine.Parsing;
 using Engine.Translation;
 using Engine.Utils;
 using Engine.Utils.Parsing.TTF;
+using MathLib.Vector.Extensions;
 using Microsoft.Extensions.Logging;
 using System.Net;
 using System.Runtime.InteropServices;
@@ -105,8 +106,8 @@ namespace Runner
 			{
 				//{ "en-en", "This is a test text!" }
 				//{ "en-en", "The quick brown fox jumps over the lazy dog." }
-				//{ "en-en", "b Hellø Wørldå!" }
-				{ "en-en", "b" }
+				{ "en-en", "b Hellø Wørldå!" }
+				//{ "en-en", "å" }
 			});
 
 			Dictionary<string, TranslationUnit> tranlations = new Dictionary<string, TranslationUnit>()
@@ -181,7 +182,7 @@ namespace Runner
 				id = "test_id",
 				font = font,
 			};
-			overlayWorld.CreateTextElement(new(30, 0, 50, 0), textAtlas, text);
+			overlayWorld.CreateTextElement(new(30, 0, 150, 0), textAtlas, text);
 
 			/*
             for (int a = 0; a < str.Length; a++)
@@ -212,7 +213,7 @@ namespace Runner
 			//TestWorld.Load(mainWorld);
 			//MapWorld.Load(factory.CreateLogger("MapWorld"), mainWorld);
 
-			var b = font.GetGlyphIndex('b');
+			var b = font.GetGlyphIndex('æ');
 			Span<ushort> sections = stackalloc ushort[b.contours.Length + 1];
 			b.contours.Span.TryCopyTo(sections.Slice(1));
 			for (int i = 1; i < sections.Length; i++)
@@ -270,7 +271,14 @@ namespace Runner
 					}
 
 					//mainWorld.CreateGizmoLine(curr, next, new GizmoColor(0, 1, 0));
-					mainWorld.CreateGizmo(curr, Vector3f.One * 0.25f, GizmoType.Point, section[idx].onCurve ? new(1, 0, 0) : new(0, 0, 1));
+					var ab = curr - prev;
+					var ac = next - prev;
+					
+					var dot = Vector3f.Dot(in ab, ac.Orthogonal());
+
+					var color = dot > 0 ? new GizmoColor(0, 1, 0) : new GizmoColor(0, 0, 1);
+
+					mainWorld.CreateGizmo(curr, Vector3f.One * 0.25f, GizmoType.Point, section[idx].onCurve ? new(1, 0, 0) : color);
 				}
 			}
 

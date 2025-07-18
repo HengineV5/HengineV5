@@ -21,15 +21,17 @@ namespace Engine.Graphics
 
 	public struct GuiVertex
 	{
-		public static readonly uint SizeInBytes = sizeof(float) * 6; // Byte size of vertex
+		public static readonly uint SizeInBytes = sizeof(float) * 6 + sizeof(uint) * 1; // Byte size of vertex
 
 		public Vector4f position;
 		public Vector2f textureCoordinate;
+		public uint inverted;
 
-		public GuiVertex(Vector4f position, Vector2f textureCoordinate)
+		public GuiVertex(Vector4f position, Vector2f textureCoordinate, bool inverted = false)
 		{
 			this.position = position;
 			this.textureCoordinate = textureCoordinate;
+			this.inverted = inverted ? 1u : 0u;
 		}
 	}
 

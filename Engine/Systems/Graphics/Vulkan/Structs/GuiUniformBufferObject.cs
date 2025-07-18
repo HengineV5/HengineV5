@@ -23,5 +23,8 @@ namespace Engine
 
 		[FieldOffset(4)]
 		public int state;
+
+		[FieldOffset(8)]
+		public bool bezier;
 	}
 }
