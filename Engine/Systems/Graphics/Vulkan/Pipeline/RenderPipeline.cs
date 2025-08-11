@@ -96,16 +96,6 @@ namespace Engine
             context.vk.CmdDrawIndexed(renderTarget.frame.commandBuffer, indicies, 1, 0, 0, 0);
         }
 
-        public unsafe void Render(VkContext context, in TPipelineEnum pipeline, in Buffer vertexBuffer, in Buffer indexBuffer, uint indicies, int idx, int vertexOffset, uint indexOffset)
-        {
-            BindDescriptorSets(context, pipeline, idx);
-
-            context.vk.CmdBindVertexBuffers(renderTarget.frame.commandBuffer, 0, [vertexBuffer], [0]);
-            context.vk.CmdBindIndexBuffer(renderTarget.frame.commandBuffer, indexBuffer, 0, IndexType.Uint16);
-
-            context.vk.CmdDrawIndexed(renderTarget.frame.commandBuffer, indicies, 1, indexOffset, vertexOffset, 0);
-        }
-
 		public unsafe void RenderWithoutUbo(VkContext context, in TPipelineEnum pipeline, in Buffer vertexBuffer, in Buffer indexBuffer, uint indicies, int idx)
 		{
 			context.vk.CmdBindVertexBuffers(renderTarget.frame.commandBuffer, 0, [vertexBuffer], [0]);

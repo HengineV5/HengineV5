@@ -71,10 +71,7 @@ namespace Engine
 
 		void RenderMesh(VkTextBuffer textBuffer)
 		{
-			var length = textBuffer.indexOffsets.Span[1];
-
-			//renderContext.pipeline.Render(this.context, PipelineContainerLayer.Gui, textBuffer.vertexBuffer, textBuffer.indexBuffer, textBuffer.indicies, updateIdx);
-			renderContext.pipeline.Render(this.context, PipelineContainerLayer.Gui, textBuffer.vertexBuffer, textBuffer.indexBuffer, (uint)length, updateIdx);
+			renderContext.pipeline.Render(this.context, PipelineContainerLayer.Gui, textBuffer.vertexBuffer, textBuffer.indexBuffer, textBuffer.indicies, updateIdx);
 		}
 	}
 }

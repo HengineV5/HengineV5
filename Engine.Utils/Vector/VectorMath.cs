@@ -1,5 +1,4 @@
 ﻿using System.Runtime.CompilerServices;
-using UtilLib.Span;
 
 namespace Engine.Utils
 {
@@ -71,15 +70,13 @@ namespace Engine.Utils
 		/// </summary>
 		/// <param name="points"></param>
 		/// <returns></returns>
-		public static bool IsClockwise(scoped ReadOnlySpan<Vector2f> points)
+		public static bool IsClockwise(ReadOnlySpan<Vector2f> points)
 		{
-			scoped ReadOnlySpanRingBuffer<Vector2f> pointsRing = points;
-
 			float sum = 0;
-            for (int i = 0; i < points.Length; i++)
+            for (int i = 0; i < points.Length - 1; i++)
             {
-				Vector2f p1 = pointsRing[i];
-				Vector2f p2 = pointsRing[i + 1];
+				Vector2f p1 = points[i];
+				Vector2f p2 = points[i + 1];
 
 				sum += (p2.x - p1.x) * (p2.y + p1.y);
             }

@@ -13,6 +13,7 @@ using System.Buffers;
 using System.Runtime.InteropServices;
 using UtilLib.Extensions;
 using UtilLib.Span;
+using static System.Net.Mime.MediaTypeNames;
 using Buffer = Silk.NET.Vulkan.Buffer;
 
 namespace Engine.Graphics
@@ -27,10 +28,6 @@ namespace Engine.Graphics
 		public uint indicies;
 		public Buffer indexBuffer;
 		public DeviceMemory indexBufferMemory;
-
-		public Font font;
-		public Memory<int> vertexOffsets;
-		public Memory<int> indexOffsets;
 	}
 
 	[ResourceManager]
@@ -65,85 +62,8 @@ namespace Engine.Graphics
 			logger.LogResourceManagerStore(resource.id);
 
 			meshCache.Add(resource.id, idx);
-			//meshBuffers.Span[(int)idx] = CreateTextBuffer(context, translationManager, resource);
-			meshBuffers.Span[(int)idx] = CreateFontBuffer(context, resource.font);
+			meshBuffers.Span[(int)idx] = CreateTextBuffer(context, translationManager, resource);
 			return idx++;
-		}
-
-		static Graphics.VkTextBuffer CreateFontBuffer(VkContext context, Font font)
-		{
-			using var vertBuff = MemoryPool<Vector2f>.Shared.Rent(10000);
-			using var uvBuff = MemoryPool<Vector3f>.Shared.Rent(10000);
-			using var indexBuff = MemoryPool<int>.Shared.Rent(10000);
-
-			using var vertexOffsetBuff = MemoryPool<int>.Shared.Rent(10000);
-			using var indexOffsetBuff = MemoryPool<int>.Shared.Rent(10000);
-
-			SpanList<Vector2f> verticies = vertBuff.Memory.Span;
-			SpanList<Vector3f> uvs = uvBuff.Memory.Span;
-			SpanList<int> indicies = indexBuff.Memory.Span;
-
-			SpanList<int> vertexOffsets = vertexOffsetBuff.Memory.Span;
-			SpanList<int> indexOffsets = indexOffsetBuff.Memory.Span;
-
-			for (int i = 0; i < font.Glyphs.Length; i++)
-			{
-				try
-				{
-					ref readonly var glyph = ref font.Glyphs[i];
-
-					if (glyph.contours.Length < 3)
-						continue; // Skip empty glyphs.
-
-					ProcessMesh(glyph, ref verticies, ref uvs, ref indicies, 0);
-
-					vertexOffsets.Add(verticies.Count);
-					indexOffsets.Add(indicies.Count);
-				}
-				catch (Exception)
-				{
-					//Console.WriteLine($"Idx: {i} failed with {font.Glyphs[i].contours.Length} contours");
-					break; // TODO: This is quite hacky
-				}
-			}
-			/*
-			*/
-
-			/*
-			ref readonly var glyph = ref font.Glyphs[373];
-			ProcessMesh(glyph, ref verticies, ref uvs, ref indicies, 0);
-			*/
-
-			using var vertMemory = MemoryPool<GuiVertex>.Shared.Rent(verticies.Count);
-			using var indexMemory = MemoryPool<ushort>.Shared.Rent(indicies.Count);
-
-			Vector2f delta = new Vector2f(1000, 1000);
-			for (int i = 0; i < verticies.Count; i++)
-				vertMemory.Memory.Span[i] = new GuiVertex(new Vector4f(verticies[i].x / delta.x, 0, 1 - verticies[i].y / delta.y, 0), new(uvs[i].x, uvs[i].y), uvs[i].z == 1);
-
-			for (int i = 0; i < indicies.Count; i++)
-				indexMemory.Memory.Span[i] = (ushort)indicies[i];
-
-			var meshBuffer = VulkanMeshResourceManager.CreateBuffer(context, vertMemory.Memory.Span[..verticies.Count], indexMemory.Memory.Span[..indicies.Count]);
-
-			var vOffsets = new int[vertexOffsets.Count];
-			vertexOffsets.AsSpan().CopyTo(vOffsets);
-
-			var iOffsets = new int[indexOffsets.Count];
-			indexOffsets.AsSpan().CopyTo(iOffsets);
-
-			return new()
-			{
-				vertexBuffer = meshBuffer.vertexBuffer,
-				vertexBufferMemory = meshBuffer.vertexBufferMemory,
-				indicies = meshBuffer.indicies,
-				indexBuffer = meshBuffer.indexBuffer,
-				indexBufferMemory = meshBuffer.indexBufferMemory,
-
-				font = font,
-				vertexOffsets = vOffsets,
-				indexOffsets = iOffsets,
-			};
 		}
 
 		static Graphics.VkTextBuffer CreateTextBuffer(VkContext context, TranslationManager translationManager, in Graphics.GuiText resource)
@@ -162,7 +82,7 @@ namespace Engine.Graphics
 			int advanced = 0;
 			for (int i = 0; i < str.Length; i++)
 			{
-				var glyph = resource.font.GetUnicodeGlyph(str[i]);
+				var glyph = resource.font.GetGlyphIndex(str[i]);
 				var toAdvance = resource.font.GetGlyphAdvance(str[i]);
 				if (toAdvance < 100) // TODO: Make less hacky, this is for space.
 					toAdvance = 1200;
@@ -190,7 +110,7 @@ namespace Engine.Graphics
 			for (int i = 0; i < indicies.Count; i++)
 				indexMemory.Memory.Span[i] = (ushort)indicies[i];
 
-			var meshBuffer = VulkanMeshResourceManager.CreateBuffer(context, vertMemory.Memory.Span[..verticies.Count], indexMemory.Memory.Span[..indicies.Count]);
+			var meshBuffer = VulkanMeshResourceManager.CreateBuffer(context, vertMemory.Memory.Span.Slice(0, verticies.Count), indexMemory.Memory.Span.Slice(0, indicies.Count), GuiVertex.SizeInBytes);
 
 			return new()
 			{
@@ -207,7 +127,7 @@ namespace Engine.Graphics
 			scoped Span<GlyphRange> glyphRanges = stackalloc GlyphRange[glyphData.contours.Length];
 			GetGlyphRanges(glyphData, glyphRanges);
 
-			using var buff = MemoryPool<Vector2f>.Shared.Rent(2048);
+			using var buff = MemoryPool<Vector2f>.Shared.Rent(glyphData.coords.Length);
 			var buffSpan = buff.Memory.Span;
 
 			for (int i = 0; i < glyphRanges.Length; i++)
@@ -233,10 +153,10 @@ namespace Engine.Graphics
 
 				indiciesSpan.ForEach((ref int i) => i += innerOffset);
 				innerMeshSpan.ForEach((ref Vector2f i) => i += new Vector2f(advance, 0));
+				curveMeshSpan.ForEach((ref Vector2f i) => i += new Vector2f(advance, 0));
 
 				var curveIndiciesSpan = indicies.Reserve(curveMeshLength);
 				CreateCurveMeshIndicies(curveMeshSpan, curveIndiciesSpan, curveOffset);
-				curveMeshSpan.ForEach((ref Vector2f i) => i += new Vector2f(advance, 0));
 
 				i += glyphs; // Skip to next non hole mesh.
 			}
@@ -250,6 +170,7 @@ namespace Engine.Graphics
 				coords[i] = new(glyphData.coords.Span[i].x, glyphData.coords.Span[i].y);
 			}
 
+			int totalMeshes = 0;
 			int prev = 0;
 			for (int i = 0; i < glyphData.contours.Length; i++)
 			{
@@ -258,6 +179,9 @@ namespace Engine.Graphics
 
 				var slice = coords.Slice(prev, length);
 				bool clockwise = VectorMath.IsClockwise(slice);
+
+				if (clockwise)
+					totalMeshes++;
 
 				glyphs[i] = new GlyphRange(prev, length, clockwise);
 				prev = idx;
@@ -393,9 +317,11 @@ namespace Engine.Graphics
 
 		static void CreateCurveMeshIndicies(scoped ReadOnlySpan<Vector2f> mesh, scoped Span<int> indices, int offset)
 		{
-			for (int i = 0; i < mesh.Length; i++)
+			for (int i = 0; i < mesh.Length; i+=3)
 			{
-				indices[i] = i + offset;
+				indices[i + 0] = i + offset;
+				indices[i + 1] = i + offset + 1;
+				indices[i + 2] = i + offset + 2;
 			}
 		}
 

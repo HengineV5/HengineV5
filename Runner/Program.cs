@@ -213,7 +213,7 @@ namespace Runner
 			//TestWorld.Load(mainWorld);
 			//MapWorld.Load(factory.CreateLogger("MapWorld"), mainWorld);
 
-			var b = font.GetUnicodeGlyph('æ');
+			var b = font.GetGlyphIndex('æ');
 			Span<ushort> sections = stackalloc ushort[b.contours.Length + 1];
 			b.contours.Span.TryCopyTo(sections.Slice(1));
 			for (int i = 1; i < sections.Length; i++)

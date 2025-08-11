@@ -24,22 +24,15 @@ namespace Engine.Utils.Parsing.TTF
 
     public class Font
     {
-		public ReadOnlySpan<GlyphData> Glyphs => glyphData;
-
 		GlyphData[] glyphData;
 
 		HmtxTable hmtx;
 		CmapTable cmapData;
 
 		// https://github.com/LayoutFarm/Typography/blob/master/Typography.OpenFont/Tables/CharacterMap.cs
-		public GlyphData GetUnicodeGlyph(ushort unicode)
+		public GlyphData GetGlyphIndex(ushort unicode)
 		{
 			return glyphData[GetGlyphIdx(ref cmapData, unicode)];
-		}
-
-		public int GetUnicodeGlyphIndex(ushort unicode)
-		{
-			return GetGlyphIdx(ref cmapData, unicode);
 		}
 
 		public ushort GetGlyphAdvance(ushort unicode)
@@ -72,7 +65,7 @@ namespace Engine.Utils.Parsing.TTF
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public GlyphData GetGlyphIndex(uint unicode)
-			=> GetUnicodeGlyph((ushort)unicode);
+			=> GetGlyphIndex((ushort)unicode);
 
 
 		internal static Font Load(DataReader reader)
