@@ -59,36 +59,38 @@ namespace Engine.Graphics
 		{
 			// Convert mesh data to correct format
 			uint indiciesLength = (uint)mesh.indicies.Length;
-			Memory<Vertex> verticies = mesh.verticies;
-			Memory<ushort> indicies = new ushort[mesh.indicies.Length];
+			var verticies = mesh.verticies;
+			using var indicies = MemoryPool<ushort>.Shared.Rent(mesh.indicies.Length);
+
 			for (int i = 0; i < mesh.indicies.Length; i++)
 			{
-				indicies.Span[i] = (ushort)mesh.indicies[i];
+				indicies.Memory.Span[i] = (ushort)mesh.indicies[i];
 			}
 
-			return CreateBuffer(context, verticies.Span, indicies.Span, Vertex.SizeInBytes);
+			return CreateBuffer(context, verticies.AsSpan(), indicies.Memory.Span.Slice(0, mesh.indicies.Length));
 		}
 
 		public static VkMeshBuffer CreateGizmoBuffer(VkContext context, Graphics.Mesh mesh)
 		{
 			// Convert mesh data to correct format
 			uint indiciesLength = (uint)mesh.indicies.Length;
-			Memory<GizmoVertex> verticies = new GizmoVertex[mesh.verticies.Length];
-			Memory<ushort> indicies = new ushort[mesh.indicies.Length];
+			using var verticies = MemoryPool<GizmoVertex>.Shared.Rent(mesh.verticies.Length);
+			using var indicies = MemoryPool<ushort>.Shared.Rent(mesh.indicies.Length);
+
 			for (int i = 0; i < mesh.indicies.Length; i++)
 			{
-				indicies.Span[i] = (ushort)mesh.indicies[i];
+				indicies.Memory.Span[i] = (ushort)mesh.indicies[i];
 			}
 
 			for (int i = 0; i < mesh.verticies.Length; i++)
 			{
-				verticies.Span[i] = new(mesh.verticies[i].position, mesh.verticies[i].normal);
+				verticies.Memory.Span[i] = new(mesh.verticies[i].position, mesh.verticies[i].normal);
 			}
 			
-			return CreateBuffer(context, verticies.Span, indicies.Span, GizmoVertex.SizeInBytes);
+			return CreateBuffer(context, verticies.Memory.Span.Slice(0, mesh.verticies.Length), indicies.Memory.Span.Slice(0, mesh.indicies.Length));
 		}
 
-		public static VkMeshBuffer CreateBuffer<TVertex>(VkContext context, Span<TVertex> vertices, Span<ushort> indicies, uint sizeInBytes) where TVertex : unmanaged
+		public static VkMeshBuffer CreateBuffer<TVertex>(VkContext context, scoped Span<TVertex> vertices, scoped Span<ushort> indicies) where TVertex : unmanaged, IVertex
 		{
 			// TODO: Move command pool to context, bad to create for each mesh creating call
 			uint graphicsQueueFamily = VulkanHelper.GetGraphicsQueueFamily(context);
@@ -107,7 +109,7 @@ namespace Engine.Graphics
 			DeviceMemory stagingBufferMemory = VulkanHelper.CreateBufferMemory(context, stagingBuffer, MemoryPropertyFlags.HostVisibleBit | MemoryPropertyFlags.HostCoherentBit);
 
 			VulkanHelper.CopyToBuffer(context, stagingBuffer, stagingBufferMemory, vertices);
-			VulkanHelper.CopyBuffer(context, commandPool, graphicsQueue, stagingBuffer, meshBuffer.vertexBuffer, (uint)vertices.Length * sizeInBytes);
+			VulkanHelper.CopyBuffer(context, commandPool, graphicsQueue, stagingBuffer, meshBuffer.vertexBuffer, (uint)vertices.Length * TVertex.SizeInBytes);
 
 			VulkanHelper.CopyToBuffer(context, stagingBuffer, stagingBufferMemory, indicies);
 			VulkanHelper.CopyBuffer(context, commandPool, graphicsQueue, stagingBuffer, meshBuffer.indexBuffer, (uint)indicies.Length * sizeof(ushort));

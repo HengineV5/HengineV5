@@ -78,12 +78,36 @@ namespace Engine.Utils
 				vertMap.Add(i);
 			}
 
+			/*
+			{
+				Console.WriteLine($"Whole:");
+				var vms = vertMap.AsSpan();
+				for (int i = 0; i < vertMap.Count; i++)
+				{
+					var point = verticies[vms[i]];
+					Console.WriteLine($"{point.x},{point.y}");
+				}
+			}
+			*/
+
 			List<int> indicies = new List<int>();
 			while (vertMap.Count > 3)
 			{
 				var vms = vertMap.AsSpan();
 				if (!TryFindEar(verticies, vertMap.AsSpan(), clockwise, margin, out Ear ear))
+				{
+					// Uncomment to debug.
+					/*
+					Console.WriteLine($"Remaining:");
+					for (int i = 0; i < vertMap.Count; i++)
+					{
+						var point = verticies[vms[i]];
+						Console.WriteLine($"{point.x},{point.y}");
+					}
+					*/
+
 					throw new Exception("Unable to complete mesh triangualtion.");
+				}
 
 				indicies.Add(ear.prev);
 				indicies.Add(ear.curr);

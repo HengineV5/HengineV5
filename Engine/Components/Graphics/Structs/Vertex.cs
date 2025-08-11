@@ -1,9 +1,14 @@
 ﻿
 namespace Engine.Graphics
 {
-	public struct Vertex
+	public interface IVertex
 	{
-		public static readonly uint SizeInBytes = sizeof(float) * 11; // Byte size of vertex
+		static abstract uint SizeInBytes { get; }
+	}
+
+	public struct Vertex : IVertex
+	{
+		public static uint SizeInBytes => sizeof(float) * 11; // Byte size of vertex
 
 		public Vector3f position;
 		public Vector3f normal;
@@ -19,9 +24,9 @@ namespace Engine.Graphics
 		}
 	}
 
-	public struct GuiVertex
+	public struct GuiVertex : IVertex
 	{
-		public static readonly uint SizeInBytes = sizeof(float) * 6 + sizeof(uint) * 1; // Byte size of vertex
+		public static uint SizeInBytes => sizeof(float) * 6 + sizeof(uint) * 1; // Byte size of vertex
 
 		public Vector4f position;
 		public Vector2f textureCoordinate;
@@ -35,9 +40,9 @@ namespace Engine.Graphics
 		}
 	}
 
-	public struct GizmoVertex
+	public struct GizmoVertex : IVertex
 	{
-		public static readonly uint SizeInBytes = sizeof(float) * 6; // Byte size of vertex
+		public static uint SizeInBytes => sizeof(float) * 6; // Byte size of vertex
 
 		public Vector3f position;
 		public Vector3f normal;

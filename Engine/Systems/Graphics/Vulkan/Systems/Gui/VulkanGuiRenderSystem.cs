@@ -39,7 +39,7 @@ namespace Engine
 			sampler = VulkanHelper.CreateSampler(context, 5);
 
 			var boxMesh = GuiMeshes.Box;
-			boxBuffer = VulkanMeshResourceManager.CreateBuffer<GuiVertex>(context, boxMesh.verticies, boxMesh.indicies, GuiVertex.SizeInBytes);
+			boxBuffer = VulkanMeshResourceManager.CreateBuffer<GuiVertex>(context, boxMesh.verticies, boxMesh.indicies);
 		}
 
 		// TODO: Refactor out
