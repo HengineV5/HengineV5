@@ -4,7 +4,6 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using System.Runtime.CompilerServices;
 using TemplateGenerator;
 
@@ -252,8 +251,8 @@ namespace Engine.Generator
 		public EquatableArray<PipelineSystem> systems;
 		public EquatableArray<SystemArgument> contextArguments;
 
-        public Pipeline()
-        {
+		public Pipeline()
+		{
 			name = "";
 			systems = EquatableArray<PipelineSystem>.Empty;
 			contextArguments = EquatableArray<SystemArgument>.Empty;
@@ -292,8 +291,8 @@ namespace Engine.Generator
 		public bool hasPreRun;
 		public bool hasPostRun;
 
-        public PipelineSystem()
-        {
+		public PipelineSystem()
+		{
 			name = "";
 			arguments = EquatableArray<SystemArgument>.Empty;
 			contextArguments = EquatableArray<SystemArgument>.Empty;
@@ -330,10 +329,10 @@ namespace Engine.Generator
 	{
 		public string type;
 
-        public SystemArgument()
-        {
+		public SystemArgument()
+		{
 			type = "";
-        }
+		}
 
 		public Model<ReturnType> GetModel()
 		{

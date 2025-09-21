@@ -85,7 +85,7 @@ namespace Engine
 		[SystemUpdate, SystemLayer(0, 2)]
 		public void RenderUpdate(ref VulkanRenderContext context, ref Position position, ref Rotation rotation, ref Scale scale, ref VkMeshBuffer mesh, ref VkPbrMaterial material)
 		{
-            renderContext.pipeline.Render(this.context, PipelineContainerLayer.Pbr, mesh.vertexBuffer, mesh.indexBuffer, mesh.indicies, updateIdx);
+			renderContext.pipeline.Render(this.context, PipelineContainerLayer.Pbr, mesh.vertexBuffer, mesh.indexBuffer, mesh.indicies, updateIdx);
 			updateIdx++;
 		}
 

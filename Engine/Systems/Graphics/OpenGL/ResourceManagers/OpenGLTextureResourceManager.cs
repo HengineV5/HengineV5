@@ -19,12 +19,12 @@ namespace Engine.Graphics
 
 		GL gl;
 
-        public OpenGLTextureResourceManager(GL gl)
-        {
+		public OpenGLTextureResourceManager(GL gl)
+		{
 			this.gl = gl;
-        }
+		}
 
-        public ref Graphics.GlTextureBuffer Get(uint id)
+		public ref Graphics.GlTextureBuffer Get(uint id)
 		{
 			return ref textureBuffers.Span[(int)id];
 		}

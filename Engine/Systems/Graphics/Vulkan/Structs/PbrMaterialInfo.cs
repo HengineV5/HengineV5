@@ -4,11 +4,11 @@ using System.Runtime.InteropServices;
 namespace Engine
 {
 	[StructLayout(LayoutKind.Sequential, Pack = 16)]
-    public struct PbrMaterialInfo
-    {
-        public Vector3f albedo;
-        public float metallic;
-        public float roughness;
+	public struct PbrMaterialInfo
+	{
+		public Vector3f albedo;
+		public float metallic;
+		public float roughness;
 
 		public static PbrMaterialInfo FromMaterial(in VkPbrMaterial material)
 		{
@@ -19,5 +19,5 @@ namespace Engine
 				roughness = material.roughness
 			};
 		}
-    }
+	}
 }

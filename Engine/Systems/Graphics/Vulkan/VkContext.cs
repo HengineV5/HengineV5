@@ -1,12 +1,10 @@
 ﻿using EnCS;
-using ImageLib;
 using Silk.NET.Core;
 using Silk.NET.Core.Contexts;
 using Silk.NET.Core.Native;
 using Silk.NET.Vulkan;
 using Silk.NET.Vulkan.Extensions.KHR;
 using Silk.NET.Windowing;
-using System.Buffers;
 using System.Runtime.InteropServices;
 using Image = Silk.NET.Vulkan.Image;
 
@@ -22,10 +20,10 @@ namespace Engine
 		public RenderPipeline<SwapchainRenderTargetManager, DefaultRenderPassInfo, DefaultPipelineInfo, DescriptorSetContainer, PipelineContainer, PipelineContainerLayer, RenderPassContainer, RenderPassId> pipeline;
 		//public RenderPipeline<TextureRenderTargetManager<PbrDescriptorSet, Rgba32>, DefaultRenderPassInfo, DefaultPipelineInfo, PbrDescriptorSet, PbrPipelineContainer, PbrPipelineLayer, RenderPassContainer, PbrRenderPassId> texturePipeline;
 
-        public VkRenderContext(VkContext context)
-        {
+		public VkRenderContext(VkContext context)
+		{
 			this.context = context;
-        }
+		}
 
 		Image image;
 		DeviceMemory imageMemory;
@@ -57,7 +55,7 @@ namespace Engine
 			//renderPipeline = RenderPipeline.Create(context, surface, commandPool);
 
 			//SwapchainRenderTargetManager<DefaultDescriptorSet> renderTargetManager = SwapchainRenderTargetManager<DefaultDescriptorSet>.Create(context, commandPool);
-            pipeline = RenderPipeline<SwapchainRenderTargetManager, DefaultRenderPassInfo, DefaultPipelineInfo, DescriptorSetContainer, PipelineContainer, PipelineContainerLayer, RenderPassContainer, RenderPassId>.Create(context, commandPool);
+			pipeline = RenderPipeline<SwapchainRenderTargetManager, DefaultRenderPassInfo, DefaultPipelineInfo, DescriptorSetContainer, PipelineContainer, PipelineContainerLayer, RenderPassContainer, RenderPassId>.Create(context, commandPool);
 
 			/*
 			Extent2D extent = swapchain.GetExtent();
@@ -89,7 +87,7 @@ namespace Engine
             TextureRenderTargetManager<PbrDescriptorSet, Rgba32> textureTargetManager = TextureRenderTargetManager<PbrDescriptorSet, Rgba32>.Create(SaveImage, context, extent, images, imageViews, formats, container.skyboxRenderPass, commandPool);
 			texturePipeline = RenderPipeline<TextureRenderTargetManager<PbrDescriptorSet, Rgba32>, DefaultRenderPassInfo, DefaultPipelineInfo, PbrDescriptorSet, PbrPipelineContainer, PbrPipelineLayer, RenderPassContainer, PbrRenderPassId>.Create(context, textureTargetManager);
 			*/
-        }
+		}
 
 		/*
 		static void SaveImage(ImageMemory<Rgba32> img)
@@ -113,7 +111,7 @@ namespace Engine
             //img.Save("test.jpg", new ImageEncoder());
         }
 		*/
-    }
+	}
 
 	public class VkContext
 	{
@@ -150,8 +148,8 @@ namespace Engine
 			//vk.GetPhysicalDeviceProperties(physicalDevice, out PhysicalDeviceProperties properties);
 			//Console.WriteLine(properties.Limits.MinUniformBufferOffsetAlignment);
 
-            // Do not use TryGetInstanceExtension or TryGetDeviceExtensions since they use reflection.
-            surface = new KhrSurface(new LamdaNativeContext((string x) => (nint)vk.GetInstanceProcAddr(instance, x)));
+			// Do not use TryGetInstanceExtension or TryGetDeviceExtensions since they use reflection.
+			surface = new KhrSurface(new LamdaNativeContext((string x) => (nint)vk.GetInstanceProcAddr(instance, x)));
 			swapchain = new KhrSwapchain(new LamdaNativeContext((string x) => (nint)vk.GetDeviceProcAddr(device, x)));
 		}
 

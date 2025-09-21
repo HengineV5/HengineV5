@@ -1,7 +1,6 @@
 ﻿using EnCS;
 using EnCS.Attributes;
 using Engine.Components.Graphics;
-using Engine.Graphics;
 using Silk.NET.OpenGL;
 
 namespace Engine.Graphics
@@ -36,10 +35,10 @@ namespace Engine.Graphics
 
 		public uint Store(in Graphics.Mesh mesh)
 		{
-            if (meshCache.TryGetValue(mesh.name, out uint id))
+			if (meshCache.TryGetValue(mesh.name, out uint id))
 				return id;
 
-            meshCache.Add(mesh.name, idx);
+			meshCache.Add(mesh.name, idx);
 			meshes.Span[(int)idx] = mesh;
 			meshBuffers.Span[(int)idx] = CreateMeshBuffer(gl, mesh);
 			return idx++;

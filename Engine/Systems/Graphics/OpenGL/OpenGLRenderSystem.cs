@@ -43,9 +43,9 @@ namespace Engine
 		Shader shader;
 		ShaderProgram shaderProgram;
 
-        public OpenGLRenderSystem(GL gl, IWindow window)
-        {
-            this.gl = gl;
+		public OpenGLRenderSystem(GL gl, IWindow window)
+		{
+			this.gl = gl;
 			this.window = window;
 		}
 

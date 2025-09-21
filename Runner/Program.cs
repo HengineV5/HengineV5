@@ -1,19 +1,13 @@
-﻿using CommunityToolkit.HighPerformance;
-using Engine;
+﻿using Engine;
 using Engine.Components;
 using Engine.Graphics;
-using Engine.Parsing;
 using Engine.Translation;
-using Engine.Utils;
 using Engine.Utils.Parsing.TTF;
 using MathLib.Vector.Extensions;
 using Microsoft.Extensions.Logging;
 using System.Net;
-using System.Runtime.InteropServices;
-using System.Runtime.Serialization;
 using UtilLib.Span;
 using Vertical.SpectreLogger;
-using Vertical.SpectreLogger.Options;
 using static Engine.HengineEcs;
 
 namespace Runner
@@ -120,7 +114,7 @@ namespace Runner
 				language = "en-en",
 				units = tranlations
 			};
-			
+
 			Hengine engine = new Hengine(factory);
 			engine.Initialize(engineConfig, vulkanConfig, clientConfig, translationConfig);
 
@@ -128,7 +122,7 @@ namespace Runner
 			Main mainWorld = ecs.GetMain();
 			Overlay overlayWorld = ecs.GetOverlay();
 
-			var skybox = Skybox.LoadSkybox("Skybox", "Images/Skybox/Default");
+			// ESSENTIAL CAMERA STUFF
 
 			Camera.Comp camera = new Camera.Comp
 			{
@@ -139,14 +133,7 @@ namespace Runner
 				zFar = 1000
 			};
 
-			var meshDuck = Mesh.LoadGltf("Duck", "Models/Duck/Duck.gltf", true);
-			var materialDuck = PbrMaterial.LoadGltf("Duck", "Models/Duck/Duck.gltf");
-			var meshPlane = Mesh.LoadGltf("Plane", "Models/Plane/plane.gltf");
-
-			logger.LogInformation(materialDuck.albedoMap.data.Width.ToString());
-			logger.LogInformation(materialDuck.albedoMap.data.Height.ToString());
-
-			mainWorld.CreateObject(new(3, 0, -10), Vector3f.One, meshDuck, materialDuck, engineConfig.idx == 10 ? 11 : 10);
+			var skybox = Skybox.LoadSkybox("Skybox", "Images/Skybox/Default");
 			camRef = mainWorld.CreateCamera(camera, Vector3f.Zero, skybox, engineConfig.idx);
 
 			engine.argIWindow.FramebufferResize += x =>
@@ -166,10 +153,30 @@ namespace Runner
 				cam.Camera.Set(camera);
 			};
 
+			// DEBUG
+
+			TriangulationDebugWorld.Load(ecs, engine.argIInputHandler);
+			engine.Start();
+			engine.argIWindow.Dispose();
+			return;
+			/*
+			*/
+
+			// DEBUG
+
+			var meshDuck = Mesh.LoadGltf("Duck", "Models/Duck/Duck.gltf", true);
+			var materialDuck = PbrMaterial.LoadGltf("Duck", "Models/Duck/Duck.gltf");
+			var meshPlane = Mesh.LoadGltf("Plane", "Models/Plane/plane.gltf");
+
+			logger.LogInformation(materialDuck.albedoMap.data.Width.ToString());
+			logger.LogInformation(materialDuck.albedoMap.data.Height.ToString());
+
+			mainWorld.CreateObject(new(3, 0, -10), Vector3f.One, meshDuck, materialDuck, engineConfig.idx == 10 ? 11 : 10);
+
 			var font = TtfLoader.LoadFont("Fonts/arial.ttf");
 
 			var buttonAtlas = TextureAtlas.LoadAtlas("ButtonAtlas", 3, "Images/Gui/Button/Button.png");
-            var textAtlas = TextureAtlas.LoadAtlas("TextAtlas", 1, "Images/Gui/Text/Text.png");
+			var textAtlas = TextureAtlas.LoadAtlas("TextAtlas", 1, "Images/Gui/Text/Text.png");
 
 			GuiProperties.Comp prop = new GuiProperties.Comp()
 			{
@@ -213,7 +220,8 @@ namespace Runner
 			//TestWorld.Load(mainWorld);
 			//MapWorld.Load(factory.CreateLogger("MapWorld"), mainWorld);
 
-			var b = font.GetGlyphIndex('æ');
+			//var b = font.GetUnicodeGlyph('æ');
+			var b = font.Glyphs[373];
 			Span<ushort> sections = stackalloc ushort[b.contours.Length + 1];
 			b.contours.Span.TryCopyTo(sections.Slice(1));
 			for (int i = 1; i < sections.Length; i++)
@@ -273,7 +281,7 @@ namespace Runner
 					//mainWorld.CreateGizmoLine(curr, next, new GizmoColor(0, 1, 0));
 					var ab = curr - prev;
 					var ac = next - prev;
-					
+
 					var dot = Vector3f.Dot(in ab, ac.Orthogonal());
 
 					var color = dot > 0 ? new GizmoColor(0, 1, 0) : new GizmoColor(0, 0, 1);

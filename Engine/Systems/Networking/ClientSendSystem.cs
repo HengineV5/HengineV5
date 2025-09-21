@@ -14,15 +14,15 @@ namespace Engine
 	[System]
 	[SystemContext<EngineContext>]
 	public partial class ClientSendSystem
-    {
+	{
 		ILogger logger;
 		IClient client;
 
-        public ClientSendSystem(ILoggerFactory factory, IClient client)
-        {
+		public ClientSendSystem(ILoggerFactory factory, IClient client)
+		{
 			this.logger = factory.CreateLogger<ClientSendSystem>();
 			this.client = client;
-        }
+		}
 
 		float time = 0;
 
@@ -31,7 +31,7 @@ namespace Engine
 		{
 		}
 
-        [SystemUpdate]
+		[SystemUpdate]
 		public void Update(ref EngineContext engineContext, ref Position position, ref Rotation rotation, ref Camera camera, ref Networked networked)
 		{
 			time += engineContext.dt;
@@ -41,7 +41,7 @@ namespace Engine
 			logger.LogClientSend(networked.idx, new Vector3f(position.x, position.y, position.z), new Quaternionf(rotation.x, rotation.y, rotation.z, rotation.w));
 
 			time = 0;
-            client.SendData(new UpdatePacket()
+			client.SendData(new UpdatePacket()
 			{
 				idx = networked.idx,
 				position = new Vector3f(position.x, position.y, position.z),
@@ -70,7 +70,7 @@ namespace Engine
 		[SystemUpdate]
 		public void Update(ref EngineContext engineContext, ref Position position, ref Rotation rotation, ref Scale scale, ref Networked networked)
 		{
-            var packets = client.GetPackets();
+			var packets = client.GetPackets();
 			List<int> toRemove = new List<int>();
 			for (int i = 0; i < packets.Count; i++)
 			{
@@ -78,13 +78,13 @@ namespace Engine
 
 				if (packet.idx == networked.idx)
 				{
-                    //Console.WriteLine($"Found match: {packet.idx} {packet.position}, {packet.roation}");
+					//Console.WriteLine($"Found match: {packet.idx} {packet.position}, {packet.roation}");
 
-                    //position.Set(packet.position);
+					//position.Set(packet.position);
 					//rotation.Set(packet.roation); // TODO: FIx before commit
 					toRemove.Add(i);
 
-                }
+				}
 			}
 
 			for (int i = 0; i < toRemove.Count; i++)

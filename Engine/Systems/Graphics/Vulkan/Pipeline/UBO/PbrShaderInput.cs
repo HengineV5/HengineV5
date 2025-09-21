@@ -26,7 +26,7 @@ namespace Engine
 			if (result != Result.Success)
 				throw new Exception("Failed to allocate vkDescriptorSets");
 
-            return descriptorSet;
+			return descriptorSet;
 		}
 
 		public unsafe static PbrShaderInput Map(VkContext context, DescriptorSet descriptorSet)
@@ -37,7 +37,7 @@ namespace Engine
 			void* dataPtr;
 			context.vk.MapMemory(context.device, uniformBuffersMemory, 0, 704, 0, &dataPtr);
 
-            PbrShaderInput shaderInput = new PbrShaderInput();
+			PbrShaderInput shaderInput = new PbrShaderInput();
 
 			// TODO: Convert this builder to source generator
 			var uniformBufferBuilder = new UniformBufferBuilder(descriptorSet, uniformBuffer)
@@ -54,16 +54,16 @@ namespace Engine
 
 			uniformBufferBuilder.UpdateDescriptorSet(context);
 
-            return shaderInput;
+			return shaderInput;
 		}
 
 		public static DescriptorSetLayout GetLayout(VkContext context)
 		{
 			return new DescriptorSetLayoutBuilder()
-				.Uniform(ShaderStageFlags.VertexBit, 1)			// UBO
-				.Samplers(ShaderStageFlags.FragmentBit, 1, 9)	// PBR textures
-				.Uniform(ShaderStageFlags.FragmentBit, 1)		// Lights
-				.Uniform(ShaderStageFlags.FragmentBit, 4)		// Cubemap
+				.Uniform(ShaderStageFlags.VertexBit, 1)         // UBO
+				.Samplers(ShaderStageFlags.FragmentBit, 1, 9)   // PBR textures
+				.Uniform(ShaderStageFlags.FragmentBit, 1)       // Lights
+				.Uniform(ShaderStageFlags.FragmentBit, 4)       // Cubemap
 				.Build(context);
 		}
 	}
@@ -108,7 +108,7 @@ namespace Engine
 			shaderInput.ubo = uniformBufferBuilder.GetElement<GuiUniformBufferObject>(dataPtr, 0);
 			shaderInput.guiState = uniformBufferBuilder.GetElement<GuiStateBufferObject>(dataPtr, 1);
 
-            uniformBufferBuilder.UpdateDescriptorSet(context);
+			uniformBufferBuilder.UpdateDescriptorSet(context);
 			return shaderInput;
 		}
 

@@ -1,8 +1,6 @@
-﻿using Silk.NET.OpenAL;
-using Silk.NET.Vulkan;
+﻿using Silk.NET.Vulkan;
 using Silk.NET.Vulkan.Extensions.KHR;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using Image = Silk.NET.Vulkan.Image;
 using Semaphore = Silk.NET.Vulkan.Semaphore;
 

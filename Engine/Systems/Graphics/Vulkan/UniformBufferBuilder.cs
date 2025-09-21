@@ -16,10 +16,10 @@ namespace Engine
 
 
 		public UniformBufferBuilder(DescriptorSet descriptor, Silk.NET.Vulkan.Buffer buffer)
-        {
-            this.descriptor = descriptor;
+		{
+			this.descriptor = descriptor;
 			this.buffer = buffer;
-        }
+		}
 
 		public unsafe UniformBufferBuilder Variable<T>(uint binding, uint arrayElement = 0) where T : unmanaged
 		{
@@ -37,7 +37,7 @@ namespace Engine
 			descriptorWrite.DstArrayElement = arrayElement;
 			descriptorWrite.DescriptorType = DescriptorType.UniformBuffer;
 			descriptorWrite.DescriptorCount = 1;
-			fixed(DescriptorBufferInfo* infoPtr = &bufferInfos.Span[idx])
+			fixed (DescriptorBufferInfo* infoPtr = &bufferInfos.Span[idx])
 			{
 				descriptorWrite.PBufferInfo = infoPtr;
 			}
@@ -78,5 +78,5 @@ namespace Engine
 		{
 			context.vk.UpdateDescriptorSets(context.device, descriptorWrites.Span.Slice(0, idx), 0, null);
 		}
-    }
+	}
 }

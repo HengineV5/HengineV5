@@ -1,6 +1,6 @@
 ﻿namespace Engine
 {
-    public enum PipelineContainerLayer
+	public enum PipelineContainerLayer
 	{
 		Skybox,
 		Pbr,

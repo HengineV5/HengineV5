@@ -1,9 +1,7 @@
 ﻿using CommunityToolkit.HighPerformance;
-using EnCS;
 using Engine.Graphics;
 using System.Buffers;
 using System.Runtime.CompilerServices;
-using static Engine.HengineEcs;
 
 namespace Runner
 {
@@ -41,11 +39,11 @@ namespace Runner
 		int vertOffset;
 		int indexOffset;
 
-        public MeshBuilder(Span<TVert> verticies, Span<TInd> indicies)
-        {
+		public MeshBuilder(Span<TVert> verticies, Span<TInd> indicies)
+		{
 			this.verticies = verticies;
 			this.indicies = indicies;
-        }
+		}
 
 		public void AppendVertex(in TVert vert)
 		{
@@ -66,7 +64,7 @@ namespace Runner
 			indicies[indexOffset + 2] = i3;
 			indexOffset += 3;
 		}
-    }
+	}
 
 	public static class MeshBuilderExtensions
 	{
@@ -536,5 +534,5 @@ namespace Runner
 			var r = hex.R;
 			return new HexAxialCoord(q, r);
 		}
-    }
+	}
 }

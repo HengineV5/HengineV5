@@ -8,12 +8,12 @@ namespace Engine
 		int idx = 0;
 		Memory<DescriptorSetLayoutBinding> layoutBindings;
 
-        public DescriptorSetLayoutBuilder()
-        {
+		public DescriptorSetLayoutBuilder()
+		{
 			layoutBindings = ArrayPool<DescriptorSetLayoutBinding>.Shared.Rent(32);
-        }
+		}
 
-        public unsafe DescriptorSetLayoutBuilder Uniform(ShaderStageFlags stageFlags, uint descriptorCount)
+		public unsafe DescriptorSetLayoutBuilder Uniform(ShaderStageFlags stageFlags, uint descriptorCount)
 		{
 			DescriptorSetLayoutBinding layoutBinding = new();
 			layoutBinding.Binding = (uint)idx;

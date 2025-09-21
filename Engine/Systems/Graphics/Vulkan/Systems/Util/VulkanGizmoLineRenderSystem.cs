@@ -1,14 +1,7 @@
 ﻿using EnCS.Attributes;
 using Engine.Components;
 using Engine.Graphics;
-using Engine.Utils;
 using MathLib;
-using Silk.NET.Vulkan;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Engine
 {

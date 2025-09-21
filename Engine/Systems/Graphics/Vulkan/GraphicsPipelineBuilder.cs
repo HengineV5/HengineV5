@@ -6,27 +6,27 @@ using System.Runtime.InteropServices;
 namespace Engine
 {
 	public ref struct GraphicsPipelineBuilder
-    {
-        GraphicsPipelineCreateInfo graphicsCreateInfo;
+	{
+		GraphicsPipelineCreateInfo graphicsCreateInfo;
 
-        // Potentially used by steps;
-        VertexInputBindingDescription bindingDescription;
-        Memory<VertexInputAttributeDescription> attributeDescription;
+		// Potentially used by steps;
+		VertexInputBindingDescription bindingDescription;
+		Memory<VertexInputAttributeDescription> attributeDescription;
 
 		PipelineVertexInputStateCreateInfo vertexInputStateCreateInfo;
-        PipelineInputAssemblyStateCreateInfo inputAssemblyStateCreateInfo;
-        PipelineViewportStateCreateInfo viewportStateCreateInfo;
-        PipelineRasterizationStateCreateInfo rasterizationStateCreateInfo;
+		PipelineInputAssemblyStateCreateInfo inputAssemblyStateCreateInfo;
+		PipelineViewportStateCreateInfo viewportStateCreateInfo;
+		PipelineRasterizationStateCreateInfo rasterizationStateCreateInfo;
 		PipelineMultisampleStateCreateInfo multisampleStateCreateInfo;
 		PipelineColorBlendAttachmentState colorBlendAttatchment;
 		PipelineColorBlendStateCreateInfo colorBlendStateCreateInfo;
-        Memory<DynamicState> dynamicState;
+		Memory<DynamicState> dynamicState;
 		PipelineDynamicStateCreateInfo dynamicStateCreateInfo;
 		PipelineDepthStencilStateCreateInfo depthStencilStateCreateInfo;
 
 		public GraphicsPipelineBuilder()
-        {
-            graphicsCreateInfo = new();
+		{
+			graphicsCreateInfo = new();
 			vertexInputStateCreateInfo = new();
 			inputAssemblyStateCreateInfo = new();
 			viewportStateCreateInfo = new();
@@ -38,8 +38,8 @@ namespace Engine
 			depthStencilStateCreateInfo = new();
 		}
 
-        public unsafe GraphicsPipelineBuilder WithVertexInput(VertexInputBindingDescription bindingDescription, Memory<VertexInputAttributeDescription> attributeDescription)
-        {
+		public unsafe GraphicsPipelineBuilder WithVertexInput(VertexInputBindingDescription bindingDescription, Memory<VertexInputAttributeDescription> attributeDescription)
+		{
 			this.bindingDescription = bindingDescription;
 			this.attributeDescription = attributeDescription;
 
@@ -54,20 +54,20 @@ namespace Engine
 
 			graphicsCreateInfo.PVertexInputState = (PipelineVertexInputStateCreateInfo*)Unsafe.AsPointer(ref vertexInputStateCreateInfo);
 			return this;
-        }
+		}
 
-        public unsafe GraphicsPipelineBuilder WithInputAssembly()
-        {
+		public unsafe GraphicsPipelineBuilder WithInputAssembly()
+		{
 			inputAssemblyStateCreateInfo.SType = StructureType.PipelineInputAssemblyStateCreateInfo;
 			inputAssemblyStateCreateInfo.Topology = PrimitiveTopology.TriangleList;
 			inputAssemblyStateCreateInfo.PrimitiveRestartEnable = false;
 
 			graphicsCreateInfo.PInputAssemblyState = (PipelineInputAssemblyStateCreateInfo*)Unsafe.AsPointer(ref inputAssemblyStateCreateInfo);
-            return this;
+			return this;
 		}
 
-        public unsafe GraphicsPipelineBuilder WithViewport(Extent2D extent)
-        {
+		public unsafe GraphicsPipelineBuilder WithViewport(Extent2D extent)
+		{
 			Viewport viewport = new();
 			viewport.X = 0;
 			viewport.Y = 0;
@@ -90,8 +90,8 @@ namespace Engine
 			return this;
 		}
 
-        public unsafe GraphicsPipelineBuilder WithColorBlend()
-        {
+		public unsafe GraphicsPipelineBuilder WithColorBlend()
+		{
 			colorBlendAttatchment.ColorWriteMask = ColorComponentFlags.RBit | ColorComponentFlags.GBit | ColorComponentFlags.BBit | ColorComponentFlags.ABit;
 			colorBlendAttatchment.BlendEnable = true;
 			colorBlendAttatchment.SrcColorBlendFactor = BlendFactor.SrcAlpha;
@@ -115,8 +115,8 @@ namespace Engine
 			return this;
 		}
 
-        public unsafe GraphicsPipelineBuilder WithRasterization(PolygonMode polygonMode, CullModeFlags cullMode, float lineWidth)
-        {
+		public unsafe GraphicsPipelineBuilder WithRasterization(PolygonMode polygonMode, CullModeFlags cullMode, float lineWidth)
+		{
 			rasterizationStateCreateInfo.SType = StructureType.PipelineRasterizationStateCreateInfo;
 			rasterizationStateCreateInfo.DepthClampEnable = false;
 			rasterizationStateCreateInfo.RasterizerDiscardEnable = false;
@@ -133,8 +133,8 @@ namespace Engine
 			return this;
 		}
 
-        public unsafe GraphicsPipelineBuilder WithMultisample()
-        {
+		public unsafe GraphicsPipelineBuilder WithMultisample()
+		{
 			multisampleStateCreateInfo.SType = StructureType.PipelineMultisampleStateCreateInfo;
 			multisampleStateCreateInfo.SampleShadingEnable = false;
 			multisampleStateCreateInfo.RasterizationSamples = SampleCountFlags.Count1Bit;
@@ -147,8 +147,8 @@ namespace Engine
 			return this;
 		}
 
-        public unsafe GraphicsPipelineBuilder WithDynamicState(scoped Span<DynamicState> dynamicStates)
-        {
+		public unsafe GraphicsPipelineBuilder WithDynamicState(scoped Span<DynamicState> dynamicStates)
+		{
 			//dynamicState = new DynamicState[2] { DynamicState.Viewport, DynamicState.Scissor };
 			dynamicState = new DynamicState[dynamicStates.Length];
 			dynamicStates.CopyTo(dynamicState.Span);
@@ -161,8 +161,8 @@ namespace Engine
 			return this;
 		}
 
-        public unsafe GraphicsPipelineBuilder WithDepthStencil(bool depthTest)
-        {
+		public unsafe GraphicsPipelineBuilder WithDepthStencil(bool depthTest)
+		{
 			depthStencilStateCreateInfo.SType = StructureType.PipelineDepthStencilStateCreateInfo;
 			depthStencilStateCreateInfo.DepthTestEnable = depthTest;
 			depthStencilStateCreateInfo.DepthWriteEnable = depthTest;
@@ -178,8 +178,8 @@ namespace Engine
 			return this;
 		}
 
-        public unsafe Pipeline Build(VkContext context, PipelineLayout pipelineLayout, RenderPass renderPass, Shader shader)
-        {
+		public unsafe Pipeline Build(VkContext context, PipelineLayout pipelineLayout, RenderPass renderPass, Shader shader)
+		{
 			var vertShader = CreateShaderModule(context.vk, shader.Vertex, context.device);
 			var fragShader = CreateShaderModule(context.vk, shader.Fragment, context.device);
 
@@ -205,7 +205,7 @@ namespace Engine
 			context.vk.DestroyShaderModule(context.device, vertShader, null);
 			context.vk.DestroyShaderModule(context.device, fragShader, null);
 
-            return pipeline;
+			return pipeline;
 		}
 
 		static unsafe ShaderModule CreateShaderModule(Vk vk, Memory<byte> code, Device device)

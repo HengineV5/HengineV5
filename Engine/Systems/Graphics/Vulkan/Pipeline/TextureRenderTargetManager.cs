@@ -1,11 +1,6 @@
-﻿using Silk.NET.Vulkan;
-using EnCS;
-using Image = Silk.NET.Vulkan.Image;
-using Buffer = Silk.NET.Vulkan.Buffer;
-
-namespace Engine
+﻿namespace Engine
 {
-    /*
+	/*
     public struct TextureRenderTargetManager<TDescriptorSet, TPixel> : IRenderTargetManager<TextureRenderTargetManager<TDescriptorSet, TPixel>, TDescriptorSet, DefaultRenderPassInfo, DefaultPipelineInfo>
         where TDescriptorSet : struct, IDescriptorSet<TDescriptorSet>
         where TPixel : unmanaged, IPixel<TPixel>

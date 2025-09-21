@@ -20,15 +20,15 @@ namespace Engine
 		List<UpdatePacket> packets = new List<UpdatePacket>();
 
 		public Client(ILoggerFactory factory, Socket socket, int idx)
-        {
+		{
 			this.logger = factory.CreateLogger<Client>();
 			this.socket = socket;
 			this.idx = idx;
-        }
+		}
 
 		public void AcceptData()
 		{
-            if (socket.Available <= 0)
+			if (socket.Available <= 0)
 				return;
 
 			ReceivePacket(socket);
@@ -69,7 +69,7 @@ namespace Engine
 			if (!socket.IsConnected())
 				return;
 
-            var bytes = JsonSerializer.SerializeToUtf8Bytes(data, NetworkPacketSourceGenerationContext.Default.UpdatePacket);
+			var bytes = JsonSerializer.SerializeToUtf8Bytes(data, NetworkPacketSourceGenerationContext.Default.UpdatePacket);
 
 			socket.Send([(byte)PacketType.Update]);
 			socket.Send(bytes);

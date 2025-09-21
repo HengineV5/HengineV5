@@ -3,10 +3,8 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Xml.Linq;
 using TemplateGenerator;
 
 namespace Engine.Generator
@@ -78,7 +76,7 @@ namespace Engine.Generator
 
 		public bool TryGetData(IdentifierNameSyntax node, SemanticModel semanticModel, out EngineGeneratorData data, out List<Diagnostic> diagnostics)
 		{
-			diagnostics = new ();
+			diagnostics = new();
 			Unsafe.SkipInit(out data);
 
 			if (node?.Parent is ClassDeclarationSyntax)
@@ -174,7 +172,7 @@ namespace Engine.Generator
 			bool resourceSuccess = TryGetResourceManagers(semanticModel, resourceStep, out List<ResourceManager> resourceManagers);
 
 			bool pipelineSuccess = PipelineGenerator.TryGetPipelines(semanticModel, layoutStep, out List<Pipeline> pipelines);
-			bool worldSuccess = TryGetWorlds(layoutStep, pipelines, out  List<World> worlds);
+			bool worldSuccess = TryGetWorlds(layoutStep, pipelines, out List<World> worlds);
 
 			engine = new EcsEngine()
 			{
@@ -229,7 +227,7 @@ namespace Engine.Generator
 		static bool TryGetWorldPipelines(SimpleLambdaExpressionSyntax lambda, List<Pipeline> pipelines, out List<Pipeline> worldPipelines)
 		{
 			worldPipelines = new();
-			
+
 			foreach (var pipeline in lambda.Block.Statements.Where(x => x is ExpressionStatementSyntax).Cast<ExpressionStatementSyntax>())
 			{
 				if (pipeline.Expression is not InvocationExpressionSyntax invocation)
@@ -280,7 +278,7 @@ namespace Engine.Generator
 				var name = configMethod.ToString().Split('.');
 				bool FindType(INamedTypeSymbol symbol)
 				{
-                    return symbol.Name == name[0];
+					return symbol.Name == name[0];
 				}
 
 				bool FindMember(ISymbol symbol)
@@ -490,8 +488,8 @@ namespace Engine.Generator
 		public EquatableArray<Pipeline> pipelines;
 		public EquatableArray<World> worlds;
 
-        public EcsEngine()
-        {
+		public EcsEngine()
+		{
 			configSteps = EquatableArray<ConfigStep>.Empty;
 			setupSteps = EquatableArray<SetupStep>.Empty;
 			resourceManagers = EquatableArray<ResourceManager>.Empty;
@@ -514,8 +512,8 @@ namespace Engine.Generator
 		public string name;
 		public EquatableArray<Pipeline> pipelines;
 
-        public World()
-        {
+		public World()
+		{
 			name = "";
 			pipelines = EquatableArray<Pipeline>.Empty;
 
@@ -542,12 +540,12 @@ namespace Engine.Generator
 	{
 		public string name;
 
-        public FileUsing()
-        {
+		public FileUsing()
+		{
 			name = "";
-        }
+		}
 
-        public Model<ReturnType> GetModel()
+		public Model<ReturnType> GetModel()
 		{
 			var model = new Model<ReturnType>();
 			model.Set("usingName".AsSpan(), Parameter.Create(name));
@@ -568,8 +566,8 @@ namespace Engine.Generator
 		public EquatableArray<MethodArgumentType> argumentTypes;
 		public EquatableArray<MethodArgumentType> nonConfigArgumentTypes;
 
-        public SetupStep()
-        {
+		public SetupStep()
+		{
 			method = "";
 			returnTypes = EquatableArray<MethodReturnType>.Empty;
 			argumentTypes = EquatableArray<MethodArgumentType>.Empty;
@@ -601,10 +599,10 @@ namespace Engine.Generator
 	{
 		public string name;
 
-        public ConfigStep()
-        {
+		public ConfigStep()
+		{
 			name = "";
-        }
+		}
 
 		public Model<ReturnType> GetModel()
 		{
@@ -627,10 +625,10 @@ namespace Engine.Generator
 	{
 		public string type;
 
-        public MethodReturnType()
-        {
+		public MethodReturnType()
+		{
 			type = "";
-        }
+		}
 
 		public Model<ReturnType> GetModel()
 		{
@@ -650,10 +648,10 @@ namespace Engine.Generator
 	{
 		public string type;
 
-        public MethodArgumentType()
-        {
+		public MethodArgumentType()
+		{
 			type = "";
-        }
+		}
 
 		public Model<ReturnType> GetModel()
 		{
@@ -676,8 +674,8 @@ namespace Engine.Generator
 		public string ns;
 		public EquatableArray<MethodArgumentType> arguments;
 
-        public ResourceManager()
-        {
+		public ResourceManager()
+		{
 			name = "";
 			ns = "";
 			arguments = EquatableArray<MethodArgumentType>.Empty;

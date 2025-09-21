@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Text;
-
-namespace Engine.Scheduling
+﻿namespace Engine.Scheduling
 {
 	public delegate void ScheduledAction<T>(ref T context) where T : allows ref struct;
 

@@ -5,15 +5,15 @@ using Microsoft.Extensions.Logging;
 namespace Engine.Graphics
 {
 	public struct VkTextureAtlas
-    {
-        public int textures;
+	{
+		public int textures;
 
-        public VkTextureBuffer atlas;
-    }
+		public VkTextureBuffer atlas;
+	}
 
 	[ResourceManager]
 	public partial class VulkanTextureAtlasResourceManager : IResourceManager<TextureAtlas, VkTextureAtlas>
-    {
+	{
 		uint idx = 0;
 		Memory<Graphics.VkTextureAtlas> atlasBuffers = new Graphics.VkTextureAtlas[32];
 
@@ -35,7 +35,7 @@ namespace Engine.Graphics
 
 		public uint Store(in Graphics.TextureAtlas resource)
 		{
-            if (atlasCache.TryGetValue(resource.name, out uint id))
+			if (atlasCache.TryGetValue(resource.name, out uint id))
 				return id;
 
 			logger.LogResourceManagerStore(resource.name);

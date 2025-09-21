@@ -1,5 +1,4 @@
 ﻿using Microsoft.CodeAnalysis;
-using System;
 using TemplateGenerator;
 
 namespace Engine.Generator

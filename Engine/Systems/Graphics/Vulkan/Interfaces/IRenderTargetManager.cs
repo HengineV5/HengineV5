@@ -2,7 +2,7 @@
 
 namespace Engine
 {
-    public interface IRenderTargetManager<TSelf, TRenderPassInfo, TPipelineInfo>
+	public interface IRenderTargetManager<TSelf, TRenderPassInfo, TPipelineInfo>
 		where TSelf : struct, IRenderTargetManager<TSelf, TRenderPassInfo, TPipelineInfo>
 		where TRenderPassInfo : struct
 		where TPipelineInfo : struct

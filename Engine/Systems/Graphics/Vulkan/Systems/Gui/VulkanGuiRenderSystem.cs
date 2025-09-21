@@ -1,14 +1,8 @@
-﻿using EnCS;
-using EnCS.Attributes;
+﻿using EnCS.Attributes;
 using Engine.Components;
 using Engine.Graphics;
-using Engine.Parsing;
-using Engine.Utils;
-using Engine.Utils.Parsing.TTF;
 using Silk.NET.Vulkan;
 using Silk.NET.Windowing;
-using System.Runtime.InteropServices;
-using System.Text;
 
 namespace Engine
 {
@@ -39,7 +33,7 @@ namespace Engine
 			sampler = VulkanHelper.CreateSampler(context, 5);
 
 			var boxMesh = GuiMeshes.Box;
-			boxBuffer = VulkanMeshResourceManager.CreateBuffer<GuiVertex>(context, boxMesh.verticies, boxMesh.indicies, GuiVertex.SizeInBytes);
+			boxBuffer = VulkanMeshResourceManager.CreateBuffer<GuiVertex>(context, boxMesh.verticies, boxMesh.indicies);
 		}
 
 		// TODO: Refactor out
@@ -60,7 +54,7 @@ namespace Engine
 		[SystemUpdate, SystemLayer(0, 2)]
 		public void BufferUpdate(ref VulkanRenderContext context, ref GuiProperties properties, ref GuiPosition position, ref GuiSize size, ref GuiState guiState, ref VkTextureAtlas textureAtlas)
 		{
-            ref GuiShaderInput shaderInput = ref renderContext.pipeline.GetUbo<GuiShaderInput>(bufferIdx);
+			ref GuiShaderInput shaderInput = ref renderContext.pipeline.GetUbo<GuiShaderInput>(bufferIdx);
 			shaderInput.ubo.Value = context.guiUbo;
 			shaderInput.guiState.Value.bezier = false;
 
@@ -73,13 +67,13 @@ namespace Engine
 
 			t += 0.0001f;
 
-            bufferIdx++;
+			bufferIdx++;
 		}
 
 		[SystemUpdate, SystemLayer(0, 2)]
 		public void RenderUpdate(ref VulkanRenderContext context, ref GuiProperties properties, ref GuiPosition position, ref GuiSize size, ref GuiState guiState, ref VkTextureAtlas textureAtlas)
 		{
-			switch(properties.shape)
+			switch (properties.shape)
 			{
 				case GuiShape.Box:
 					RenderMesh(boxBuffer);

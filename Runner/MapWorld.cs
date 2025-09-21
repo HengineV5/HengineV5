@@ -1,13 +1,7 @@
-﻿using CommunityToolkit.HighPerformance;
-using EnCS;
-using Engine;
-using Engine.Components;
+﻿using Engine.Components;
 using Engine.Graphics;
 using Engine.Utils;
 using Microsoft.Extensions.Logging;
-using Silk.NET.Vulkan;
-using System;
-using System.Xml.Linq;
 using static Engine.HengineEcs;
 
 namespace Runner
@@ -50,7 +44,7 @@ namespace Runner
 				//world.CreateGizmoLine(verticies[i].position, verticies[(i + 1) % vertexLength].position, new GizmoColor(0.0f));
 			}
 
-			for (int i = 0; i < meshBuilder.IndexOffset; i+=3)
+			for (int i = 0; i < meshBuilder.IndexOffset; i += 3)
 			{
 				//world.CreateGizmoLine(verticies[(int)indicies[i]].position, verticies[(int)indicies[i + 1]].position, new GizmoColor(0.0f));
 				//world.CreateGizmoLine(verticies[(int)indicies[i + 1]].position, verticies[(int)indicies[i + 2]].position, new GizmoColor(0.0f));
@@ -82,15 +76,15 @@ namespace Runner
 			Span<Vector2f> line = stackalloc Vector2f[lineRes + 1];
 			for (int i = 0; i < lineRes; i++)
 			{
-                //Console.WriteLine($"Line: {i} - {(i / (float)lineRes)}");
-                Vector3f c1 = Bezier.CubicBezierCurve(p1, zero, zero, p2, i / (float)lineRes);
+				//Console.WriteLine($"Line: {i} - {(i / (float)lineRes)}");
+				Vector3f c1 = Bezier.CubicBezierCurve(p1, zero, zero, p2, i / (float)lineRes);
 				Vector3f c2 = Bezier.CubicBezierCurve(p1, zero, zero, p2, (i + 1) / (float)lineRes);
 
 				//if (i == 7)
 				//world.CreateGizmoLine(c1, c2, new(0, 0, 0));
 
 				line[i] = new(c1.x, c1.z);
-            }
+			}
 
 			Vector3f c11 = Bezier.CubicBezierCurve(p1, zero, zero, p2, 1);
 			line[lineRes] = new(c11.x, c11.z);
@@ -124,12 +118,12 @@ namespace Runner
 			for (int i = 0; i < newVerts.Length; i++)
 			{
 				Vector2f point = newVerts.Span[i];
-                world.CreateGizmo(new(point.x, 0, point.y), Vector3f.One * 0.04f, GizmoType.Point, new GizmoColor(0, 1, 0));
+				world.CreateGizmo(new(point.x, 0, point.y), Vector3f.One * 0.04f, GizmoType.Point, new GizmoColor(0, 1, 0));
 			}
 
 			for (int i = 0; i < newIndicies.Length; i += 3)
 			{
-                world.CreateGizmoLine(ToVec3(newVerts.Span[newIndicies.Span[i]])    , ToVec3(newVerts.Span[newIndicies.Span[i + 1]]), new GizmoColor(0.0f));
+				world.CreateGizmoLine(ToVec3(newVerts.Span[newIndicies.Span[i]]), ToVec3(newVerts.Span[newIndicies.Span[i + 1]]), new GizmoColor(0.0f));
 				world.CreateGizmoLine(ToVec3(newVerts.Span[newIndicies.Span[i + 1]]), ToVec3(newVerts.Span[newIndicies.Span[i + 2]]), new GizmoColor(0.0f));
 				world.CreateGizmoLine(ToVec3(newVerts.Span[newIndicies.Span[i + 2]]), ToVec3(newVerts.Span[newIndicies.Span[i]]), new GizmoColor(0.0f));
 			}

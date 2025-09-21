@@ -6,7 +6,7 @@ namespace Engine.Graphics
 	public ref partial struct HexCell
 	{
 		public ref float height;
-    }
+	}
 
 	public struct HexCellData
 	{

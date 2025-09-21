@@ -69,9 +69,50 @@ namespace Engine
 			renderContext.pipeline.EndRenderPass(context);
 		}
 
+		int f = 0;
+		int k = 0;
+
 		void RenderMesh(VkTextBuffer textBuffer)
 		{
-			renderContext.pipeline.Render(this.context, PipelineContainerLayer.Gui, textBuffer.vertexBuffer, textBuffer.indexBuffer, textBuffer.indicies, updateIdx);
+			/*
+			f++;
+			if (f > 100)
+			{
+				f = 0;
+				k++;
+
+				if (k >= textBuffer.indexOffsets.Length)
+					k = 0;
+			}
+
+			//var idx = textBuffer.font.GetUnicodeGlyphIndex('E');
+			int idx = k;
+			*/
+			//int idx = 373;
+			int idx = 5;
+
+			var start = textBuffer.indexOffsets.Span[int.Max(0, idx - 1)];
+			if (idx == 0)
+				start = 0;
+
+			var stop = textBuffer.indexOffsets.Span[idx];
+			var length = stop - start;
+
+			var vertStart = textBuffer.vertexOffsets.Span[idx];
+
+			/*
+			Console.WriteLine($"Idx: {idx}");
+			Console.WriteLine($"Length: {length}");
+			Console.WriteLine($"Start: {start}");
+			Console.WriteLine($"VertStart: {vertStart}");
+			*/
+
+			//var length = textBuffer.indexOffsets.Span[0];
+			//Console.WriteLine(length);
+
+			//renderContext.pipeline.Render(this.context, PipelineContainerLayer.Gui, textBuffer.vertexBuffer, textBuffer.indexBuffer, textBuffer.indicies, updateIdx);
+			//renderContext.pipeline.Render(this.context, PipelineContainerLayer.Gui, textBuffer.vertexBuffer, textBuffer.indexBuffer, (uint)length, updateIdx);
+			renderContext.pipeline.Render(this.context, PipelineContainerLayer.Gui, textBuffer.vertexBuffer, textBuffer.indexBuffer, (uint)length, updateIdx, 0, (uint)start);
 		}
 	}
 }

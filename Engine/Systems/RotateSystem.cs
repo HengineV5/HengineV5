@@ -2,10 +2,8 @@
 using EnCS.Attributes;
 using Engine.Components;
 using Engine.Graphics;
-using Engine.Utils;
 using Silk.NET.Input;
 using Silk.NET.Windowing;
-using System.Diagnostics;
 
 namespace Engine
 {
@@ -37,7 +35,7 @@ namespace Engine
 			Quaternionf q = new Quaternionf(rotation.x, rotation.y, rotation.z, rotation.w);
 			//q *= Quaternionf.CreateFromYawPitchRoll(randX, randY, randZ);
 
-            rotation.x = q.x;
+			rotation.x = q.x;
 			rotation.y = q.y;
 			rotation.z = q.z;
 			rotation.w = q.w;
@@ -136,16 +134,16 @@ namespace Engine
 
 		public void PostRun()
 		{
-			
+
 		}
 
 		Vector3f UpdatePosition_New(ref EngineContext context, ref Position position, ref Rotation rotation)
 		{
 			Quaternionf camQ = new Quaternionf(rotation.x, rotation.y, rotation.z, rotation.w);
-            Vector3f camForward = -Vector3f.Transform(Vector3f.UnitZ, Quaternionf.Inverse(in camQ));
+			Vector3f camForward = -Vector3f.Transform(Vector3f.UnitZ, Quaternionf.Inverse(in camQ));
 			Vector3f camRight = Vector3f.Normalize(Vector3f.Cross(camForward, Vector3f.UnitY));
 
-            Vector3f delta = new();
+			Vector3f delta = new();
 			if (inputHandler.IsKeyDown(Key.W))
 				delta += camForward * 5;
 

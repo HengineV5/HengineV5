@@ -1,7 +1,5 @@
-﻿using Microsoft.VisualBasic;
+﻿using MathLib;
 using System.Buffers;
-using System.Collections.Generic;
-using System.Runtime.CompilerServices;
 using UtilLib.Span;
 
 namespace Engine.Utils
@@ -90,7 +88,7 @@ namespace Engine.Utils
 			verts.Add(verticies);
 			idx.Add(indicies);
 
-            for (int i = 0; i < line.Length - 1; i++)
+			for (int i = 0; i < line.Length - 1; i++)
 			{
 				IntersectAny(i, i + 1, line, verticies, indicies, ref hits, margin / 100f);
 			}
@@ -109,10 +107,10 @@ namespace Engine.Utils
 					hits.Remove(i + 2);
 
 					i -= 2;
-                }
+				}
 			}
 
-            while (hits.Count >= 2)
+			while (hits.Count >= 2)
 			{
 				GetTriangleIntersection(ref hits, out TriangleIntersection intersection, line, ref verts, margin);
 
@@ -129,7 +127,7 @@ namespace Engine.Utils
 				verts.Add(line[i]);
 			}
 
-            int seamLength = verts.Count - seamStart;
+			int seamLength = verts.Count - seamStart;
 
 			seam = new int[seamLength];
 			for (int i = 0; i < seamLength; i++)
@@ -208,7 +206,7 @@ namespace Engine.Utils
 
 		static void ProcessTriangle(scoped Span<Vector2f> line, in ReadOnlySpan<TriangleIntersection> intersections, scoped Span<Vector2f> verticies, scoped ReadOnlySpan<int> indicies, ref SpanList<Vector2f> verts, ref SpanList<int> idx, float margin)
 		{
-            Span<TriangleIntersection> ints = stackalloc TriangleIntersection[intersections.Length * 2];
+			Span<TriangleIntersection> ints = stackalloc TriangleIntersection[intersections.Length * 2];
 
 			intersections.CopyTo(ints);
 			for (int i = 0; i < intersections.Length; i++)
@@ -221,11 +219,11 @@ namespace Engine.Utils
 			using var tmpIdxMem = MemoryPool<int>.Shared.Rent(1024);
 			SpanList<int> tmpIdx = new(tmpIdxMem.Memory.Span);
 
-            TriangulateAndInsert(intersections[0].entryHit.tri, 0, line, ints, indicies, ref verts, ref idx, ref tmpIdx, margin);
+			TriangulateAndInsert(intersections[0].entryHit.tri, 0, line, ints, indicies, ref verts, ref idx, ref tmpIdx, margin);
 
 			for (int i = 0; i < intersections.Length; i++)
 			{
-                tmpIdx.Clear();
+				tmpIdx.Clear();
 				TriangulateAndInsert(intersections[0].entryHit.tri, intersections[i].entryPercent, line, ints, indicies, ref verts, ref idx, ref tmpIdx, margin);
 			}
 		}
@@ -257,7 +255,7 @@ namespace Engine.Utils
 			{
 				int closestIdx = GetClosest(curr, intersections);
 
-                if (closestIdx == -1)
+				if (closestIdx == -1)
 				{
 					AddTriangleVerticies(curr, 3, tri, indicies, ref idx);
 
@@ -279,7 +277,7 @@ namespace Engine.Utils
 				for (int i = begin; i != end; i += dir)
 				{
 					idx.Add(verts.Count - line.Length + i + 1);
-                }
+				}
 
 				idx.Add(closest.exitIdx);
 
@@ -288,7 +286,7 @@ namespace Engine.Utils
 					break;
 			}
 		}
-		
+
 		static void TriangulateAndInsert(int tri, float start, scoped Span<Vector2f> line, scoped Span<TriangleIntersection> ints, scoped ReadOnlySpan<int> indicies, ref SpanList<Vector2f> verts, ref SpanList<int> idx, ref SpanList<int> tmpIdx, float margin)
 		{
 			CalculateMesh(tri, start, line, ints, indicies, ref verts, ref tmpIdx, margin);
@@ -308,7 +306,7 @@ namespace Engine.Utils
 		{
 			static float GetPercent(Vector2f a, Vector2f b, Vector2f c, float margin)
 			{
-				if (VectorMath.IsClose(a, c, margin))
+				if (MathHelpers.IsClose(in a, in c, margin))
 					return 0;
 
 				Vector2f ab = b - a;
@@ -327,7 +325,7 @@ namespace Engine.Utils
 			float pLineExit = GetPercent(line[exit.o1], line[exit.o2], exitPoint, margin) + exit.o1;
 
 			intersection = new TriangleIntersection(entryPoint, -1, entry, pEntry, pLineEntry, exitPoint, -1, exit, pExit, pLineExit); // -1 will be filled out at a later step
-        }
+		}
 
 		static void GetTriangleIntersection(scoped ref SpanList<TriangleHit> hits, out TriangleIntersection intersection, scoped ReadOnlySpan<Vector2f> line, ref SpanList<Vector2f> verticies, float margin)
 		{
@@ -350,15 +348,15 @@ namespace Engine.Utils
 		{
 			// Beware this only works when mesh triangles have a consistent ordering as intersection might not happen on same triangle for entry and exit.
 			// As those meshes would not work with culling this is a ok assumption.
-			for (int i = 0; i < indicies.Length; i+=3)
+			for (int i = 0; i < indicies.Length; i += 3)
 			{
-				if (VectorMath.Intersect(line[l1], line[l2], verticies[indicies[i]], verticies[indicies[i + 1]], margin))
+				if (MathHelpers.Intersect(in line[l1], in line[l2], in verticies[indicies[i]], in verticies[indicies[i + 1]]))
 					hits.Add(new TriangleHit(i / 3, 0, indicies[i], indicies[i + 1], indicies[i + 2], l1, l2));
 
-                if (VectorMath.Intersect(line[l1], line[l2], verticies[indicies[i + 1]], verticies[indicies[i + 2]], margin))
+				if (MathHelpers.Intersect(in line[l1], in line[l2], in verticies[indicies[i + 1]], in verticies[indicies[i + 2]]))
 					hits.Add(new TriangleHit(i / 3, 1, indicies[i + 1], indicies[i + 2], indicies[i], l1, l2));
 
-				if (VectorMath.Intersect(line[l1], line[l2], verticies[indicies[i + 2]], verticies[indicies[i]], margin))
+				if (MathHelpers.Intersect(in line[l1], in line[l2], in verticies[indicies[i + 2]], in verticies[indicies[i]]))
 					hits.Add(new TriangleHit(i / 3, 2, indicies[i + 2], indicies[i], indicies[i + 1], l1, l2));
 			}
 

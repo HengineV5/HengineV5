@@ -3,7 +3,6 @@ using Engine.Parsing;
 using Engine.Utils.Parsing.GLTF;
 using ImageLib;
 using Silk.NET.OpenGL;
-using System.IO;
 
 namespace Engine.Graphics
 {
@@ -25,45 +24,45 @@ namespace Engine.Graphics
 
 	public struct ETextureHdr
 	{
-        public string name;
+		public string name;
 
-        public ImageMemory<Rgba64> data;
+		public ImageMemory<Rgba64> data;
 
-        public static ETextureHdr LoadImage(string name, string filePath)
-        {
-            return new ETextureHdr()
-            {
-                name = name,
-                data = Image.Load<Rgba64>(filePath)
-            };
-        }
-    }
+		public static ETextureHdr LoadImage(string name, string filePath)
+		{
+			return new ETextureHdr()
+			{
+				name = name,
+				data = Image.Load<Rgba64>(filePath)
+			};
+		}
+	}
 
 	public struct ECubemapHdr
 	{
-        public string name;
+		public string name;
 
-        public ImageMemory<Rgba64> front;
-        public ImageMemory<Rgba64> back;
-        public ImageMemory<Rgba64> left;
-        public ImageMemory<Rgba64> right;
-        public ImageMemory<Rgba64> top;
-        public ImageMemory<Rgba64> bottom;
+		public ImageMemory<Rgba64> front;
+		public ImageMemory<Rgba64> back;
+		public ImageMemory<Rgba64> left;
+		public ImageMemory<Rgba64> right;
+		public ImageMemory<Rgba64> top;
+		public ImageMemory<Rgba64> bottom;
 
-        public static ECubemapHdr LoadImage(string name, string frontPath, string backPath, string leftPath, string rightPath, string topPath, string bottomPath)
-        {
-            return new ECubemapHdr()
-            {
-                name = name,
-                front = Image.Load<Rgba64>(frontPath),
-                back = Image.Load<Rgba64>(backPath),
-                left = Image.Load<Rgba64>(leftPath),
-                right = Image.Load<Rgba64>(rightPath),
-                top = Image.Load<Rgba64>(topPath),
-                bottom = Image.Load<Rgba64>(bottomPath)
-            };
-        }
-    }
+		public static ECubemapHdr LoadImage(string name, string frontPath, string backPath, string leftPath, string rightPath, string topPath, string bottomPath)
+		{
+			return new ECubemapHdr()
+			{
+				name = name,
+				front = Image.Load<Rgba64>(frontPath),
+				back = Image.Load<Rgba64>(backPath),
+				left = Image.Load<Rgba64>(leftPath),
+				right = Image.Load<Rgba64>(rightPath),
+				top = Image.Load<Rgba64>(topPath),
+				bottom = Image.Load<Rgba64>(bottomPath)
+			};
+		}
+	}
 
 	public struct Mesh
 	{
@@ -91,7 +90,7 @@ namespace Engine.Graphics
 				verticies[indexA].normal = normal;
 				verticies[indexB].normal = normal;
 				verticies[indexC].normal = normal;
-            }
+			}
 		}
 
 		public VertexArrayObject CreateVertexArray(GL gl)

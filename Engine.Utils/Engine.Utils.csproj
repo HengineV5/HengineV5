@@ -19,10 +19,39 @@
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
 		</PackageReference>
+		<None Include="README.md" Pack="true" PackagePath="\" />
+	</ItemGroup>
+	
+<!-- 
+	For developing locally, by cloning all repos and putting them in the same directory:
+		henke/
+			HengineV5/
+      ImageLib/
+      MathLib/
+      UtilLib/
+      EnCS/
+	This setting allows you to use local projects instead of NuGet packages.  
+
+	NOTE:
+		Visual Studio will refuse to resolve include paths outside current directory.
+		As such, whenever changing TO this profile, you must run the following command
+		in PowerShell/terminal:
+			`dotnet restore -p:UseLocalProjects=true`
+		It is persistent accross clean, rebuild, relaunching Visual Studio, etc. Only
+		when changing to this profile.
+	-->
+  <PropertyGroup Condition="'$(Configuration)'=='Debug (local-deps)' Or '$(Configuration)'=='Release (local-deps)'">
+    <UseLocalProjects>true</UseLocalProjects>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(UseLocalProjects)' != 'true'">
 		<PackageReference Include="Henke.EnCS" Version="0.0.108" />
 		<PackageReference Include="Henke.MathLib" Version="0.0.26" />
 		<PackageReference Include="Henke.UtilLib" Version="0.0.37" />
-		<None Include="README.md" Pack="true" PackagePath="\" />
-	</ItemGroup>
+  </ItemGroup>
+  <ItemGroup Condition="'$(UseLocalProjects)' == 'true'">
+		<ProjectReference Include="..\..\EnCS\EnCS\EnCS.csproj" />
+		<ProjectReference Include="..\..\MathLib\MathLib\MathLib.csproj" />
+		<ProjectReference Include="..\..\UtilLib\UtilLib\UtilLib.csproj" />
+  </ItemGroup>
 
 </Project>

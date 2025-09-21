@@ -1,7 +1,4 @@
-﻿using Engine.Graphics;
-using System.IO;
-using Silk.NET.OpenGL;
-using Engine.Components.Graphics;
+﻿using Silk.NET.OpenGL;
 using System.Text;
 
 namespace Engine.Graphics

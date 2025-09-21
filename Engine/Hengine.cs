@@ -54,7 +54,7 @@ namespace Engine
 		{
 			return argIWindow.IsClosing;
 		}
-		
+
 		public static void Ecs()
 		{
 			new EcsBuilder()
@@ -145,8 +145,8 @@ namespace Engine
 					x.ResourceManager<VulkanMeshResourceManager>();
 					x.ResourceManager<VulkanTextureResourceManager>();
 					x.ResourceManager<VulkanTextResourceManager>();
-                    x.ResourceManager<VulkanMaterialResourceManager>();
-                    x.ResourceManager<VulkanSkyboxResourceManager>();
+					x.ResourceManager<VulkanMaterialResourceManager>();
+					x.ResourceManager<VulkanSkyboxResourceManager>();
 					x.ResourceManager<VulkanTextureAtlasResourceManager>();
 
 					//x.ResourceManager<OpenGLMeshResourceManager>();

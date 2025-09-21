@@ -1,6 +1,4 @@
-﻿using EnCS;
-
-namespace Engine
+﻿namespace Engine
 {
 	public class HengineBuilder
 	{

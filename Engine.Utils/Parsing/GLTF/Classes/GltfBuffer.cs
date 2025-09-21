@@ -1,9 +1,9 @@
 ﻿namespace Engine.Utils.Parsing.GLTF
 {
-    public class GltfBuffer
-    {
-        public string name;
-        public ulong byteLength;
-        public string uri;
-    }
+	public class GltfBuffer
+	{
+		public string name;
+		public ulong byteLength;
+		public string uri;
+	}
 }

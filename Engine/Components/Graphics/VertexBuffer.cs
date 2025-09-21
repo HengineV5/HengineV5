@@ -1,11 +1,4 @@
-﻿using EnCS.Attributes;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Engine.Components.Graphics
+﻿namespace Engine.Components.Graphics
 {
 	public partial struct VertexBuffer
 	{

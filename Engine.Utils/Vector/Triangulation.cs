@@ -1,8 +1,8 @@
-﻿using System.Buffers;
-using System.Runtime.CompilerServices;
+﻿using MathLib;
+using System.Buffers;
 using System.Runtime.InteropServices;
-using UtilLib.Span;
 using UtilLib.Extensions;
+using UtilLib.Span;
 
 namespace Engine.Utils
 {
@@ -35,25 +35,42 @@ namespace Engine.Utils
 			int closest = -1;
 			float dist = float.MaxValue;
 
-			Span<int> skips = stackalloc int[1];
-			for (int i = 0; i < mesh.Length; i++)
+			for (int h = 0; h < hole.Length - 1; h++)
 			{
-				Vector2f v = mesh[i] - hole[0];
+				ref readonly Vector2f holePoint = ref hole[h];
 
-				if (Vector2f.LengthSquared(in v) > dist)
-					continue;
+				for (int i = 0; i < mesh.Length; i++)
+				{
+					Vector2f v = mesh[i] - holePoint;
 
-				skips[0] = i;
-				if (IntersectAny(mesh[i], hole[0], skips, mesh, margin))
-					continue;
+					if (Vector2f.LengthSquared(in v) >= dist)
+						continue;
 
-				skips[0] = 0;
-				if (IntersectAny(mesh[i], hole[0], skips, hole, margin))
-					continue;
+					// Do not create any straight lines when inserting the hole
+					//if (MathF.Abs(MathHelpers.Angle(in holePoint, in mesh[i], in mesh[i + 1]) - MathF.PI) < 0.1f)
+					//    continue;
 
-				closest = i;
-				dist = Vector2f.LengthSquared(in v);
+					if (HasBridge(i, mesh, margin))
+						continue;
+
+					if (IntersectAny(in mesh[i], in holePoint, mesh, margin))
+						continue;
+
+					if (IntersectAny(in mesh[i], in holePoint, hole, margin))
+						continue;
+
+					closest = i;
+					dist = Vector2f.LengthSquared(in v);
+				}
+
+				// Searchinbg all possibilities reduces chance of edge case causing triaangulation to fail.
+				// If we found a valid location to insert the hole, stop looking
+				//if (dist != float.MaxValue)
+				//	break;
 			}
+
+			if (closest == -1)
+				throw new Exception("Unable to find valid location to insert hole.");
 
 			// Stitch together mesh that includes hole
 			int totalVerts = mesh.Length + hole.Length + 2;
@@ -73,23 +90,59 @@ namespace Engine.Utils
 		{
 			using var vertMapBuff = MemoryPool<int>.Shared.Rent(verticies.Length);
 			SpanList<int> vertMap = vertMapBuff.Memory.Span.Slice(0, verticies.Length);
+			//List<int> vertMap = new();
 			for (int i = 0; i < verticies.Length; i++)
 			{
 				vertMap.Add(i);
 			}
 
+			/*
+			{
+				Console.WriteLine($"Whole:");
+				var vms = vertMap.AsSpan();
+				for (int i = 0; i < vertMap.Count; i++)
+				{
+					var point = verticies[vms[i]];
+					//Console.WriteLine($"{point.x},{point.y}"); // Excel
+					Console.WriteLine($"p.Add(new ({point.x}f,{point.y}f));"); // Debug World
+				}
+			}
+			*/
+
 			List<int> indicies = new List<int>();
 			while (vertMap.Count > 3)
 			{
-				var vms = vertMap.AsSpan();
-				if (!TryFindEar(verticies, vertMap.AsSpan(), clockwise, margin, out Ear ear))
+				//var vms = vertMap.AsSpan();
+				if (!TryFindEar(verticies, vertMap.AsSpan(), clockwise, margin, false, out Ear ear))
+				//if (!TryFindEar(verticies, CollectionsMarshal.AsSpan(vertMap), clockwise, margin, out Ear ear))
+				{
+					// Uncomment to debug.
+					/*
+					Console.WriteLine($"Remaining:");
+					for (int i = 0; i < vertMap.Count; i++)
+					{
+						var point = verticies[vms[i]];
+						//Console.WriteLine($"{point.x},{point.y}"); // Excel
+						Console.WriteLine($"p.Add(new ({point.x}f,{point.y}f));"); // Debug World
+					}
+					*/
+					Console.WriteLine($"Whole:");
+					for (int i = 0; i < verticies.Length; i++)
+					{
+						var point = verticies[i];
+						//Console.WriteLine($"{point.x},{point.y}"); // Excel
+						Console.WriteLine($"p.Add(new ({point.x}f,{point.y}f));"); // Debug World
+					}
+
 					throw new Exception("Unable to complete mesh triangualtion.");
+				}
 
 				indicies.Add(ear.prev);
 				indicies.Add(ear.curr);
 				indicies.Add(ear.next);
 
 				vertMap.RemoveElement(in ear.curr);
+				//vertMap.Remove(ear.curr);
 			}
 
 			// Remaining verticies should be excatly one ear
@@ -103,11 +156,51 @@ namespace Engine.Utils
 			return indicies.ToArray();
 		}
 
-		static bool TryFindEar(scoped ReadOnlySpanRingBuffer<Vector2f> verticies, scoped ReadOnlySpanRingBuffer<int> vertMap, bool clockwise, float margin, out Ear ear)
+		public static Memory<int> TriangulateStep(ReadOnlySpan<Vector2f> verticies, int steps, bool clockwise = true, float margin = 0.001f)
 		{
-			Span<int> excludeIndicies = stackalloc int[3];
+			//using var vertMapBuff = MemoryPool<int>.Shared.Rent(verticies.Length);
+			//SpanList<int> vertMap = vertMapBuff.Memory.Span.Slice(0, verticies.Length);
+			List<int> vertMap = new();
+			for (int i = 0; i < verticies.Length; i++)
+			{
+				vertMap.Add(i);
+			}
 
-			for (int i = 1; i < vertMap.Length + 2; i++)
+			List<int> indicies = new List<int>();
+			int step = 0;
+			while (step < steps)
+			{
+				if (!TryFindEar(verticies, CollectionsMarshal.AsSpan(vertMap), clockwise, margin, false, out Ear ear))
+				{
+					Console.WriteLine("Unable to complete mesh triangualtion.");
+					TryFindEar(verticies, CollectionsMarshal.AsSpan(vertMap), clockwise, margin, true, out ear);
+
+					return indicies.ToArray();
+					//throw new Exception("Unable to complete mesh triangualtion.");
+				}
+
+				indicies.Add(ear.prev);
+				indicies.Add(ear.curr);
+				indicies.Add(ear.next);
+
+				vertMap.Remove(ear.curr);
+				step++;
+			}
+
+			// Remaining verticies should be excatly one ear
+			if (vertMap.Count == 3)
+			{
+				indicies.Add(vertMap[0]);
+				indicies.Add(vertMap[1]);
+				indicies.Add(vertMap[2]);
+			}
+
+			return indicies.ToArray();
+		}
+
+		static bool TryFindEar(scoped ReadOnlySpanRingBuffer<Vector2f> verticies, scoped ReadOnlySpanRingBuffer<int> vertMap, bool clockwise, float margin, bool doPrint, out Ear ear)
+		{
+			for (int i = 0; i < vertMap.Length; i++)
 			{
 				Vector2f prev2 = verticies[vertMap[i - 2]];
 				Vector2f prev = verticies[vertMap[i - 1]];
@@ -121,10 +214,7 @@ namespace Engine.Utils
 				if (aCurr >= MathF.PI || aPrev < aLine || MathF.Abs(aCurr - MathF.PI) < margin)
 					continue;
 
-				excludeIndicies[0] = vertMap[i - 1];
-				excludeIndicies[1] = vertMap[i];
-				excludeIndicies[2] = vertMap[i + 1];
-				if (!IntersectAny(prev, next, excludeIndicies, verticies, margin))
+				if (!IntersectOrContainsAny(in prev, in curr, in next, verticies, margin, doPrint))
 				{
 					ear = new Ear()
 					{
@@ -141,43 +231,67 @@ namespace Engine.Utils
 			return false;
 		}
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		static int Loop(int idx, int modulo)
+		static bool IntersectOrContainsAny(ref readonly Vector2f p1, ref readonly Vector2f p2, ref readonly Vector2f p3, scoped ReadOnlySpanRingBuffer<Vector2f> verticies, float margin, bool doPrint)
 		{
-			return (idx + modulo) % modulo;
-		}
+			if (doPrint)
+				Console.WriteLine($"P1: {p1}, P2: {p2}, P3: {p3}");
 
-		static bool IntersectAny(Vector2f p1, Vector2f p2, scoped ReadOnlySpan<int> skips, scoped ReadOnlySpanRingBuffer<Vector2f> verticies, float margin)
-		{
-			for (int i = 0; i < verticies.Length - 1; i++)
+			for (int i = 0; i < verticies.Length; i++)
 			{
-				if (VectorMath.IsClose(p1, verticies[i], margin) || VectorMath.IsClose(p1, verticies[i + 1], margin))
+				if (MathHelpers.IsClose(in p1, in verticies[i], margin) || MathHelpers.IsClose(in p1, in verticies[i + 1], margin))
 					continue;
 
-				if (VectorMath.IsClose(p2, verticies[i], margin) || VectorMath.IsClose(p2, verticies[i + 1], margin))
+				if (MathHelpers.IsClose(in p3, in verticies[i], margin) || MathHelpers.IsClose(in p3, in verticies[i + 1], margin))
 					continue;
 
-				if (skips.Contains(i))
-					continue;
+				if (MathHelpers.Intersect(in p1, in p3, in verticies[i], in verticies[i + 1]))
+				{
+					if (doPrint)
+						Console.WriteLine($"\t{i}: Intersect {verticies[i]} & {verticies[i + 1]}");
 
-				if (skips.Contains(i + 1))
-					continue;
-
-				if (VectorMath.Intersect(p1, p2, verticies[i], verticies[i + 1], margin))
 					return true;
-			}
+				}
 
-			if (!FoundSkip(verticies.Length - 1, skips) && !FoundSkip(0, skips) && VectorMath.Intersect(p1, p2, verticies[verticies.Length - 1], verticies[0], margin))
-				return true;
+				if (MathHelpers.IsClose(in p2, in verticies[i], margin))
+					continue;
+
+				if (MathHelpers.IsInsideTriangle(in p1, in p2, in p3, in verticies[i]))
+				{
+					if (doPrint)
+						Console.WriteLine($"\t{i}: IsInsideTriangle {verticies[i]}");
+
+					return true;
+				}
+			}
 
 			return false;
 		}
 
-		static bool FoundSkip(int i, ReadOnlySpan<int> skips)
+		static bool IntersectAny(ref readonly Vector2f p1, ref readonly Vector2f p2, scoped ReadOnlySpanRingBuffer<Vector2f> verticies, float margin)
 		{
-			for (int a = 0; a < skips.Length; a++)
+			for (int i = 0; i < verticies.Length; i++)
 			{
-				if (i == skips[a])
+				if (MathHelpers.IsClose(in p1, in verticies[i], margin) || MathHelpers.IsClose(in p1, in verticies[i + 1], margin))
+					continue;
+
+				if (MathHelpers.IsClose(in p2, in verticies[i], margin) || MathHelpers.IsClose(in p2, in verticies[i + 1], margin))
+					continue;
+
+				if (MathHelpers.Intersect(in p1, in p2, in verticies[i], in verticies[i + 1]))
+					return true;
+			}
+
+			return false;
+		}
+
+		static bool HasBridge(int skip, scoped ReadOnlySpanRingBuffer<Vector2f> verticies, float margin)
+		{
+			for (int i = 0; i < verticies.Length; i++)
+			{
+				if (i == skip)
+					continue;
+
+				if (MathHelpers.IsClose(in verticies[skip], in verticies[i], margin))
 					return true;
 			}
 

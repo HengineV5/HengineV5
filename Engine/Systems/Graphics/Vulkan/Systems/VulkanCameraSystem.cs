@@ -46,7 +46,7 @@ namespace Engine
 			shaderInput.ubo.Value = context.skyboxUbo;
 			VulkanRenderHelpers.UpdateSkyboxDescriptorSet(this.context, renderContext.pipeline.GetDescriptorSet(PipelineContainerLayer.Skybox, 0), skybox.skybox, renderContext.samplers);
 
-            renderContext.pipeline.Render(this.context, PipelineContainerLayer.Skybox, skyboxBuffer.vertexBuffer, skyboxBuffer.indexBuffer, skyboxBuffer.indicies, 0);
+			renderContext.pipeline.Render(this.context, PipelineContainerLayer.Skybox, skyboxBuffer.vertexBuffer, skyboxBuffer.indexBuffer, skyboxBuffer.indicies, 0);
 			renderContext.pipeline.ClearDepthBuffer(this.context); // Clear depth buffer because mesh rendering might go over multiple render passes, so depth buffer is loaded for each pass.
 			renderContext.pipeline.EndRenderPass(this.context);
 
@@ -77,10 +77,10 @@ namespace Engine
 		{
 			ubo.view = Matrix4x4f.CreateTranslation(-new Vector3f(position.x, position.y, position.z)) * Matrix4x4f.FromQuaternion(new Quaternionf(rotation.x, rotation.y, rotation.z, rotation.w));
 			ubo.proj = Matrix4x4f.CreatePersperctive(camera.fov, (float)window.Size.X / (float)window.Size.Y, camera.zNear, camera.zFar);
-            //ubo.proj = Matrix4x4f.CreatePerspectiveFieldOfView(MathF.PI / 2, (float)window.Size.X / (float)window.Size.Y, camera.zNear, camera.zFar);
-            //ubo.proj = Matrix4x4f.CreateOrthographic(10, 10, camera.zNear, camera.zFar);
+			//ubo.proj = Matrix4x4f.CreatePerspectiveFieldOfView(MathF.PI / 2, (float)window.Size.X / (float)window.Size.Y, camera.zNear, camera.zFar);
+			//ubo.proj = Matrix4x4f.CreateOrthographic(10, 10, camera.zNear, camera.zFar);
 
-            ubo.proj.m22 *= -1; // Think this was some opengl comaptability stuff.
+			ubo.proj.m22 *= -1; // Think this was some opengl comaptability stuff.
 		}
 
 		static void UpdateCameraGuiUbo(ref GuiUniformBufferObject ubo, ref Camera camera, IWindow window)

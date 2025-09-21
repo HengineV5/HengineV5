@@ -1,36 +1,28 @@
-﻿using Engine.Graphics;
-using Silk.NET.Vulkan;
-using Silk.NET.Vulkan.Extensions.KHR;
-using System.Runtime.InteropServices;
-using Image = Silk.NET.Vulkan.Image;
-using Semaphore = Silk.NET.Vulkan.Semaphore;
-using System.Runtime.CompilerServices;
-using Engine.Components.Graphics;
-using EnCS;
+﻿using Silk.NET.Vulkan;
 
 namespace Engine
 {
-    public struct DefaultRenderPassInfo
+	public struct DefaultRenderPassInfo
 	{
 		public Format colorFormat;
 		public Format depthFormat;
 
-        public DefaultRenderPassInfo(Format colorFormat, Format depthFormat)
-        {
-            this.colorFormat = colorFormat;
-            this.depthFormat = depthFormat;
-        }
-    }
+		public DefaultRenderPassInfo(Format colorFormat, Format depthFormat)
+		{
+			this.colorFormat = colorFormat;
+			this.depthFormat = depthFormat;
+		}
+	}
 
 	public struct DefaultPipelineInfo
 	{
 		public Extent2D extent;
 
-        public DefaultPipelineInfo(Extent2D extent)
-        {
-            this.extent = extent;
-        }
-    }
+		public DefaultPipelineInfo(Extent2D extent)
+		{
+			this.extent = extent;
+		}
+	}
 
 	public struct RenderPipelineOld
 	{
@@ -84,7 +76,7 @@ namespace Engine
 			*/
 		}
 
-        /*
+		/*
 		unsafe void DisposeSwapchain(VkContext context, CommandPool commandPool)
 		{
 			swapchain.Dispose(context);

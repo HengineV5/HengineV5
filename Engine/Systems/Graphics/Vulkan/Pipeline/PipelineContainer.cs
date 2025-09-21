@@ -5,177 +5,177 @@ namespace Engine
 {
 	public struct PipelineContainer : IPipelineContainer<PipelineContainer, DefaultPipelineInfo, PipelineContainerLayer>
 	{
-        struct PushConstant
-        {
-            public Matrix4x4f model;
-        }
+		struct PushConstant
+		{
+			public Matrix4x4f model;
+		}
 
-        public RenderLayer skyboxLayer;
+		public RenderLayer skyboxLayer;
 		public RenderLayer pbrLayer;
 		public RenderLayer wireframeLayer;
-        public RenderLayer guiLayer;
-        public RenderLayer gizmoLayer;
-        public RenderLayer gizmoLineLayer;
+		public RenderLayer guiLayer;
+		public RenderLayer gizmoLayer;
+		public RenderLayer gizmoLineLayer;
 
-        public PipelineContainer(RenderLayer skyboxLayer, RenderLayer pbrLayer, RenderLayer wireframeLayer, RenderLayer guiLayer, RenderLayer gizmoLayer, RenderLayer gizmoLineLayer)
-        {
-            this.skyboxLayer = skyboxLayer;
-            this.pbrLayer = pbrLayer;
-            this.wireframeLayer = wireframeLayer;
-            this.guiLayer = guiLayer;
+		public PipelineContainer(RenderLayer skyboxLayer, RenderLayer pbrLayer, RenderLayer wireframeLayer, RenderLayer guiLayer, RenderLayer gizmoLayer, RenderLayer gizmoLineLayer)
+		{
+			this.skyboxLayer = skyboxLayer;
+			this.pbrLayer = pbrLayer;
+			this.wireframeLayer = wireframeLayer;
+			this.guiLayer = guiLayer;
 			this.gizmoLayer = gizmoLayer;
 			this.gizmoLineLayer = gizmoLineLayer;
-        }
+		}
 
-        public static PipelineContainer Create<TDescriptorContainer>(VkContext context, RenderPass compatibleRenderPass, in DefaultPipelineInfo info)
+		public static PipelineContainer Create<TDescriptorContainer>(VkContext context, RenderPass compatibleRenderPass, in DefaultPipelineInfo info)
 			where TDescriptorContainer : struct, IDescriptorContainer<TDescriptorContainer, PipelineContainerLayer>
 		{
 			var pbrDescriptorLayout = CreatePipelineLayout(context, TDescriptorContainer.GetDescriptorSetLayout(context, PipelineContainerLayer.Pbr));
 			var guiDescriptorLayout = CreatePipelineLayout(context, TDescriptorContainer.GetDescriptorSetLayout(context, PipelineContainerLayer.Gui));
 			var gizmoDescriptorLayout = CreatePipelineLayout(context, TDescriptorContainer.GetDescriptorSetLayout(context, PipelineContainerLayer.Gizmo));
 
-            var skyboxShader = Shader.FromFiles("Shaders/Skybox/SkyboxVert.spv", "Shaders/Skybox/SkyboxFrag.spv");
+			var skyboxShader = Shader.FromFiles("Shaders/Skybox/SkyboxVert.spv", "Shaders/Skybox/SkyboxFrag.spv");
 			var skyboxPipeline = RenderLayer.CreateSkybox(context, skyboxShader, pbrDescriptorLayout, info.extent, compatibleRenderPass);
 
-            var pbrShader = Shader.FromFiles("Shaders/Pbr/PbrVert.spv", "Shaders/Pbr/PbrFrag.spv");
-            var pbrPipeline = RenderLayer.CreatePbr(context, pbrShader, pbrDescriptorLayout, info.extent, compatibleRenderPass);
+			var pbrShader = Shader.FromFiles("Shaders/Pbr/PbrVert.spv", "Shaders/Pbr/PbrFrag.spv");
+			var pbrPipeline = RenderLayer.CreatePbr(context, pbrShader, pbrDescriptorLayout, info.extent, compatibleRenderPass);
 
 			var wireframeShader = Shader.FromFiles("Shaders/Pbr/PbrVert.spv", "Shaders/Pbr/BlackFrag.spv");
 			var wireframePipeline = RenderLayer.CreateWireframe(context, wireframeShader, pbrDescriptorLayout, info.extent, compatibleRenderPass);
 
-            var guiShader = Shader.FromFiles("Shaders/Gui/GuiVert.spv", "Shaders/Gui/GuiFrag.spv");
-            var guiPipeline = RenderLayer.CreateGui(context, guiShader, guiDescriptorLayout, info.extent, compatibleRenderPass);
+			var guiShader = Shader.FromFiles("Shaders/Gui/GuiVert.spv", "Shaders/Gui/GuiFrag.spv");
+			var guiPipeline = RenderLayer.CreateGui(context, guiShader, guiDescriptorLayout, info.extent, compatibleRenderPass);
 
-            var gizmoShader = Shader.FromFiles("Shaders/Gizmo/GizmoVert.spv", "Shaders/Gizmo/GizmoFrag.spv");
-            var gizmoPipeline = RenderLayer.CreateGizmo(context, gizmoShader, gizmoDescriptorLayout, info.extent, compatibleRenderPass);
-            var gizmoLinePipeline = RenderLayer.CreateGizmoLine(context, gizmoShader, gizmoDescriptorLayout, info.extent, compatibleRenderPass);
+			var gizmoShader = Shader.FromFiles("Shaders/Gizmo/GizmoVert.spv", "Shaders/Gizmo/GizmoFrag.spv");
+			var gizmoPipeline = RenderLayer.CreateGizmo(context, gizmoShader, gizmoDescriptorLayout, info.extent, compatibleRenderPass);
+			var gizmoLinePipeline = RenderLayer.CreateGizmoLine(context, gizmoShader, gizmoDescriptorLayout, info.extent, compatibleRenderPass);
 
 			return new PipelineContainer(skyboxPipeline, pbrPipeline, wireframePipeline, guiPipeline, gizmoPipeline, gizmoLinePipeline);
 		}
 
 		public static void Dispose(VkContext context, ref PipelineContainer self)
 		{
-            // They share layout
-            self.skyboxLayer.Dispose(context, true);
-            self.pbrLayer.Dispose(context, false);
-            self.wireframeLayer.Dispose(context, false);
-            self.guiLayer.Dispose(context, true);
-            self.gizmoLayer.Dispose(context, true);
+			// They share layout
+			self.skyboxLayer.Dispose(context, true);
+			self.pbrLayer.Dispose(context, false);
+			self.wireframeLayer.Dispose(context, false);
+			self.guiLayer.Dispose(context, true);
+			self.gizmoLayer.Dispose(context, true);
 		}
 
 		public static Pipeline Get(PipelineContainerLayer layer, ref PipelineContainer self)
-        {
+		{
 			switch (layer)
 			{
 				case PipelineContainerLayer.Skybox:
-                    return self.skyboxLayer.pipeline;
-                case PipelineContainerLayer.Pbr:
-                    return self.pbrLayer.pipeline;
-                case PipelineContainerLayer.Wireframe:
-                    return self.wireframeLayer.pipeline;
-                case PipelineContainerLayer.Gui:
-                    return self.guiLayer.pipeline;
-                case PipelineContainerLayer.Gizmo:
-                    return self.gizmoLayer.pipeline;
-                case PipelineContainerLayer.GizmoLine:
-                    return self.gizmoLineLayer.pipeline;
-                default:
-                    throw new Exception();
-            }
+					return self.skyboxLayer.pipeline;
+				case PipelineContainerLayer.Pbr:
+					return self.pbrLayer.pipeline;
+				case PipelineContainerLayer.Wireframe:
+					return self.wireframeLayer.pipeline;
+				case PipelineContainerLayer.Gui:
+					return self.guiLayer.pipeline;
+				case PipelineContainerLayer.Gizmo:
+					return self.gizmoLayer.pipeline;
+				case PipelineContainerLayer.GizmoLine:
+					return self.gizmoLineLayer.pipeline;
+				default:
+					throw new Exception();
+			}
 		}
 
-        public static PipelineLayout GetLayout(PipelineContainerLayer layer, ref PipelineContainer self)
-        {
-            switch (layer)
-            {
-                case PipelineContainerLayer.Skybox:
-                    return self.skyboxLayer.layout;
-                case PipelineContainerLayer.Pbr:
-                    return self.pbrLayer.layout;
-                case PipelineContainerLayer.Wireframe:
-                    return self.wireframeLayer.layout;
-                case PipelineContainerLayer.Gui:
-                    return self.guiLayer.layout;
-                case PipelineContainerLayer.Gizmo:
-                    return self.gizmoLayer.layout;
-                case PipelineContainerLayer.GizmoLine:
-                    return self.gizmoLineLayer.layout;
-                default:
-                    throw new Exception();
-            }
-        }
+		public static PipelineLayout GetLayout(PipelineContainerLayer layer, ref PipelineContainer self)
+		{
+			switch (layer)
+			{
+				case PipelineContainerLayer.Skybox:
+					return self.skyboxLayer.layout;
+				case PipelineContainerLayer.Pbr:
+					return self.pbrLayer.layout;
+				case PipelineContainerLayer.Wireframe:
+					return self.wireframeLayer.layout;
+				case PipelineContainerLayer.Gui:
+					return self.guiLayer.layout;
+				case PipelineContainerLayer.Gizmo:
+					return self.gizmoLayer.layout;
+				case PipelineContainerLayer.GizmoLine:
+					return self.gizmoLineLayer.layout;
+				default:
+					throw new Exception();
+			}
+		}
 
-        static unsafe PipelineLayout CreatePipelineLayout(VkContext context, DescriptorSetLayout descriptorSetLayout)
-        {
-            PipelineColorBlendAttachmentState colorBlendAttatchment = new();
-            colorBlendAttatchment.ColorWriteMask = ColorComponentFlags.RBit | ColorComponentFlags.GBit | ColorComponentFlags.BBit | ColorComponentFlags.ABit;
-            colorBlendAttatchment.BlendEnable = false;
-            colorBlendAttatchment.SrcColorBlendFactor = BlendFactor.One;
-            colorBlendAttatchment.DstColorBlendFactor = BlendFactor.Zero;
-            colorBlendAttatchment.ColorBlendOp = BlendOp.Add;
-            colorBlendAttatchment.SrcAlphaBlendFactor = BlendFactor.One;
-            colorBlendAttatchment.DstAlphaBlendFactor = BlendFactor.One;
-            colorBlendAttatchment.AlphaBlendOp = BlendOp.Add;
+		static unsafe PipelineLayout CreatePipelineLayout(VkContext context, DescriptorSetLayout descriptorSetLayout)
+		{
+			PipelineColorBlendAttachmentState colorBlendAttatchment = new();
+			colorBlendAttatchment.ColorWriteMask = ColorComponentFlags.RBit | ColorComponentFlags.GBit | ColorComponentFlags.BBit | ColorComponentFlags.ABit;
+			colorBlendAttatchment.BlendEnable = false;
+			colorBlendAttatchment.SrcColorBlendFactor = BlendFactor.One;
+			colorBlendAttatchment.DstColorBlendFactor = BlendFactor.Zero;
+			colorBlendAttatchment.ColorBlendOp = BlendOp.Add;
+			colorBlendAttatchment.SrcAlphaBlendFactor = BlendFactor.One;
+			colorBlendAttatchment.DstAlphaBlendFactor = BlendFactor.One;
+			colorBlendAttatchment.AlphaBlendOp = BlendOp.Add;
 
-            PushConstantRange pushConstant = new();
-            pushConstant.Offset = 0;
-            pushConstant.Size = (uint)sizeof(PushConstant);
-            pushConstant.StageFlags = ShaderStageFlags.VertexBit;
+			PushConstantRange pushConstant = new();
+			pushConstant.Offset = 0;
+			pushConstant.Size = (uint)sizeof(PushConstant);
+			pushConstant.StageFlags = ShaderStageFlags.VertexBit;
 
-            PipelineLayoutCreateInfo pipelineLayoutCreateInfo = new();
-            pipelineLayoutCreateInfo.SType = StructureType.PipelineLayoutCreateInfo;
-            pipelineLayoutCreateInfo.SetLayoutCount = 1;
-            pipelineLayoutCreateInfo.PSetLayouts = &descriptorSetLayout;
-            //pipelineLayoutCreateInfo.PushConstantRangeCount = 1;
-            //pipelineLayoutCreateInfo.PPushConstantRanges = &pushConstant;
+			PipelineLayoutCreateInfo pipelineLayoutCreateInfo = new();
+			pipelineLayoutCreateInfo.SType = StructureType.PipelineLayoutCreateInfo;
+			pipelineLayoutCreateInfo.SetLayoutCount = 1;
+			pipelineLayoutCreateInfo.PSetLayouts = &descriptorSetLayout;
+			//pipelineLayoutCreateInfo.PushConstantRangeCount = 1;
+			//pipelineLayoutCreateInfo.PPushConstantRanges = &pushConstant;
 
-            var result = context.vk.CreatePipelineLayout(context.device, pipelineLayoutCreateInfo, null, out PipelineLayout pipelineLayout);
-            if (result != Result.Success)
-                throw new Exception("Failed to create vkPipelineLayout");
+			var result = context.vk.CreatePipelineLayout(context.device, pipelineLayoutCreateInfo, null, out PipelineLayout pipelineLayout);
+			if (result != Result.Success)
+				throw new Exception("Failed to create vkPipelineLayout");
 
-            return pipelineLayout;
-        }
+			return pipelineLayout;
+		}
 	}
 
-    public struct RenderLayer
-    {
-        public Shader shader;
-        public Pipeline pipeline;
-        public PipelineLayout layout;
+	public struct RenderLayer
+	{
+		public Shader shader;
+		public Pipeline pipeline;
+		public PipelineLayout layout;
 
-        public RenderLayer(Shader shader, Pipeline pipeline, PipelineLayout layout)
-        {
-            this.shader = shader;
-            this.pipeline = pipeline;
-            this.layout = layout;
-        }
+		public RenderLayer(Shader shader, Pipeline pipeline, PipelineLayout layout)
+		{
+			this.shader = shader;
+			this.pipeline = pipeline;
+			this.layout = layout;
+		}
 
-        public unsafe void Dispose(VkContext context, bool disposeLayout)
-        {
-            if (disposeLayout)
-                context.vk.DestroyPipelineLayout(context.device, layout, null);
+		public unsafe void Dispose(VkContext context, bool disposeLayout)
+		{
+			if (disposeLayout)
+				context.vk.DestroyPipelineLayout(context.device, layout, null);
 
 			context.vk.DestroyPipeline(context.device, pipeline, null);
 		}
 
-        public static RenderLayer CreatePbr(VkContext context, Shader shader, PipelineLayout layout, Extent2D extent, RenderPass compatibleRenderPass)
-        {
-            var pipeline = new GraphicsPipelineBuilder()
-                .WithVertexInput(GetPbrBindingDescription(), GetPbrAttributeDescription())
-                .WithInputAssembly()
-                .WithViewport(extent)
-                .WithRasterization(PolygonMode.Fill, CullModeFlags.BackBit, 1)
-                .WithMultisample()
-                .WithDepthStencil(true)
-                .WithColorBlend()
-                .WithDynamicState([DynamicState.Viewport, DynamicState.Scissor])
-                .Build(context, layout, compatibleRenderPass, shader);
+		public static RenderLayer CreatePbr(VkContext context, Shader shader, PipelineLayout layout, Extent2D extent, RenderPass compatibleRenderPass)
+		{
+			var pipeline = new GraphicsPipelineBuilder()
+				.WithVertexInput(GetPbrBindingDescription(), GetPbrAttributeDescription())
+				.WithInputAssembly()
+				.WithViewport(extent)
+				.WithRasterization(PolygonMode.Fill, CullModeFlags.BackBit, 1)
+				.WithMultisample()
+				.WithDepthStencil(true)
+				.WithColorBlend()
+				.WithDynamicState([DynamicState.Viewport, DynamicState.Scissor])
+				.Build(context, layout, compatibleRenderPass, shader);
 
-            return new RenderLayer(shader, pipeline, layout);
-        }
+			return new RenderLayer(shader, pipeline, layout);
+		}
 
-        public static RenderLayer CreateSkybox(VkContext context, Shader shader, PipelineLayout layout, Extent2D extent, RenderPass compatibleRenderPass)
-        {
+		public static RenderLayer CreateSkybox(VkContext context, Shader shader, PipelineLayout layout, Extent2D extent, RenderPass compatibleRenderPass)
+		{
 			var pipeline = new GraphicsPipelineBuilder()
 				.WithVertexInput(GetPbrBindingDescription(), GetPbrAttributeDescription())
 				.WithInputAssembly()
@@ -190,8 +190,8 @@ namespace Engine
 			return new RenderLayer(shader, pipeline, layout);
 		}
 
-        public static RenderLayer CreateWireframe(VkContext context, Shader shader, PipelineLayout layout, Extent2D extent, RenderPass compatibleRenderPass)
-        {
+		public static RenderLayer CreateWireframe(VkContext context, Shader shader, PipelineLayout layout, Extent2D extent, RenderPass compatibleRenderPass)
+		{
 			var pipeline = new GraphicsPipelineBuilder()
 				.WithVertexInput(GetPbrBindingDescription(), GetPbrAttributeDescription())
 				.WithInputAssembly()

@@ -27,7 +27,7 @@ namespace Engine
 
 
 
-    public interface IDescriptorSet<TSelf> where TSelf : struct, IDescriptorSet<TSelf>
+	public interface IDescriptorSet<TSelf> where TSelf : struct, IDescriptorSet<TSelf>
 	{
 		static abstract TSelf Create(VkContext context, DescriptorPool descriptorPool);
 

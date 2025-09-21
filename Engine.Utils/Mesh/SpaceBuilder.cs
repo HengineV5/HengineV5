@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Engine.Utils.Mesh
+﻿namespace Engine.Utils.Mesh
 {
 	public struct ShapeId
 	{
@@ -73,10 +67,10 @@ namespace Engine.Utils.Mesh
 		ShapeId sid = new();
 		SurfaceId SurfaceId = new();
 
-        private MeshBuilder()
-        {
-            
-        }
+		private MeshBuilder()
+		{
+
+		}
 
 		internal ref MeshId GetMeshId()
 		{
@@ -98,7 +92,7 @@ namespace Engine.Utils.Mesh
 			return ref SurfaceId;
 		}
 
-        public static void Build(Action<SpaceBuilder> meshBuilder, out Memory<Vector3f> verticies, out Memory<int> indicies)
+		public static void Build(Action<SpaceBuilder> meshBuilder, out Memory<Vector3f> verticies, out Memory<int> indicies)
 		{
 			var builder = new MeshBuilder();
 

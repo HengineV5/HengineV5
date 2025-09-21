@@ -18,6 +18,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Systems\Physics\**" />
+    <EmbeddedResource Remove="Systems\Physics\**" />
+    <None Remove="Systems\Physics\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.3" />
     <PackageReference Include="Silk.NET" Version="2.22.0" />
   </ItemGroup>
@@ -44,8 +50,7 @@
 		-->
     <ProjectReference Include="..\Engine.Generator\Engine.Generator.csproj" />
     <Analyzer Include="..\Engine.Generator\bin\$(Configuration)\netstandard2.0\Engine.Generator.dll" />
-    <Analyzer
-      Include="..\Engine.Generator\bin\$(Configuration)\netstandard2.0\TemplateGenerator.dll" />
+    <Analyzer Include="..\Engine.Generator\bin\$(Configuration)\netstandard2.0\TemplateGenerator.dll" />
   </ItemGroup>
 
   <!-- 
@@ -66,8 +71,7 @@
 		It is persistent accross clean, rebuild, relaunching Visual Studio, etc. Only
 		when changing to this profile.
 	-->
-  <PropertyGroup
-    Condition="'$(Configuration)'=='Debug (local-deps)' Or '$(Configuration)'=='Release (local-deps)'">
+  <PropertyGroup Condition="'$(Configuration)'=='Debug (local-deps)' Or '$(Configuration)'=='Release (local-deps)'">
     <UseLocalProjects>true</UseLocalProjects>
   </PropertyGroup>
   <ItemGroup Condition="'$(UseLocalProjects)' != 'true'">
@@ -79,14 +83,9 @@
   <ItemGroup Condition="'$(UseLocalProjects)' == 'true'">
     <ProjectReference Include="..\..\EnCS\EnCS\EnCS.csproj" />
     <ProjectReference Include="..\..\EnCS\EnCS.Generator\EnCS.Generator.csproj" />
-    <Analyzer
-      Include="..\..\EnCS\EnCS.Generator\bin\Debug\netstandard2.0\EnCS.Generator.dll" />
+    <Analyzer Include="..\..\EnCS\EnCS.Generator\bin\Debug\netstandard2.0\EnCS.Generator.dll" />
     <ProjectReference Include="..\..\ImageLib\ImageLib\ImageLib.csproj" />
     <ProjectReference Include="..\..\MathLib\MathLib\MathLib.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Systems\Physics\" />
   </ItemGroup>
 
 

@@ -2,7 +2,6 @@
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
-using System.Xml.Linq;
 
 namespace Engine
 {
@@ -57,12 +56,12 @@ namespace Engine
 		List<ConnectedClient> clients = new List<ConnectedClient>();
 		List<UpdatePacket> packets = new List<UpdatePacket>();
 
-        public Server(ILoggerFactory factory, Socket socket)
-        {
+		public Server(ILoggerFactory factory, Socket socket)
+		{
 			this.l = new();
 			this.logger = factory.CreateLogger<Server>();
 			this.socket = socket;
-        }
+		}
 
 		public void StartServerThread()
 		{

@@ -1,7 +1,6 @@
 ﻿using EnCS.Attributes;
 using Engine.Components;
 using Silk.NET.Windowing;
-using System.Drawing;
 
 namespace Engine
 {
@@ -28,7 +27,7 @@ namespace Engine
 			Vector2f objScreenSize = GuiHelpers.ToScreenSpace(ref s, ref windowSize);
 
 			Vector2f mousePos = inputHandler.GetMousePosition();
-            
+
 			if (mousePos.x > objScreenPos.x && mousePos.x < objScreenPos.x + objScreenSize.x && mousePos.y > objScreenPos.y && mousePos.y < objScreenPos.y + objScreenSize.y)
 			{
 				guiState.state = inputHandler.IsKeyDown(Silk.NET.Input.MouseButton.Left) ? button.pressedState : button.hoverState;

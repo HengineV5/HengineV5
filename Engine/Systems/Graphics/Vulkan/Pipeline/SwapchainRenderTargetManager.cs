@@ -1,14 +1,11 @@
 ﻿using Silk.NET.Vulkan;
-using EnCS;
-using Silk.NET.Vulkan.Video;
-using System.Buffers;
 using System.Runtime.CompilerServices;
 
 namespace Engine
 {
 	public struct SwapchainRenderTargetManager : IRenderTargetManager<SwapchainRenderTargetManager, DefaultRenderPassInfo, DefaultPipelineInfo>
 	{
-        const int MAX_FRAMES_IN_FLIGHT = 3;
+		const int MAX_FRAMES_IN_FLIGHT = 3;
 
 		Swapchain swapchain;
 
@@ -18,70 +15,70 @@ namespace Engine
 
 		int currentFrame;
 
-        public SwapchainRenderTargetManager(Swapchain swapchain)
-        {
+		public SwapchainRenderTargetManager(Swapchain swapchain)
+		{
 			this.swapchain = swapchain;
 			this.currentFrame = 0;
-        }
+		}
 
-        public static RenderTarget AquireRenderTarget(VkContext context, ref SwapchainRenderTargetManager self)
-        {
-            var renderTarget = new RenderTarget()
+		public static RenderTarget AquireRenderTarget(VkContext context, ref SwapchainRenderTargetManager self)
+		{
+			var renderTarget = new RenderTarget()
 			{
 				frame = self.framesInFlight.Span[self.currentFrame],
 			};
 
-            VulkanHelper.WaitForFence(context, renderTarget.frame.inFlight);
+			VulkanHelper.WaitForFence(context, renderTarget.frame.inFlight);
 
-            var aquireResult = self.swapchain.AcquireNextImageIndex(context, renderTarget.frame.imageAvailable, out renderTarget.imageIndex);
+			var aquireResult = self.swapchain.AcquireNextImageIndex(context, renderTarget.frame.imageAvailable, out renderTarget.imageIndex);
 			renderTarget.framebuffer = self.frameBuffers.Span[(int)renderTarget.imageIndex];
 
-            //if (aquireResult == Result.ErrorOutOfDateKhr)
-            if (aquireResult != Result.Success)
+			//if (aquireResult == Result.ErrorOutOfDateKhr)
+			if (aquireResult != Result.Success)
 				throw new Exception();
-            //return aquireResult;
+			//return aquireResult;
 
-            return renderTarget;
-        }
+			return renderTarget;
+		}
 
-        public static bool PresentTarget(VkContext context, ref SwapchainRenderTargetManager self, ref RenderTarget renderTarget)
-        {
-            var presentResult = VulkanHelper.QueuePresent(context, self.swapchain.GetPresentQueue(), self.swapchain.GetSwapchain(), renderTarget.imageIndex, renderTarget.frame.imageAvailable);
+		public static bool PresentTarget(VkContext context, ref SwapchainRenderTargetManager self, ref RenderTarget renderTarget)
+		{
+			var presentResult = VulkanHelper.QueuePresent(context, self.swapchain.GetPresentQueue(), self.swapchain.GetSwapchain(), renderTarget.imageIndex, renderTarget.frame.imageAvailable);
 			if (presentResult == Result.ErrorOutOfDateKhr || presentResult == Result.SuboptimalKhr)
 			{
 				return false;
 				throw new Exception();
 				//recreateSwapChain();
-                //RecreateSwapchain(context, )
+				//RecreateSwapchain(context, )
 			}
 
 			// TODO: Improve
 			self.currentFrame = (self.currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 			return true;
-        }
+		}
 
-        public static DefaultPipelineInfo GetPipelineInfo(VkContext context, ref SwapchainRenderTargetManager self)
-        {
+		public static DefaultPipelineInfo GetPipelineInfo(VkContext context, ref SwapchainRenderTargetManager self)
+		{
 			return new DefaultPipelineInfo(self.swapchain.GetExtent());
-        }
+		}
 
-        public static DefaultRenderPassInfo GetRendePassInfo(VkContext context, ref SwapchainRenderTargetManager self)
-        {
+		public static DefaultRenderPassInfo GetRendePassInfo(VkContext context, ref SwapchainRenderTargetManager self)
+		{
 			return new DefaultRenderPassInfo(self.swapchain.GetSurfaceFormat().Format, Swapchain.GetDepthFormat(context));
-        }
+		}
 
-        public static Rect2D GetRenderArea(ref SwapchainRenderTargetManager self)
-        {
+		public static Rect2D GetRenderArea(ref SwapchainRenderTargetManager self)
+		{
 			return new(new(), self.swapchain.GetExtent());
-        }
+		}
 
-        public static SwapchainRenderTargetManager Create(VkContext context, CommandPool commandPool)
-        {
+		public static SwapchainRenderTargetManager Create(VkContext context, CommandPool commandPool)
+		{
 			SurfaceKHR surface = CreateSurface(context);
 			Swapchain swapchain = Swapchain.Create(context, surface, commandPool);
 
-            return new SwapchainRenderTargetManager(swapchain);
-        }
+			return new SwapchainRenderTargetManager(swapchain);
+		}
 
 		public static void Init(VkContext context, ref SwapchainRenderTargetManager self, RenderPass compatibleRenderPass, CommandPool commandPool)
 		{

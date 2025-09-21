@@ -1,15 +1,7 @@
-﻿using EnCS;
-using System;
-using System.Buffers;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Buffers;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
 using UtilLib.Span;
 using UtilLib.Stream;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Engine.Utils.Parsing.TTF
 {
@@ -18,21 +10,28 @@ namespace Engine.Utils.Parsing.TTF
 		public static Font LoadFont(string path)
 		{
 			using DataReader reader = new DataReader(new FileStream(path, FileMode.Open, FileAccess.Read));
-            return Font.Load(reader);
-        }
+			return Font.Load(reader);
+		}
 	}
 
-    public class Font
-    {
+	public class Font
+	{
+		public ReadOnlySpan<GlyphData> Glyphs => glyphData;
+
 		GlyphData[] glyphData;
 
 		HmtxTable hmtx;
 		CmapTable cmapData;
 
 		// https://github.com/LayoutFarm/Typography/blob/master/Typography.OpenFont/Tables/CharacterMap.cs
-		public GlyphData GetGlyphIndex(ushort unicode)
+		public ref readonly GlyphData GetUnicodeGlyph(ushort unicode)
 		{
-			return glyphData[GetGlyphIdx(ref cmapData, unicode)];
+			return ref glyphData[GetGlyphIdx(ref cmapData, unicode)];
+		}
+
+		public int GetUnicodeGlyphIndex(ushort unicode)
+		{
+			return GetGlyphIdx(ref cmapData, unicode);
 		}
 
 		public ushort GetGlyphAdvance(ushort unicode)
@@ -65,11 +64,11 @@ namespace Engine.Utils.Parsing.TTF
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public GlyphData GetGlyphIndex(uint unicode)
-			=> GetGlyphIndex((ushort)unicode);
+			=> GetUnicodeGlyph((ushort)unicode);
 
 
 		internal static Font Load(DataReader reader)
-        {
+		{
 			TtfOffsetSubtable offsetSubtable = new()
 			{
 				scalerType = reader.ReadUInt32(),
@@ -123,7 +122,7 @@ namespace Engine.Utils.Parsing.TTF
 			reader.Seek(tables["hmtx"].offset);
 			font.hmtx = HmtxTable.ReadHmtxData(reader, hheaTable);
 
-            reader.Seek(tables["cmap"].offset);
+			reader.Seek(tables["cmap"].offset);
 			font.cmapData = CmapTable.ReadCmapData(reader);
 
 			ref var glyphEntry = ref tables["glyf"];
@@ -136,11 +135,11 @@ namespace Engine.Utils.Parsing.TTF
 			SpanList<GlyphVertex> verticeisBuffList = verticeisBuff.Memory.Span;
 
 			for (int i = 0; i < font.glyphData.Length; i++)
-            {
+			{
 				if (locations[i + 1] - locations[i] <= 0) // Empty glyph
 					continue;
 
-                reader.Seek(glyphEntry.offset + locations[i]);
+				reader.Seek(glyphEntry.offset + locations[i]);
 
 				ref GlyphData glyphData = ref font.glyphData[i];
 				ReadGlyphDescription(reader, ref glyphData.description);
@@ -188,7 +187,7 @@ namespace Engine.Utils.Parsing.TTF
 				ReadSimpleGlyph(reader, ref v, in offset.vertexOffset);
 			}
 		}
-		
+
 		static void ReadSimpleGlyphContours(DataReader reader, scoped ref Span<ushort> contours, ushort offset)
 		{
 			for (int i = 0; i < contours.Length; i++)
@@ -350,7 +349,7 @@ namespace Engine.Utils.Parsing.TTF
 				{
 					curr = prev + reader.ReadByte() * (flags[i].HasFlag(signOrSame) ? 1 : -1);
 				}
-				else if(flags[i].HasFlag(signOrSame))
+				else if (flags[i].HasFlag(signOrSame))
 				{
 					curr = prev;
 				}

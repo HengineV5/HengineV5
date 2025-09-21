@@ -16,24 +16,24 @@ namespace Engine
 	}
 
 	public struct DescriptorSetGroup<TDescriptorSet> where TDescriptorSet : struct, IUniformBufferObject<TDescriptorSet>
-    {
-        public Memory<DescriptorSet> descriptorSets;
+	{
+		public Memory<DescriptorSet> descriptorSets;
 		public uint size;
 
-        public DescriptorSetGroup(Memory<DescriptorSet> descriptorSets, uint size)
-        {
-            this.descriptorSets = descriptorSets;
+		public DescriptorSetGroup(Memory<DescriptorSet> descriptorSets, uint size)
+		{
+			this.descriptorSets = descriptorSets;
 			this.size = size;
-        }
+		}
 
 		public DescriptorSet GetDescriptorSet(uint frame, uint idx)
 		{
 			return descriptorSets.Span[(int)(frame * size + idx)];
 		}
 
-        public static DescriptorSetGroup<TDescriptorSet> Create(VkContext context, DescriptorPool pool, uint frames, uint size)
-        {
-            DescriptorSetGroup<TDescriptorSet> group = new DescriptorSetGroup<TDescriptorSet>(new DescriptorSet[frames * size], size);
+		public static DescriptorSetGroup<TDescriptorSet> Create(VkContext context, DescriptorPool pool, uint frames, uint size)
+		{
+			DescriptorSetGroup<TDescriptorSet> group = new DescriptorSetGroup<TDescriptorSet>(new DescriptorSet[frames * size], size);
 
 			if (DescriptorSetGroupCache<TDescriptorSet>.Initialized)
 				throw new Exception();
@@ -49,15 +49,15 @@ namespace Engine
 
 			DescriptorSetGroupCache<TDescriptorSet>.Initialized = true;
 
-            return group;
+			return group;
 		}
 	}
 
 	public struct DescriptorSetContainer : IDescriptorContainer<DescriptorSetContainer, PipelineContainerLayer>
 	{
-        DescriptorSetGroup<PbrShaderInput> pbrDescriptors;
-        DescriptorSetGroup<GuiShaderInput> guiDescriptors;
-        DescriptorSetGroup<GizmoShaderInput> gizmoDescriptors;
+		DescriptorSetGroup<PbrShaderInput> pbrDescriptors;
+		DescriptorSetGroup<GuiShaderInput> guiDescriptors;
+		DescriptorSetGroup<GizmoShaderInput> gizmoDescriptors;
 
 		public DescriptorSetContainer(DescriptorSetGroup<PbrShaderInput> pbrDescriptors, DescriptorSetGroup<GuiShaderInput> guiDescriptors, DescriptorSetGroup<GizmoShaderInput> gizmoDescriptors)
 		{
@@ -124,7 +124,7 @@ namespace Engine
 
 		public static ref TUbo GetUbo<TUbo>(uint frame, uint idx) where TUbo : struct, IUniformBufferObject<TUbo>
 		{
-            return ref DescriptorSetGroupCache<TUbo>.GetMapped(frame, idx);
+			return ref DescriptorSetGroupCache<TUbo>.GetMapped(frame, idx);
 		}
 	}
 }

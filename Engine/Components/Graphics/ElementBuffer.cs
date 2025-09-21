@@ -1,6 +1,4 @@
-﻿using EnCS.Attributes;
-
-namespace Engine.Components.Graphics
+﻿namespace Engine.Components.Graphics
 {
 	public partial struct ElementBuffer
 	{

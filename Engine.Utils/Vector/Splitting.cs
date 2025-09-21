@@ -67,7 +67,7 @@ namespace Engine.Utils
 			using var leftTriMem = MemoryPool<int>.Shared.Rent(1024);
 			SpanList<int> leftTris = new(leftTriMem.Memory.Span);
 
-			for (int i = 0; i < indicies.Length; i+=3)
+			for (int i = 0; i < indicies.Length; i += 3)
 			{
 				tris.Add(new Triangle(indicies[i], indicies[i + 1], indicies[i + 2]));
 			}
@@ -90,7 +90,7 @@ namespace Engine.Utils
 
 			Floodfill(line.t1, tris.AsSpan(), ref rightTris);
 
-            verticiesRight = new();
+			verticiesRight = new();
 			indiciesRight = new();
 			verticiesLeft = new();
 			indiciesLeft = new();

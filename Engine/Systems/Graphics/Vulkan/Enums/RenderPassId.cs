@@ -1,6 +1,6 @@
 ﻿namespace Engine
 {
-    public enum RenderPassId
+	public enum RenderPassId
 	{
 		Skybox,
 		Mesh,
