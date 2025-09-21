@@ -21,7 +21,7 @@ namespace Runner
 
 		static void InputHandler(HengineEcs ecs, IInputHandler inputHandler)
 		{
-			int end = 208;
+			int end = 28;
 
 			while (true)
 			{
@@ -145,62 +145,14 @@ namespace Runner
 
 		static void GetMesh(List<Vector2f> p)
 		{
-			p.Add(new(510f, -31f));
-			p.Add(new(290.5f, 29.5f));
-			p.Add(new(144.5f, 170f));
-			p.Add(new(73f, 407f));
-			p.Add(new(254f, 441f));
-			p.Add(new(275f, 296f));
-			p.Add(new(328f, 228f));
-			p.Add(new(404f, 132f));
-			p.Add(new(510f, 121f));
-			p.Add(new(510f, 694f));
-			p.Add(new(721f, 134f));
-			p.Add(new(789.5f, 212f));
-			p.Add(new(858f, 290f));
-			p.Add(new(858f, 405f));
-			p.Add(new(858f, 503f));
-			p.Add(new(809.5f, 562.5f));
-			p.Add(new(761f, 622f));
-			p.Add(new(616f, 669f));
-			p.Add(new(616f, 121f));
-			p.Add(new(721f, 134f));
-			p.Add(new(510f, 694f));
-			p.Add(new(283f, 780f));
-			p.Add(new(150.5f, 913f));
-			p.Add(new(104f, 1106f));
-			p.Add(new(240f, 1417f));
-			p.Add(new(510f, 1515f));
-			p.Add(new(510f, 1601f));
-			p.Add(new(616f, 1601f));
-			p.Add(new(616f, 1515f));
-			p.Add(new(865f, 1423f));
-			p.Add(new(1007f, 1154f));
-			p.Add(new(821f, 1126f));
-			p.Add(new(805f, 1232f));
-			p.Add(new(754.5f, 1288.5f));
-			p.Add(new(704f, 1345f));
-			p.Add(new(616f, 1363f));
-			p.Add(new(616f, 844f));
-			p.Add(new(405f, 1349f));
-			p.Add(new(344.5f, 1281f));
-			p.Add(new(284f, 1213f));
-			p.Add(new(284f, 1120f));
-			p.Add(new(284f, 1028f));
-			p.Add(new(335.5f, 966f));
-			p.Add(new(387f, 904f));
-			p.Add(new(510f, 867f));
-			p.Add(new(510f, 1365f));
-			p.Add(new(405f, 1349f));
-			p.Add(new(616f, 844f));
-			p.Add(new(796f, 791f));
-			p.Add(new(933f, 701f));
-			p.Add(new(1014.5f, 575f));
-			p.Add(new(1043f, 417f));
-			p.Add(new(924f, 105f));
-			p.Add(new(616f, -29f));
-			p.Add(new(616f, -211f));
-			p.Add(new(510f, -211f));
-		}
+            p.Add(new(770f, 970f));
+            p.Add(new(770f, 1119f));
+            p.Add(new(650f, 1119f));
+            p.Add(new(530f, 1119f));
+            p.Add(new(530f, 970f));
+            p.Add(new(439f, 970f));
+            p.Add(new(650f, 1213f));
+            p.Add(new(861f, 970f));
+        }
 	}
 }

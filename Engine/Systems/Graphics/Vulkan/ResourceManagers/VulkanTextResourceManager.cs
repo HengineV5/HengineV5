@@ -67,12 +67,12 @@ namespace Engine.Graphics
 
 		static Graphics.VkTextBuffer CreateFontBuffer(VkContext context, Font font)
 		{
-			using var vertBuff = MemoryPool<Vector2f>.Shared.Rent(10000);
-			using var uvBuff = MemoryPool<Vector3f>.Shared.Rent(10000);
-			using var indexBuff = MemoryPool<int>.Shared.Rent(100000);
+			using var vertBuff = MemoryPool<Vector2f>.Shared.Rent(1000000);
+			using var uvBuff = MemoryPool<Vector3f>.Shared.Rent(1000000);
+			using var indexBuff = MemoryPool<int>.Shared.Rent(1000000);
 
-			using var vertexOffsetBuff = MemoryPool<int>.Shared.Rent(10000);
-			using var indexOffsetBuff = MemoryPool<int>.Shared.Rent(10000);
+			using var vertexOffsetBuff = MemoryPool<int>.Shared.Rent(1000000);
+			using var indexOffsetBuff = MemoryPool<int>.Shared.Rent(1000000);
 
 			SpanList<Vector2f> verticies = vertBuff.Memory.Span;
 			SpanList<Vector3f> uvs = uvBuff.Memory.Span;
@@ -81,48 +81,42 @@ namespace Engine.Graphics
 			SpanList<int> vertexOffsets = vertexOffsetBuff.Memory.Span;
 			SpanList<int> indexOffsets = indexOffsetBuff.Memory.Span;
 
+			int failed = 0;
 			for (int i = 0; i < font.Glyphs.Length; i++)
 			{
 				ref readonly var glyph = ref font.Glyphs[i];
 
 				if (glyph.contours.Length < 3)
-					continue; // Skip empty glyphs.
+				{
+                    vertexOffsets.Add(verticies.Count);
+                    indexOffsets.Add(indicies.Count);
+                    continue; // Skip empty glyphs.
+				}
 
-				ProcessMesh(glyph, ref verticies, ref uvs, ref indicies, 0);
+				int countv = verticies.Count;
+				int counti = indicies.Count;
+                if (!TryProcessMesh(glyph, ref verticies, ref uvs, ref indicies, 0))
+				{
+					failed++;
+					//Console.WriteLine($"Mesh {i} failed");
+				}
 
 				vertexOffsets.Add(verticies.Count);
 				indexOffsets.Add(indicies.Count);
-
-				/*
-				try
-				{
-					ref readonly var glyph = ref font.Glyphs[i];
-
-					if (glyph.contours.Length < 3)
-						continue; // Skip empty glyphs.
-
-					ProcessMesh(glyph, ref verticies, ref uvs, ref indicies, 0);
-
-					vertexOffsets.Add(verticies.Count);
-					indexOffsets.Add(indicies.Count);
-				}
-				catch (Exception)
-				{
-					Console.WriteLine($"Idx: {i} failed with {font.Glyphs[i].contours.Length} contours");
-					break; // TODO: This is quite hacky
-				}
-				*/
 			}
+			//Console.WriteLine($"{failed}/{font.Glyphs.Length} failed");
 			/*
 			*/
 
 			/*
-			//ref readonly var glyph = ref font.Glyphs[373];
-			ref readonly var glyph = ref font.GetUnicodeGlyph('E');
-			ProcessMesh(glyph, ref verticies, ref uvs, ref indicies, 0);
+			ref readonly var glyph = ref font.Glyphs[2291];
+			//ref readonly var glyph = ref font.GetUnicodeGlyph('E');
+			bool s = TryProcessMesh(glyph, ref verticies, ref uvs, ref indicies, 0);
+			Console.WriteLine($"Success: {s}");
+			throw new Exception($"Yay!");
 			*/
 
-			using var vertMemory = MemoryPool<GuiVertex>.Shared.Rent(verticies.Count);
+            using var vertMemory = MemoryPool<GuiVertex>.Shared.Rent(verticies.Count);
 			using var indexMemory = MemoryPool<ushort>.Shared.Rent(indicies.Count);
 
 			Vector2f delta = new Vector2f(1000, 1000);
@@ -184,7 +178,7 @@ namespace Engine.Graphics
 					continue;
 				}
 
-				ProcessMesh(glyph, ref verticies, ref uvs, ref indicies, advanced);
+				TryProcessMesh(glyph, ref verticies, ref uvs, ref indicies, advanced);
 
 				advanced += toAdvance;
 			}
@@ -213,12 +207,13 @@ namespace Engine.Graphics
 			};
 		}
 
-		static void ProcessMesh(in GlyphData glyphData, scoped ref SpanList<Vector2f> verticeis, scoped ref SpanList<Vector3f> uvs, scoped ref SpanList<int> indicies, int advance)
+		static bool TryProcessMesh(in GlyphData glyphData, scoped ref SpanList<Vector2f> verticeis, scoped ref SpanList<Vector3f> uvs, scoped ref SpanList<int> indicies, int advance)
 		{
 			scoped Span<GlyphRange> glyphRanges = stackalloc GlyphRange[glyphData.contours.Length];
-			GetGlyphRanges(glyphData, glyphRanges);
+			if (!TryGetGlyphRanges(glyphData, glyphRanges))
+				return false;
 
-			using var buff = MemoryPool<Vector2f>.Shared.Rent(2048);
+            using var buff = MemoryPool<Vector2f>.Shared.Rent(2048);
 			var buffSpan = buff.Memory.Span;
 
 			for (int i = 0; i < glyphRanges.Length; i++)
@@ -238,7 +233,17 @@ namespace Engine.Graphics
 				CreateInnerMesh(innerMeshSpan, glyphRanges.Slice(i, glyphs + 1), glyphData.coords.Span, buffSpan);
 				CreateCurveMesh(curveMeshSpan, curvedUvsSpan, glyphRanges.Slice(i, glyphs + 1), glyphData.coords.Span);
 
-				Memory<int> newIndicies = Triangulation.Triangulate(innerMeshSpan);
+				if (!Triangulation.TryTriangulate(innerMeshSpan, out Memory<int> newIndicies))
+				{
+					verticeis.Free(innerMeshSpan.Length);
+					verticeis.Free(curveMeshSpan.Length);
+
+					uvs.Free(innerMeshLength);
+					uvs.Free(curvedUvsSpan.Length);
+
+					return false;
+				}
+
 				var indiciesSpan = indicies.Reserve(newIndicies.Length);
 				newIndicies.Span.CopyTo(indiciesSpan);
 
@@ -251,9 +256,11 @@ namespace Engine.Graphics
 
 				i += glyphs; // Skip to next non hole mesh.
 			}
+
+			return true;
 		}
 
-		static void GetGlyphRanges(in GlyphData glyphData, scoped Span<GlyphRange> glyphs)
+		static bool TryGetGlyphRanges(in GlyphData glyphData, scoped Span<GlyphRange> glyphs)
 		{
 			scoped Span<Vector2f> coords = stackalloc Vector2f[glyphData.coords.Length];
 			for (int i = 0; i < glyphData.coords.Length; i++)
@@ -261,18 +268,60 @@ namespace Engine.Graphics
 				coords[i] = new(glyphData.coords.Span[i].x, glyphData.coords.Span[i].y);
 			}
 
-			int prev = 0;
+			(Vector2f min, Vector2f max) bounds = new();
+
+            int prev = 0;
 			for (int i = 0; i < glyphData.contours.Length; i++)
 			{
 				int idx = glyphData.contours.Span[i] + 1;
 				int length = idx - prev;
 
-				var slice = coords.Slice(prev, length);
+				if (idx > glyphData.coords.Length)
+					return false;
+
+                var slice = coords.Slice(prev, length);
 				bool clockwise = VectorMath.IsClockwise(slice);
 
-				glyphs[i] = new GlyphRange(prev, length, clockwise);
+				if (clockwise)
+				{
+					bounds = GetBounds(slice);
+				}
+				else
+				{
+                    (Vector2f min, Vector2f max) = GetBounds(slice);
+
+                    // If contour is wound cc it is suppose to be a hole.
+                    // If the hole is outside the previous skin it has been wound wrong.
+					// Fix this
+                    if (!(min.x < bounds.max.x && min.y < bounds.max.y && max.x > bounds.min.x && max.y > bounds.min.y))
+					{
+                        glyphData.coords.Span.Slice(prev, length).Reverse();
+						clockwise = true;
+                    }
+                }
+
+                glyphs[i] = new GlyphRange(prev, length, clockwise);
 				prev = idx;
 			}
+
+			return true;
+		}
+
+		static (Vector2f min, Vector2f max) GetBounds(scoped ReadOnlySpan<Vector2f> verticeis)
+		{
+			Vector2f min = new(float.MaxValue, float.MaxValue);
+			Vector2f max = new(float.MinValue, float.MinValue);
+
+			for (int i = 0; i < verticeis.Length; i++)
+			{
+				min.x = MathF.Min(min.x, verticeis[i].x);
+				min.y = MathF.Min(min.y, verticeis[i].y);
+
+				max.x = MathF.Max(max.x, verticeis[i].x);
+				max.y = MathF.Max(max.y, verticeis[i].y);
+            }
+
+			return (min, max);
 		}
 
 		static int CreateInnerMesh(scoped Span<Vector2f> mesh, scoped ReadOnlySpan<GlyphRange> glyphRanges, scoped ReadOnlySpan<GlyphVertex> vertices, scoped Span<Vector2f> buff)

@@ -295,7 +295,7 @@ namespace Engine.Utils
 			for (int a = 0; a < tmpVerts.Length; a++)
 				tmpVerts[a] = verts[tmpIdx[a]];
 
-			var slicedIndicies = Triangulation.Triangulate(tmpVerts, margin: margin / 100f);
+			Triangulation.TryTriangulate(tmpVerts, out var slicedIndicies, margin: margin / 100f);
 			for (int a = 0; a < slicedIndicies.Length; a++)
 			{
 				idx.Add(tmpIdx[slicedIndicies.Span[a]]);
