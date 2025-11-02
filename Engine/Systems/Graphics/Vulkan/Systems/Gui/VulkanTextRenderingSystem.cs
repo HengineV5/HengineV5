@@ -71,36 +71,42 @@ namespace Engine
 
 		int f = 0;
 		int k = 0;
+		float de = 0;
 
 		void RenderMesh(VkTextBuffer textBuffer)
 		{
-			/*
 			f++;
-			if (f > 100)
+			if (f > 300)
 			{
 				f = 0;
 				k++;
 
-				if (k >= textBuffer.indexOffsets.Length)
+				if (k >= textBuffer.indexOffsets.Length - 1)
 					k = 0;
 			}
 
-			//var idx = textBuffer.font.GetUnicodeGlyphIndex('E');
-			int idx = k;
+			de += Random.Shared.NextSingle() / 100f;
+
+            string test = $"Hello, World! {de}";
+
+			/*
+			int idx = textBuffer.font.GetUnicodeGlyphIndex('7');
+			//int idx = k;
 			*/
 			//int idx = 373;
-			int idx = 5;
+			//int idx = 5;
 
-			var start = textBuffer.indexOffsets.Span[int.Max(0, idx - 1)];
-			if (idx == 0)
-				start = 0;
-
-			var stop = textBuffer.indexOffsets.Span[idx];
+			/*
+			var start = textBuffer.indexOffsets.Span[idx];
+			var stop = textBuffer.indexOffsets.Span[idx + 1];
 			var length = stop - start;
 
 			var vertStart = textBuffer.vertexOffsets.Span[idx];
+			//length = 36;
+			length = 30;
 
-			/*
+			Console.WriteLine($"Start: {start}, Length: {length}");
+
 			Console.WriteLine($"Idx: {idx}");
 			Console.WriteLine($"Length: {length}");
 			Console.WriteLine($"Start: {start}");
@@ -110,9 +116,27 @@ namespace Engine
 			//var length = textBuffer.indexOffsets.Span[0];
 			//Console.WriteLine(length);
 
-			//renderContext.pipeline.Render(this.context, PipelineContainerLayer.Gui, textBuffer.vertexBuffer, textBuffer.indexBuffer, textBuffer.indicies, updateIdx);
-			//renderContext.pipeline.Render(this.context, PipelineContainerLayer.Gui, textBuffer.vertexBuffer, textBuffer.indexBuffer, (uint)length, updateIdx);
-			renderContext.pipeline.Render(this.context, PipelineContainerLayer.Gui, textBuffer.vertexBuffer, textBuffer.indexBuffer, (uint)length, updateIdx, 0, (uint)start);
-		}
+			GuiPushConstant pushConstant = new();
+			for (int i = 0; i < test.Length; i++)
+			{
+                int idx = textBuffer.font.GetUnicodeGlyphIndex(test[i]);
+
+                var start = textBuffer.indexOffsets.Span[idx];
+                var stop = textBuffer.indexOffsets.Span[idx + 1];
+                var length = stop - start;
+
+                renderContext.pipeline.Render(this.context, PipelineContainerLayer.Gui, textBuffer.vertexBuffer, textBuffer.indexBuffer, (uint)length, updateIdx, 0, (uint)start);
+
+				pushConstant.offset += new Vector2f(textBuffer.advances.Span[idx], 0);
+				renderContext.pipeline.SetPushConstant(this.context, PipelineContainerLayer.Gui, ref pushConstant);
+            }
+
+			pushConstant.offset = new Vector2f(0, 0);
+            renderContext.pipeline.SetPushConstant(this.context, PipelineContainerLayer.Gui, ref pushConstant);
+
+            //renderContext.pipeline.Render(this.context, PipelineContainerLayer.Gui, textBuffer.vertexBuffer, textBuffer.indexBuffer, textBuffer.indicies, updateIdx);
+            //renderContext.pipeline.Render(this.context, PipelineContainerLayer.Gui, textBuffer.vertexBuffer, textBuffer.indexBuffer, (uint)length, updateIdx);
+            //renderContext.pipeline.Render(this.context, PipelineContainerLayer.Gui, textBuffer.vertexBuffer, textBuffer.indexBuffer, (uint)length, updateIdx, 0, (uint)start);
+        }
 	}
 }

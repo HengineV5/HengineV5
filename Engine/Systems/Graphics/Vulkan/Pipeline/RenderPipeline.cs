@@ -103,6 +103,11 @@ namespace Engine
 			context.vk.CmdDrawIndexed(renderTarget.frame.commandBuffer, indicies, 1, indexOffset, vertexOffset, 0);
 		}
 
+		public unsafe void SetPushConstant<T>(VkContext context, in TPipelineEnum pipeline, ref T pushConstant) where T : unmanaged
+		{
+			context.vk.CmdPushConstants(renderTarget.frame.commandBuffer, TPipelineContainer.GetLayout(pipeline, ref pipelines), ShaderStageFlags.VertexBit, 0, (uint)sizeof(T), ref pushConstant);
+        }
+
 		public void EndRenderPass(VkContext context)
 		{
 			FinishRender(context, renderTarget.frame.commandBuffer);

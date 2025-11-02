@@ -139,7 +139,7 @@ namespace Runner
 			engine.argIWindow.FramebufferResize += x =>
 			{
 				Main mainWorld = ecs.GetMain();
-				var cam = mainWorld.Get(camRef);
+				var cam = mainWorld.Get(in camRef);
 
 				Camera.Comp camera = new Camera.Comp
 				{

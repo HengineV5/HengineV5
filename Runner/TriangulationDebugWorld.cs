@@ -2,6 +2,7 @@
 using Engine;
 using Engine.Components;
 using Engine.Utils;
+using Engine.Utils.Parsing.TTF;
 using Silk.NET.Input;
 using System.Runtime.InteropServices;
 using UtilLib.Span;
@@ -145,14 +146,12 @@ namespace Runner
 
 		static void GetMesh(List<Vector2f> p)
 		{
-            p.Add(new(770f, 970f));
-            p.Add(new(770f, 1119f));
-            p.Add(new(650f, 1119f));
-            p.Add(new(530f, 1119f));
-            p.Add(new(530f, 970f));
-            p.Add(new(439f, 970f));
-            p.Add(new(650f, 1213f));
-            p.Add(new(861f, 970f));
+            var font = TtfLoader.LoadFont("Fonts/arial.ttf");
+            var b = font.Glyphs[font.GetUnicodeGlyphIndex('7')];
+			for (int i = 0; i < b.coords.Length; i++)
+			{
+				p.Add(new(b.coords.Span[i].x, b.coords.Span[i].y));
+            }
         }
 	}
 }

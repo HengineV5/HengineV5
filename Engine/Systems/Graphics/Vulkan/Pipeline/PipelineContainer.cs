@@ -3,13 +3,13 @@ using Silk.NET.Vulkan;
 
 namespace Engine
 {
-	public struct PipelineContainer : IPipelineContainer<PipelineContainer, DefaultPipelineInfo, PipelineContainerLayer>
-	{
-		struct PushConstant
-		{
-			public Matrix4x4f model;
-		}
+    public struct GuiPushConstant
+    {
+        public Vector2f offset;
+    }
 
+    public struct PipelineContainer : IPipelineContainer<PipelineContainer, DefaultPipelineInfo, PipelineContainerLayer>
+	{
 		public RenderLayer skyboxLayer;
 		public RenderLayer pbrLayer;
 		public RenderLayer wireframeLayer;
@@ -119,15 +119,16 @@ namespace Engine
 
 			PushConstantRange pushConstant = new();
 			pushConstant.Offset = 0;
-			pushConstant.Size = (uint)sizeof(PushConstant);
+			pushConstant.Size = (uint)sizeof(GuiPushConstant);
 			pushConstant.StageFlags = ShaderStageFlags.VertexBit;
 
+			// TODO: Make push constant builder
 			PipelineLayoutCreateInfo pipelineLayoutCreateInfo = new();
 			pipelineLayoutCreateInfo.SType = StructureType.PipelineLayoutCreateInfo;
 			pipelineLayoutCreateInfo.SetLayoutCount = 1;
 			pipelineLayoutCreateInfo.PSetLayouts = &descriptorSetLayout;
-			//pipelineLayoutCreateInfo.PushConstantRangeCount = 1;
-			//pipelineLayoutCreateInfo.PPushConstantRanges = &pushConstant;
+			pipelineLayoutCreateInfo.PushConstantRangeCount = 1;
+			pipelineLayoutCreateInfo.PPushConstantRanges = &pushConstant;
 
 			var result = context.vk.CreatePipelineLayout(context.device, pipelineLayoutCreateInfo, null, out PipelineLayout pipelineLayout);
 			if (result != Result.Success)

@@ -18,10 +18,15 @@ namespace Engine.Utils.Parsing.TTF
 	{
 		public ReadOnlySpan<GlyphData> Glyphs => glyphData;
 
-		GlyphData[] glyphData;
+		public ReadOnlySpan<LongHorMetric> HorizontalMetrics => hmtx.hMetrics;
+
+		public ref readonly HeadTable Head => ref headData;
+
+        GlyphData[] glyphData;
 
 		HmtxTable hmtx;
 		CmapTable cmapData;
+		HeadTable headData;
 
 		// https://github.com/LayoutFarm/Typography/blob/master/Typography.OpenFont/Tables/CharacterMap.cs
 		public ref readonly GlyphData GetUnicodeGlyph(ushort unicode)
@@ -98,9 +103,9 @@ namespace Engine.Utils.Parsing.TTF
 			Font font = new();
 
 			reader.Seek(tables["head"].offset);
-			var headData = HeadTable.ReadHeadData(reader);
+			font.headData = HeadTable.ReadHeadData(reader);
 
-			bool isLongVersion = headData.indexToLocFormat == 1;
+			bool isLongVersion = font.headData.indexToLocFormat == 1;
 
 			reader.Seek(tables["maxp"].offset);
 			var maxpData = MaxpTable.ReadMaxpData(reader);

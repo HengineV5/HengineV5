@@ -18,8 +18,13 @@ layout(binding = 0) uniform UniformBufferObject {
     vec4 size;
 } u_Ubo;
 
+layout(push_constant) uniform PushConstant {
+    vec2 offset;
+} pushConstant;
+
 void main() {
     vec2 relativePosition = vec2(position.x * u_Ubo.size.x + u_Ubo.position.x + position.y, position.z * u_Ubo.size.z + u_Ubo.position.z + position.w);
+    relativePosition += pushConstant.offset;
 
     vec2 guiPos = relativePosition / u_Ubo.screenSize + vec2(position.x * u_Ubo.size.y, position.z * u_Ubo.size.w);
 

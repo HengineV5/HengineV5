@@ -195,7 +195,7 @@ namespace Engine.Utils
 
                 // TODO: Find more effeicent method to handle colinear points
                 // Happens when hole has vertex on edge of mesh
-                if (MathF.Abs((Vector2f.Length(curr - prev) + Vector2f.Length(next - prev)) - Vector2f.Length(next - curr)) < 0.5f)
+                if (MathF.Abs((Vector2f.Length(curr - prev) + Vector2f.Length(next - prev)) - Vector2f.Length(next - curr)) < 0.25f)
                 {
                     ear = new Ear()
                     {

@@ -2,7 +2,7 @@
 
 namespace Engine.Utils.Parsing.TTF
 {
-	struct HeadTable
+	public struct HeadTable
 	{
 		public float version;
 		public float fontRevision;

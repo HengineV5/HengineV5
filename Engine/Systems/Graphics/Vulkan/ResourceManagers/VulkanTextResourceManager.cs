@@ -26,6 +26,7 @@ namespace Engine.Graphics
 		public Font font;
 		public Memory<int> vertexOffsets;
 		public Memory<int> indexOffsets;
+		public Memory<float> advances;
 	}
 
 	[ResourceManager]
@@ -82,30 +83,32 @@ namespace Engine.Graphics
 			SpanList<int> indexOffsets = indexOffsetBuff.Memory.Span;
 
 			int failed = 0;
+			int skipped = 0;
 			for (int i = 0; i < font.Glyphs.Length; i++)
 			{
 				ref readonly var glyph = ref font.Glyphs[i];
 
-				if (glyph.contours.Length < 3)
+				if (glyph.coords.Length < 3)
 				{
                     vertexOffsets.Add(verticies.Count);
                     indexOffsets.Add(indicies.Count);
+                    //Console.WriteLine($"Mesh {i} skipped");
+					skipped++;
                     continue; // Skip empty glyphs.
 				}
 
-				int countv = verticies.Count;
-				int counti = indicies.Count;
+                vertexOffsets.Add(verticies.Count);
+                indexOffsets.Add(indicies.Count);
+
                 if (!TryProcessMesh(glyph, ref verticies, ref uvs, ref indicies, 0))
 				{
 					failed++;
 					//Console.WriteLine($"Mesh {i} failed");
 				}
-
-				vertexOffsets.Add(verticies.Count);
-				indexOffsets.Add(indicies.Count);
 			}
-			//Console.WriteLine($"{failed}/{font.Glyphs.Length} failed");
 			/*
+			Console.WriteLine($"{failed}/{font.Glyphs.Length} failed");
+			Console.WriteLine($"{skipped}/{font.Glyphs.Length} skipped");
 			*/
 
 			/*
@@ -120,8 +123,19 @@ namespace Engine.Graphics
 			using var indexMemory = MemoryPool<ushort>.Shared.Rent(indicies.Count);
 
 			Vector2f delta = new Vector2f(1000, 1000);
-			for (int i = 0; i < verticies.Count; i++)
-				vertMemory.Memory.Span[i] = new GuiVertex(new Vector4f(verticies[i].x / delta.x, 0, 1 - verticies[i].y / delta.y, 0), new(uvs[i].x, uvs[i].y), uvs[i].z == 1);
+			delta *= 3;
+
+			//delta.x = font.Head.xMax;
+			//delta.y = font.Head.yMax;
+
+			float scaling = (18f) / (72f * font.Head.unitsPerEm);
+			//float scaling = (18f * 72f) / (72f * 10 * font.Head.unitsPerEm);
+			//float scaling = 1f / font.Head.unitsPerEm;
+			//scaling *= 0.5f;
+
+            for (int i = 0; i < verticies.Count; i++)
+				//vertMemory.Memory.Span[i] = new GuiVertex(new Vector4f(verticies[i].x / delta.x, 0, 1 - verticies[i].y / delta.y, 0), new(uvs[i].x, uvs[i].y), uvs[i].z == 1);
+				vertMemory.Memory.Span[i] = new GuiVertex(new Vector4f(verticies[i].x, 0, -verticies[i].y, 0) * scaling, new(uvs[i].x, uvs[i].y), uvs[i].z == 1);
 
 			for (int i = 0; i < indicies.Count; i++)
 				indexMemory.Memory.Span[i] = (ushort)indicies[i];
@@ -134,10 +148,13 @@ namespace Engine.Graphics
 			var iOffsets = new int[indexOffsets.Count];
 			indexOffsets.AsSpan().CopyTo(iOffsets);
 
-			Console.WriteLine($"Font Vertex Buffer: {meshBuffer.vertexBuffer}");
-			Console.WriteLine($"Font Index Buffer: {meshBuffer.indexBuffer}");
+			//scaling *= 2f;
 
-			return new()
+			var advances = new float[font.Glyphs.Length];
+			for (int i = 0; i < font.Glyphs.Length; i++)
+				advances[i] = font.HorizontalMetrics[i].advanceWidth * scaling * 100f;
+
+            return new()
 			{
 				vertexBuffer = meshBuffer.vertexBuffer,
 				vertexBufferMemory = meshBuffer.vertexBufferMemory,
@@ -148,7 +165,8 @@ namespace Engine.Graphics
 				font = font,
 				vertexOffsets = vOffsets,
 				indexOffsets = iOffsets,
-			};
+				advances = advances,
+            };
 		}
 
 		static Graphics.VkTextBuffer CreateTextBuffer(VkContext context, TranslationManager translationManager, in Graphics.GuiText resource)
