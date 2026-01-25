@@ -81,11 +81,11 @@
     <PackageReference Include="Henke.MathLib" Version="0.0.26" />
   </ItemGroup>
   <ItemGroup Condition="'$(UseLocalProjects)' == 'true'">
-    <ProjectReference Include="..\..\EnCS\EnCS\EnCS.csproj" />
-    <ProjectReference Include="..\..\EnCS\EnCS.Generator\EnCS.Generator.csproj" />
-    <Analyzer Include="..\..\EnCS\EnCS.Generator\bin\Debug\netstandard2.0\EnCS.Generator.dll" />
-    <ProjectReference Include="..\..\ImageLib\ImageLib\ImageLib.csproj" />
-    <ProjectReference Include="..\..\MathLib\MathLib\MathLib.csproj" />
+	<ProjectReference Include="..\..\EnCS\EnCS\EnCS.csproj" />
+    <ProjectReference Include="..\..\EnCS\EnCS.Generator\EnCS.Generator.csproj"/>
+    <Analyzer Include="..\..\EnCS\EnCS.Generator\bin\$(Configuration)\netstandard2.0\EnCS.Generator.dll"/>
+    <ProjectReference Include="..\..\ImageLib\ImageLib\ImageLib.csproj"/>
+    <ProjectReference Include="..\..\MathLib\MathLib\MathLib.csproj"/>
   </ItemGroup>
 
 

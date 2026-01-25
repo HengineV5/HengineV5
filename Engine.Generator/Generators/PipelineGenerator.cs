@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using TemplateGenerator;
+using TemplateGenerator.Helpers;
 
 namespace Engine.Generator
 {

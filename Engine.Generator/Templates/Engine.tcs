@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using Engine;
+using Microsoft.Extensions.Logging;
 
 // Source file usings
 $usings~>using $usingName;<~~>\n<~
@@ -103,7 +104,7 @@ namespace $namespace
 		}
 
 		$worlds~>$worldPipelines~>void |$worldSafeName|_|$pipelineName|(ref ScheduleContext context)
-			=> _|$pipelineName|.Run<|$worldName|>(ref context.engineContext, ecs$pipelineContextArguments~>, ref context.arg$argType<~);
+			=> _|$pipelineName|.Run<|$ecsName|.|$worldName|>(ref context.engineContext, ecs$pipelineContextArguments~>, ref context.arg$argType<~);
 		<~~>\n		<~<~~>\n		<~
 	}
 }

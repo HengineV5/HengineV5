@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using TemplateGenerator;
+using TemplateGenerator.Helpers;
 
 namespace Engine.Generator
 {
@@ -216,7 +217,8 @@ namespace Engine.Generator
 
 				worlds.Add(new World()
 				{
-					name = worldName.ToString(),
+					name = worldName.GetName(),
+					nameSpace = pipeline.GetNamespace(),
 					pipelines = new(worldPipelines.ToArray())
 				});
 			}
@@ -286,8 +288,8 @@ namespace Engine.Generator
 					return symbol.Name == name[1];
 				}
 
-				var foundTypeSymbol = GeneratorExtensions.GetTypeSymbols(semanticModel.Compilation, FindType).Single();
-				var foundSymbol = GeneratorExtensions.GetMemebers(foundTypeSymbol, FindMember).Single();
+				var foundTypeSymbol = GeneratorSymbolHelpers.GetTypeSymbols(semanticModel.Compilation, FindType).Single();
+				var foundSymbol = GeneratorSymbolHelpers.GetMembers(foundTypeSymbol, FindMember).Single();
 				if (foundSymbol is not IMethodSymbol methodSymbol)
 					throw new Exception($"Type is not {typeof(IMethodSymbol).Name}, type is {foundSymbol.GetType().Name}");
 
@@ -372,7 +374,7 @@ namespace Engine.Generator
 					return symbol.Name == name;
 				}
 
-				var foundSymbol = GeneratorExtensions.GetTypeSymbols(semanticModel.Compilation, FindType).FirstOrDefault();
+				var foundSymbol = GeneratorSymbolHelpers.GetTypeSymbols(semanticModel.Compilation, FindType).FirstOrDefault();
 				if (foundSymbol is not INamedTypeSymbol typeSymbol)
 					continue;
 
@@ -510,6 +512,7 @@ namespace Engine.Generator
 	struct World : IEquatable<World>
 	{
 		public string name;
+		public string nameSpace;
 		public EquatableArray<Pipeline> pipelines;
 
 		public World()
@@ -523,6 +526,7 @@ namespace Engine.Generator
 		{
 			var model = new Model<ReturnType>();
 			model.Set("worldName".AsSpan(), Parameter.Create(name));
+			model.Set("worldNameSpace".AsSpan(), Parameter.Create(nameSpace));
 			model.Set("worldSafeName".AsSpan(), Parameter.Create(name.Replace('.', '_')));
 			model.Set("worldPipelines".AsSpan(), Parameter.CreateEnum<IModel<ReturnType>>(pipelines.Select(x => x.GetModel())));
 

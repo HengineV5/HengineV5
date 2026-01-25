@@ -27,11 +27,11 @@ namespace $namespace
 			}
 
 			public void Run<TWorldInterface>(ref EngineContext argEngineContext, $ecsName ecs$pipelineContextArguments~>, ref $argType arg$argType<~)
-				where TWorldInterface : $pipelineSystems~>IWorld<$ecsName, |$systemName|$systemContextArgs~>, $argType<~><~~>, <~, allows ref struct
+				where TWorldInterface : $pipelineSystems~>IWorld<$systemName, |$ecsName|$systemContextArgs~>, $argType<~><~~>, <~, allows ref struct
 			{
 				$pipelineSystems|$hasPreRun == true|~>_|$systemName|.PreRun();<~~>\n				<~
 
-				$pipelineSystems~>TWorldInterface.Loop(ecs, _|$systemName|$systemContextArgs~>, ref $argName<~);<~~>\n				<~
+				$pipelineSystems~>TWorldInterface.Loop(_|$systemName|, ecs$systemContextArgs~>, ref $argName<~);<~~>\n				<~
 
 				$pipelineSystems|$hasPostRun == true|~>_|$systemName|.PostRun();<~~>\n				<~
 

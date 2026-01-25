@@ -3,6 +3,7 @@ using EnCS.Attributes;
 using Engine.Components;
 using Engine.Graphics;
 using Silk.NET.Windowing;
+using UtilLib.Memory;
 
 namespace Engine
 {
@@ -12,7 +13,7 @@ namespace Engine
 	[UsingResource<VulkanMaterialResourceManager>]
 	public partial class VulkanPbrRenderSystem
 	{
-		private static FixedArray4<Light> defaultLights = new FixedArray4<Light>();
+		private static FixedBuffer4<Light> defaultLights = new FixedBuffer4<Light>();
 
 		private static readonly Light defaultLight = new Light
 		{

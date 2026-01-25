@@ -2,6 +2,7 @@
 using Engine.Graphics;
 using Engine.Utils;
 using Silk.NET.Vulkan;
+using UtilLib.Memory;
 using Buffer = Silk.NET.Vulkan.Buffer;
 
 namespace Engine
@@ -10,7 +11,7 @@ namespace Engine
 	{
 		public MappedMemory<MeshUniformBufferObject> ubo;
 		public MappedMemory<PbrMaterialInfo> material;
-		public FixedArray4<MappedMemory<Light>> lights;
+		public FixedBuffer4<MappedMemory<Light>> lights;
 
 		public unsafe static DescriptorSet Create(VkContext context, DescriptorPool descriptorPool)
 		{

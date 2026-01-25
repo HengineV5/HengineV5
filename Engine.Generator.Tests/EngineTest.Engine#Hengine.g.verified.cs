@@ -85,9 +85,9 @@ namespace Test
 			ecs = new HengineEcs(_MeshResourceManager);
 
 			jobs = new Engine.Scheduling.ScheduledAction<ScheduleContext>[] {
-				Ecs_Main_GraphicsPipeline,
-				Ecs_Main_PhysicsPipeline,
-				Ecs_World2_GraphicsPipeline,
+				Main_GraphicsPipeline,
+				Main_PhysicsPipeline,
+				World2_GraphicsPipeline,
 			};
 
 			initialized = true;
@@ -123,14 +123,14 @@ namespace Test
 			}
 		}
 
-		void Ecs_Main_GraphicsPipeline(ref ScheduleContext context)
-			=> _GraphicsPipeline.Run<Ecs.Main>(ref context.engineContext, ecs, ref context.argTestContext);
+		void Main_GraphicsPipeline(ref ScheduleContext context)
+			=> _GraphicsPipeline.Run<HengineEcs.Main>(ref context.engineContext, ecs, ref context.argTestContext);
 		
-		void Ecs_Main_PhysicsPipeline(ref ScheduleContext context)
-			=> _PhysicsPipeline.Run<Ecs.Main>(ref context.engineContext, ecs);
+		void Main_PhysicsPipeline(ref ScheduleContext context)
+			=> _PhysicsPipeline.Run<HengineEcs.Main>(ref context.engineContext, ecs);
 		
-		void Ecs_World2_GraphicsPipeline(ref ScheduleContext context)
-			=> _GraphicsPipeline.Run<Ecs.World2>(ref context.engineContext, ecs, ref context.argTestContext);
+		void World2_GraphicsPipeline(ref ScheduleContext context)
+			=> _GraphicsPipeline.Run<HengineEcs.World2>(ref context.engineContext, ecs, ref context.argTestContext);
 		
 	}
 }

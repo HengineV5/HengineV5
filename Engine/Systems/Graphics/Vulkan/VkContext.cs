@@ -6,6 +6,7 @@ using Silk.NET.Vulkan;
 using Silk.NET.Vulkan.Extensions.KHR;
 using Silk.NET.Windowing;
 using System.Runtime.InteropServices;
+using UtilLib.Memory;
 using Image = Silk.NET.Vulkan.Image;
 
 namespace Engine
@@ -15,7 +16,7 @@ namespace Engine
 		VkContext context;
 
 		public CommandPool commandPool;
-		public FixedArray16<Sampler> samplers;
+		public FixedBuffer16<Sampler> samplers;
 
 		public RenderPipeline<SwapchainRenderTargetManager, DefaultRenderPassInfo, DefaultPipelineInfo, DescriptorSetContainer, PipelineContainer, PipelineContainerLayer, RenderPassContainer, RenderPassId> pipeline;
 		//public RenderPipeline<TextureRenderTargetManager<PbrDescriptorSet, Rgba32>, DefaultRenderPassInfo, DefaultPipelineInfo, PbrDescriptorSet, PbrPipelineContainer, PbrPipelineLayer, RenderPassContainer, PbrRenderPassId> texturePipeline;
@@ -39,7 +40,7 @@ namespace Engine
 
 		public void Setup()
 		{
-			samplers = new FixedArray16<Sampler>();
+			samplers = new FixedBuffer16<Sampler>();
 			for (int i = 0; i < 16; i++)
 			{
 				samplers[i] = VulkanHelper.CreateSampler(context, 0);

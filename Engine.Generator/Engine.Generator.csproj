@@ -30,8 +30,12 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<EmbeddedResource Include="Templates\Engine.tcs" />
-		<EmbeddedResource Include="Templates\Pipeline.tcs" />
+		<EmbeddedResource Include="Templates\Engine.tcs">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</EmbeddedResource>
+		<EmbeddedResource Include="Templates\Pipeline.tcs">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</EmbeddedResource>
 	</ItemGroup>
 
 	<ItemGroup>
@@ -39,23 +43,45 @@
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
 		</PackageReference>
-		<PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.4" Pack="true"
-			PrivateAssets="all" />
-		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.6.0" Pack="true"
-			PrivateAssets="all" />
-		<PackageReference Include="Henke.TemplateGenerator" Version="1.0.79" Pack="true"
-			GeneratePathProperty="true" />
+		<PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.4" Pack="true" PrivateAssets="all" />
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.6.0" Pack="true" PrivateAssets="all" />
 		<None Include="README.md" Pack="true" PackagePath="\" />
+	</ItemGroup>
+	
+	<!-- 
+	For developing locally, by cloning all repos and putting them in the same directory:
+		henke/
+			HengineV5/
+      ImageLib/
+      MathLib/
+      UtilLib/
+      EnCS/
+	This setting allows you to use local projects instead of NuGet packages.  
+
+	NOTE:
+		Visual Studio will refuse to resolve include paths outside current directory.
+		As such, whenever changing TO this profile, you must run the following command
+		in PowerShell/terminal:
+			`dotnet restore -p:UseLocalProjects=true`
+		It is persistent accross clean, rebuild, relaunching Visual Studio, etc. Only
+		when changing to this profile.
+	-->
+	<PropertyGroup Condition="'$(Configuration)'=='Debug (local-deps)' Or '$(Configuration)'=='Release (local-deps)'">
+		<UseLocalProjects>true</UseLocalProjects>
+	</PropertyGroup>
+	<ItemGroup Condition="'$(UseLocalProjects)' != 'true'">
+		<PackageReference Include="Henke.TemplateGenerator" Version="1.0.79" Pack="true" GeneratePathProperty="true" />
+	</ItemGroup>
+	<ItemGroup Condition="'$(UseLocalProjects)' == 'true'">
+		<ProjectReference Include="..\..\TemplateGenerator\TemplateGenerator\TemplateGenerator.csproj" />
 	</ItemGroup>
 
 	<Target Name="GetDependencyTargetPaths" AfterTargets="ResolvePackageDependenciesForBuild">
 		<ItemGroup>
 			<!-- This ensures the library will be packaged as a source generator when we use `dotnet
 			pack` -->
-			<None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true"
-				PackagePath="analyzers/dotnet/cs" Visible="false" />
-			<None Include="$(PkgTemplateGen)\lib\netstandard2.0\*.dll" Pack="true"
-				PackagePath="analyzers/dotnet/cs" Visible="false" />
+			<None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+			<None Include="$(PkgTemplateGen)\lib\netstandard2.0\*.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
 		</ItemGroup>
 	</Target>
 
