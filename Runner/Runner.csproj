@@ -17,8 +17,8 @@
 
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.HighPerformance" Version="8.2.2" />
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.3" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.3" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.2" />
     <PackageReference Include="vertical-spectreconsolelogger" Version="0.10.1-dev.20241201.35" />
   </ItemGroup>
 
@@ -40,8 +40,7 @@
 		It is persistent accross clean, rebuild, relaunching Visual Studio, etc. Only
 		when changing to this profile.
 	-->
-  <PropertyGroup
-    Condition="'$(Configuration)'=='Debug (local-deps)' Or '$(Configuration)'=='Release (local-deps)'">
+  <PropertyGroup Condition="'$(Configuration)'=='Debug (local-deps)' Or '$(Configuration)'=='Release (local-deps)'">
     <UseLocalProjects>true</UseLocalProjects>
   </PropertyGroup>
   <ItemGroup Condition="'$(UseLocalProjects)' != 'true'">
@@ -238,8 +237,7 @@
     <None Update="Models\Sponza\textures\arch_stone_wall_01_Roughness.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None
-      Update="Models\Sponza\textures\arch_stone_wall_01_Roughnessarch_stone_wall_01_Metalness.png">
+    <None Update="Models\Sponza\textures\arch_stone_wall_01_Roughnessarch_stone_wall_01_Metalness.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Models\Sponza\textures\brickwall_01_BaseColor.png">
@@ -284,8 +282,7 @@
     <None Update="Models\Sponza\textures\ceiling_plaster_01_Roughness.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None
-      Update="Models\Sponza\textures\ceiling_plaster_01_Roughnessceiling_plaster_01_Metalness.png">
+    <None Update="Models\Sponza\textures\ceiling_plaster_01_Roughnessceiling_plaster_01_Metalness.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Models\Sponza\textures\ceiling_plaster_02_BaseColor.png">
@@ -300,8 +297,7 @@
     <None Update="Models\Sponza\textures\ceiling_plaster_02_Roughness.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None
-      Update="Models\Sponza\textures\ceiling_plaster_02_Roughnessceiling_plaster_01_Metalness.png">
+    <None Update="Models\Sponza\textures\ceiling_plaster_02_Roughnessceiling_plaster_01_Metalness.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Models\Sponza\textures\col_1stfloor_BaseColor.png">
@@ -331,8 +327,7 @@
     <None Update="Models\Sponza\textures\col_brickwall_01_Roughness.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None
-      Update="Models\Sponza\textures\col_brickwall_01_Roughnesscolumn_brickwall_01_Metalness.png">
+    <None Update="Models\Sponza\textures\col_brickwall_01_Roughnesscolumn_brickwall_01_Metalness.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Models\Sponza\textures\col_brickwall_01_Roughnesscol_brickwall_01_Metalness.png">
@@ -365,8 +360,7 @@
     <None Update="Models\Sponza\textures\col_head_2ndfloor_02_Roughness.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None
-      Update="Models\Sponza\textures\col_head_2ndfloor_02_Roughnesscol_head_2ndfloor_02_Metalness.png">
+    <None Update="Models\Sponza\textures\col_head_2ndfloor_02_Roughnesscol_head_2ndfloor_02_Metalness.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Models\Sponza\textures\col_head_2ndfloor_03_BaseColor.png">
@@ -381,8 +375,7 @@
     <None Update="Models\Sponza\textures\col_head_2ndfloor_03_Roughness.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None
-      Update="Models\Sponza\textures\col_head_2ndfloor_03_Roughnesscol_head_2ndfloor_03_Metalness.png">
+    <None Update="Models\Sponza\textures\col_head_2ndfloor_03_Roughnesscol_head_2ndfloor_03_Metalness.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Models\Sponza\textures\curtain_fabric_blue_BaseColor.png">
@@ -412,12 +405,10 @@
     <None Update="Models\Sponza\textures\dirt_decal_01_alpha.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None
-      Update="Models\Sponza\textures\dirt_decal_01_dirt_decal_01_mask_alpha_dirt_decal_Opacity.png">
+    <None Update="Models\Sponza\textures\dirt_decal_01_dirt_decal_01_mask_alpha_dirt_decal_Opacity.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None
-      Update="Models\Sponza\textures\dirt_decal_01_dirt_decal_01_mask_gltf_alpha_dirt_decal_Opacity.png">
+    <None Update="Models\Sponza\textures\dirt_decal_01_dirt_decal_01_mask_gltf_alpha_dirt_decal_Opacity.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Models\Sponza\textures\dirt_decal_01_invmask.png">
@@ -444,8 +435,7 @@
     <None Update="Models\Sponza\textures\door_stoneframe_01_Roughness.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None
-      Update="Models\Sponza\textures\door_stoneframe_01_Roughnessdoor_stoneframe_01_Metalness.png">
+    <None Update="Models\Sponza\textures\door_stoneframe_01_Roughnessdoor_stoneframe_01_Metalness.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Models\Sponza\textures\door_stoneframe_02_BaseColor.png">
@@ -460,8 +450,7 @@
     <None Update="Models\Sponza\textures\door_stoneframe_02_Roughness.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None
-      Update="Models\Sponza\textures\door_stoneframe_02_Roughnessdoor_stoneframe_02_Metalness.png">
+    <None Update="Models\Sponza\textures\door_stoneframe_02_Roughnessdoor_stoneframe_02_Metalness.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Models\Sponza\textures\floor_tiles_01_BaseColor.png">
@@ -554,8 +543,7 @@
     <None Update="Models\Sponza\textures\stones_2ndfloor_01_Roughness.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None
-      Update="Models\Sponza\textures\stones_2ndfloor_01_Roughnessstones_2ndfloor_01_Metalness.png">
+    <None Update="Models\Sponza\textures\stones_2ndfloor_01_Roughnessstones_2ndfloor_01_Metalness.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Models\Sponza\textures\stone_01_tile_BaseColor.png">

@@ -3,6 +3,7 @@ using Engine.Parsing;
 using Engine.Utils.Parsing.GLTF;
 using ImageLib;
 using Silk.NET.OpenGL;
+using UtilLib.Logging;
 
 namespace Engine.Graphics
 {
@@ -20,6 +21,12 @@ namespace Engine.Graphics
 				data = Image.Load<Rgba32>(filePath)
 			};
 		}
+
+		public static ETexture LoadImage(string name, string filePath, ITimeLogger timeLogger)
+		{
+			using var scope = timeLogger.BeginScope($"ETexture: {name}");
+			return LoadImage(name, filePath);
+		}
 	}
 
 	public struct ETextureHdr
@@ -35,6 +42,12 @@ namespace Engine.Graphics
 				name = name,
 				data = Image.Load<Rgba64>(filePath)
 			};
+		}
+
+		public static ETextureHdr LoadImage(string name, string filePath, ITimeLogger timeLogger)
+		{
+			using var scope = timeLogger.BeginScope($"ETextureHdr: {name}");
+			return LoadImage(name, filePath);
 		}
 	}
 
@@ -61,6 +74,12 @@ namespace Engine.Graphics
 				top = Image.Load<Rgba64>(topPath),
 				bottom = Image.Load<Rgba64>(bottomPath)
 			};
+		}
+
+		public static ECubemapHdr LoadImage(string name, string frontPath, string backPath, string leftPath, string rightPath, string topPath, string bottomPath, ITimeLogger timeLogger)
+		{
+			using var scope = timeLogger.BeginScope($"ECubemapHdr: {name}");
+			return LoadImage(name, frontPath, backPath, leftPath, rightPath, topPath, bottomPath);
 		}
 	}
 
@@ -128,6 +147,12 @@ namespace Engine.Graphics
 			GltfLoader.LoadMesh(name, filePath, ref mesh, normalize);
 
 			return mesh;
+		}
+
+		public static Mesh LoadGltf(string name, string filePath, ITimeLogger timeLogger, bool normalize = false)
+		{
+			using var scope = timeLogger.BeginScope($"Mesh: {name}");
+			return LoadGltf(name, filePath, normalize);
 		}
 	}
 

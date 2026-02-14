@@ -1,4 +1,6 @@
-﻿namespace Engine.Graphics
+﻿using UtilLib.Logging;
+
+namespace Engine.Graphics
 {
 	public struct TextureAtlas
 	{
@@ -14,6 +16,17 @@
 				name = name,
 				textures = textures,
 				textureAtlas = ETexture.LoadImage($"{name}_atlas", path)
+			};
+		}
+
+		public static TextureAtlas LoadAtlas(string name, int textures, string path, ITimeLogger timeLogger)
+		{
+			using var scope = timeLogger.BeginScope($"TextureAtlas");
+			return new TextureAtlas()
+			{
+				name = name,
+				textures = textures,
+				textureAtlas = ETexture.LoadImage($"{name}_atlas", path, scope)
 			};
 		}
 	}

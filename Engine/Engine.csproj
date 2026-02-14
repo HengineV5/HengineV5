@@ -24,8 +24,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.3" />
-    <PackageReference Include="Silk.NET" Version="2.22.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.2" />
+    <PackageReference Include="Silk.NET" Version="2.23.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -82,10 +82,10 @@
   </ItemGroup>
   <ItemGroup Condition="'$(UseLocalProjects)' == 'true'">
 	<ProjectReference Include="..\..\EnCS\EnCS\EnCS.csproj" />
-    <ProjectReference Include="..\..\EnCS\EnCS.Generator\EnCS.Generator.csproj"/>
-    <Analyzer Include="..\..\EnCS\EnCS.Generator\bin\$(Configuration)\netstandard2.0\EnCS.Generator.dll"/>
-    <ProjectReference Include="..\..\ImageLib\ImageLib\ImageLib.csproj"/>
-    <ProjectReference Include="..\..\MathLib\MathLib\MathLib.csproj"/>
+    <ProjectReference Include="..\..\EnCS\EnCS.Generator\EnCS.Generator.csproj" />
+    <Analyzer Include="..\..\EnCS\EnCS.Generator\bin\$(Configuration)\netstandard2.0\EnCS.Generator.dll" />
+    <ProjectReference Include="..\..\ImageLib\ImageLib\ImageLib.csproj" />
+    <ProjectReference Include="..\..\MathLib\MathLib\MathLib.csproj" />
   </ItemGroup>
 
 

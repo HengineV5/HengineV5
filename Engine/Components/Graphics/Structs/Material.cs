@@ -1,4 +1,5 @@
 ﻿using Engine.Utils.Parsing.GLTF;
+using UtilLib.Logging;
 
 namespace Engine.Graphics
 {
@@ -45,6 +46,36 @@ namespace Engine.Graphics
 
 			return material;
 		}
+		public static PbrMaterial LoadGltf(string name, string filePath, ITimeLogger timeLogger)
+		{
+			using var scope = timeLogger.BeginScope($"PbrMaterial");
+			PbrMaterial material = new PbrMaterial();
+			material.albedo = Vector3f.One;
+			material.metallic = 1;
+			material.roughness = 1;
+
+			GltfLoader.LoadMaterial(name, filePath, ref material);
+
+			if (string.IsNullOrEmpty(material.albedoMap.name))
+				material.albedoMap = ETexture.LoadImage($"{name}_albedo", "Images/Pbr/Default/Albedo.png", scope);
+
+			if (string.IsNullOrEmpty(material.metallicMap.name))
+				material.metallicMap = ETexture.LoadImage($"{name}_metallic", "Images/Pbr/Default/Metallic.png", scope);
+
+			if (string.IsNullOrEmpty(material.roughnessMap.name))
+				material.roughnessMap = ETexture.LoadImage($"{name}_roughness", "Images/Pbr/Default/Roughness.png", scope);
+
+			if (string.IsNullOrEmpty(material.aoMap.name))
+				material.aoMap = ETexture.LoadImage($"{name}_ao", "Images/Pbr/Default/Ao.png", scope);
+
+			if (string.IsNullOrEmpty(material.normalMap.name))
+				material.normalMap = ETexture.LoadImage($"{name}_normal", "Images/Pbr/Default/Normal.png", scope);
+
+			if (string.IsNullOrEmpty(material.depthMap.name))
+				material.depthMap = ETexture.LoadImage($"{name}_depth", "Images/Pbr/Default/Depth.png", scope);
+
+			return material;
+		}
 
 		public static PbrMaterial GetDefault(string name)
 		{
@@ -60,6 +91,23 @@ namespace Engine.Graphics
 			material.normalMap = ETexture.LoadImage($"{name}_normal", "Images/Pbr/Default/Normal.png");
 			material.depthMap = ETexture.LoadImage($"{name}_depth", "Images/Pbr/Default/Depth.png");
 
+			return material;
+		}
+
+		public static PbrMaterial GetDefault(string name, ITimeLogger timeLogger)
+		{
+			using var scope = timeLogger.BeginScope($"PbrMaterial");
+			PbrMaterial material = new PbrMaterial();
+			material.name = name;
+			material.albedo = Vector3f.One;
+			material.albedoMap = ETexture.LoadImage($"{name}_albedo", "Images/Pbr/Default/Albedo.png", scope);
+			material.metallic = 1;
+			material.metallicMap = ETexture.LoadImage($"{name}_metallic", "Images/Pbr/Default/Metallic.png", scope);
+			material.roughness = 1;
+			material.roughnessMap = ETexture.LoadImage($"{name}_roughness", "Images/Pbr/Default/Roughness.png", scope);
+			material.aoMap = ETexture.LoadImage($"{name}_ao", "Images/Pbr/Default/Ao.png", scope);
+			material.normalMap = ETexture.LoadImage($"{name}_normal", "Images/Pbr/Default/Normal.png", scope);
+			material.depthMap = ETexture.LoadImage($"{name}_depth", "Images/Pbr/Default/Depth.png", scope);
 			return material;
 		}
 	}

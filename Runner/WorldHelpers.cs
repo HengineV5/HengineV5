@@ -10,7 +10,7 @@ namespace Runner
 	{
 		public static EnCS.ArchRef<NEntity> CreateObject(this Main world, Vector3f pos, Vector3f scale, Mesh mesh, PbrMaterial material, int idx)
 		{
-			var objRef = world.Create(new NEntity.Vectorized());
+			var objRef = world.CreateNEntity();
 			NEntity entRef = world.Get(objRef);
 			entRef.Position.Set(pos);
 			entRef.Rotation.Set(Quaternionf.Identity);
@@ -27,7 +27,7 @@ namespace Runner
 
 		public static EnCS.ArchRef<Gizmo> CreateGizmo(this Main world, in Vector3f pos, in Vector3f scale, in GizmoType type, in GizmoColor color)
 		{
-			var objRef = world.Create(new Gizmo.Vectorized());
+			var objRef = world.CreateGizmo();
 			Gizmo entRef = world.Get(objRef);
 			entRef.Position.Set(pos);
 			entRef.Rotation.Set(Quaternionf.Identity);
@@ -43,7 +43,7 @@ namespace Runner
 
 		public static EnCS.ArchRef<HengineEcs.GizmoLine1> CreateGizmoLine(this Main world, in Vector3f p1, in Vector3f p2, in GizmoColor color)
 		{
-			var objRef = world.Create(new HengineEcs.GizmoLine1.Vectorized());
+			var objRef = world.CreateGizmoLine1();
 			HengineEcs.GizmoLine1 entRef = world.Get(objRef);
 			entRef.GizmoLine.Set(new()
 			{
@@ -68,7 +68,7 @@ namespace Runner
 
 		public static EnCS.ArchRef<Hex> CreateHex(this Main world, Vector3f pos, Vector3f scale, HexCell hexCell, Mesh mesh, PbrMaterial material, int idx)
 		{
-			var objRef = world.Create(new Hex.Vectorized());
+			var objRef = world.CreateHex();
 			Hex entRef = world.Get(objRef);
 			entRef.Position.Set(pos);
 			entRef.Rotation.Set(Quaternionf.Identity);
@@ -86,7 +86,7 @@ namespace Runner
 
 		public static EnCS.ArchRef<Cam> CreateCamera(this Main world, Camera.Comp camera, Vector3f position, in Skybox skybox, int idx)
 		{
-			var objRef = world.Create(new Cam.Vectorized());
+			var objRef = world.CreateCam();
 			Cam entRef = world.Get(objRef);
 			entRef.Camera.Set(camera);
 			entRef.Position.Set(position);
@@ -102,7 +102,7 @@ namespace Runner
 
 		public static void CreateCamera(this HengineServerEcs.Main world, Camera.Comp camera, Vector3f position, int idx)
 		{
-			var objRef = world.Create(new HengineServerEcs.Cam.Vectorized());
+			var objRef = world.CreateCam();
 			HengineServerEcs.Cam entRef = world.Get(objRef);
 			entRef.Camera.Set(camera);
 			entRef.Position.Set(position);
@@ -115,7 +115,7 @@ namespace Runner
 
 		public static EnCS.ArchRef<HengineEcs.GuiButton1> CreateGuiButton(this HengineEcs.Overlay world, Vector4f position, Vector4f size, TextureAtlas textureAtlas, GuiButton.Comp guiButton, GuiProperties.Comp properties)
 		{
-			var objRef = world.Create(new HengineEcs.GuiButton1.Vectorized());
+			var objRef = world.CreateGuiButton1();
 			HengineEcs.GuiButton1 entRef = world.Get(objRef);
 			entRef.GuiPosition.Set(position);
 			entRef.GuiSize.Set(size);
@@ -129,7 +129,7 @@ namespace Runner
 
 		public static EnCS.ArchRef<TextElement> CreateTextElement(this HengineEcs.Overlay world, Vector4f position, TextureAtlas textureAtlas, GuiText text)
 		{
-			var objRef = world.Create(new TextElement.Vectorized());
+			var objRef = world.CreateTextElement();
 			TextElement entRef = world.Get(objRef);
 			entRef.GuiPosition.Set(position);
 			entRef.TextureAtlas.Set(textureAtlas);

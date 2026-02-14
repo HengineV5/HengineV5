@@ -6,7 +6,9 @@ using Engine.Translation;
 using Engine.Utils.Parsing.TTF;
 using MathLib.Vector.Extensions;
 using Microsoft.Extensions.Logging;
+using System.Diagnostics;
 using System.Net;
+using UtilLib.Logging;
 using UtilLib.Span;
 using Vertical.SpectreLogger;
 using static Engine.HengineEcs;
@@ -80,6 +82,9 @@ namespace Runner
 
 		static void Client(ILoggerFactory factory, EngineConfig engineConfig)
 		{
+			TimeLogger timeLogger = new TimeLogger("Client");
+			var initScope = timeLogger.BeginScope("Initialization");
+
 			ILogger logger = factory.CreateLogger("Program.Client");
 			logger.LogClientStarted(engineConfig.idx);
 
@@ -92,7 +97,8 @@ namespace Runner
 			var clientConfig = new ClientConfig()
 			{
 				doConnect = engineConfig.idx != 0,
-				serverAddress = IPAddress.Parse("92.220.68.61"),
+				serverAddress = IPAddress.Parse("0.0.0.0"),
+				//serverAddress = IPAddress.Parse("92.220.68.61"),
 				//serverAddress = IPAddress.Parse("127.0.0.1"),
 				port = 45567
 			};
@@ -116,8 +122,12 @@ namespace Runner
 				units = tranlations
 			};
 
-			Hengine engine = new Hengine(factory);
-			engine.Initialize(engineConfig, vulkanConfig, clientConfig, translationConfig);
+			Hengine engine;
+			using (var engineInitScope = timeLogger.BeginScope("Engine"))
+			{
+				engine = new Hengine(factory);
+				engine.Initialize(engineConfig, vulkanConfig, clientConfig, translationConfig);
+			}
 
 			var ecs = engine.GetEcs();
 			Main mainWorld = ecs.GetMain();
@@ -134,7 +144,7 @@ namespace Runner
 				zFar = 1000
 			};
 
-			var skybox = Skybox.LoadSkybox("Skybox", "Images/Skybox/Default");
+			var skybox = Skybox.LoadSkybox("Skybox", "Images/Skybox/Default", timeLogger);
 			camRef = mainWorld.CreateCamera(camera, Vector3f.Zero, skybox, engineConfig.idx);
 
 			engine.argIWindow.FramebufferResize += x =>
@@ -165,19 +175,19 @@ namespace Runner
 
 			// DEBUG
 
-			var meshDuck = Mesh.LoadGltf("Duck", "Models/Duck/Duck.gltf", true);
-			var materialDuck = PbrMaterial.LoadGltf("Duck", "Models/Duck/Duck.gltf");
-			var meshPlane = Mesh.LoadGltf("Plane", "Models/Plane/plane.gltf");
+			var meshDuck = Mesh.LoadGltf("Duck", "Models/Duck/Duck.gltf", timeLogger, true);
+			var materialDuck = PbrMaterial.LoadGltf("Duck", "Models/Duck/Duck.gltf", timeLogger);
+			var meshPlane = Mesh.LoadGltf("Plane", "Models/Plane/plane.gltf", timeLogger);
 
-			logger.LogInformation(materialDuck.albedoMap.data.Width.ToString());
-			logger.LogInformation(materialDuck.albedoMap.data.Height.ToString());
+			//logger.LogInformation(materialDuck.albedoMap.data.Width.ToString());
+			//logger.LogInformation(materialDuck.albedoMap.data.Height.ToString());
 
 			mainWorld.CreateObject(new(3, 0, -10), Vector3f.One, meshDuck, materialDuck, engineConfig.idx == 10 ? 11 : 10);
 
 			var font = TtfLoader.LoadFont("Fonts/arial.ttf");
 
-			var buttonAtlas = TextureAtlas.LoadAtlas("ButtonAtlas", 3, "Images/Gui/Button/Button.png");
-			var textAtlas = TextureAtlas.LoadAtlas("TextAtlas", 1, "Images/Gui/Text/Text.png");
+			var buttonAtlas = TextureAtlas.LoadAtlas("ButtonAtlas", 3, "Images/Gui/Button/Button.png", timeLogger);
+			var textAtlas = TextureAtlas.LoadAtlas("TextAtlas", 1, "Images/Gui/Text/Text.png", timeLogger);
 
 			GuiProperties.Comp prop = new GuiProperties.Comp()
 			{
@@ -220,6 +230,11 @@ namespace Runner
 
 			//TestWorld.Load(mainWorld);
 			//MapWorld.Load(factory.CreateLogger("MapWorld"), mainWorld);
+
+			//logger.LogInformation("Initialization took {time}ms", sw.ElapsedMilliseconds);
+			initScope.EndScope();
+
+			timeLogger.WriteReport(logger);
 
 			engine.Start();
 			engine.argIWindow.Dispose();
