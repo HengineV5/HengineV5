@@ -38,25 +38,25 @@ namespace Engine.Utils
 			int closestHole = -1;
 			float dist = float.MaxValue;
 
-            for (int h = 0; h < hole.Length; h++)
+			for (int h = 0; h < hole.Length; h++)
 			{
 				ref readonly Vector2f holePoint = ref hole[h];
 
 				for (int i = 0; i < mesh.Length - 1; i++)
 				{
-                    Vector2f v = mesh[i] - holePoint;
+					Vector2f v = mesh[i] - holePoint;
 
 					if (Vector2f.LengthSquared(in v) >= dist)
 						continue;
 
 					// Avoid cardinal directions to reduce straight lines. Based on experience.
 					var angle = MathHelpers.Angle(in holePoint, in mesh[i], in mesh[i + 1]);
-                    if (MathF.Abs(angle - MathF.PI / 2) < 0.1f ||
-                        MathF.Abs(angle - MathF.PI) < 0.1f ||
-                        MathF.Abs(angle - (3 * MathF.PI) / 4) < 0.1f)
-                        continue;
+					if (MathF.Abs(angle - MathF.PI / 2) < 0.1f ||
+							MathF.Abs(angle - MathF.PI) < 0.1f ||
+							MathF.Abs(angle - (3 * MathF.PI) / 4) < 0.1f)
+						continue;
 
-                    if (HasBridge(i, mesh, margin))
+					if (HasBridge(i, mesh, margin))
 						continue;
 
 					if (IntersectAny(in mesh[i], in holePoint, mesh, margin))
@@ -65,9 +65,9 @@ namespace Engine.Utils
 					if (IntersectAny(in mesh[i], in holePoint, hole, margin))
 						continue;
 
-                    closestMesh = i;
+					closestMesh = i;
 					closestHole = h;
-                    dist = Vector2f.LengthSquared(in v);
+					dist = Vector2f.LengthSquared(in v);
 				}
 			}
 
@@ -83,8 +83,8 @@ namespace Engine.Utils
 
 			vertBuilder.Add(mesh.Slice(0, closestMesh + 1));
 
-            // Split hole at closest vertex, bridge is the first vertex
-            vertBuilder.Add(hole.Slice(closestHole));
+			// Split hole at closest vertex, bridge is the first vertex
+			vertBuilder.Add(hole.Slice(closestHole));
 			vertBuilder.Add(hole.Slice(0, closestHole));
 
 			// Add return bridge
@@ -98,7 +98,7 @@ namespace Engine.Utils
 		{
 			Unsafe.SkipInit(out indicies);
 
-            using var vertMapBuff = MemoryPool<int>.Shared.Rent(verticies.Length);
+			using var vertMapBuff = MemoryPool<int>.Shared.Rent(verticies.Length);
 			SpanList<int> vertMap = vertMapBuff.Memory.Span.Slice(0, verticies.Length);
 			for (int i = 0; i < verticies.Length; i++)
 			{
@@ -119,7 +119,7 @@ namespace Engine.Utils
                     }
 					*/
 
-                    return false;
+					return false;
 				}
 
 				indiciesList.Add(ear.prev);
@@ -140,7 +140,7 @@ namespace Engine.Utils
 
 			indicies = indiciesList.ToArray();
 			return true;
-        }
+		}
 
 		public static Memory<int> TriangulateStep(ReadOnlySpan<Vector2f> verticies, int steps, bool clockwise = true, float margin = 0.001f)
 		{
@@ -161,7 +161,7 @@ namespace Engine.Utils
 					Console.WriteLine("Unable to complete mesh triangualtion.");
 					TryFindEar(verticies, CollectionsMarshal.AsSpan(vertMap), clockwise, margin, true, out ear);
 
-                    return indicies.ToArray();
+					return indicies.ToArray();
 					//throw new Exception("Unable to complete mesh triangualtion.");
 				}
 
@@ -191,41 +191,41 @@ namespace Engine.Utils
 				ref readonly Vector2f prev = ref verticies[vertMap[i - 1]];
 				ref readonly Vector2f curr = ref verticies[vertMap[i]];
 				ref readonly Vector2f next = ref verticies[vertMap[i + 1]];
-                ref readonly Vector2f next2 = ref verticies[vertMap[i + 2]];
+				ref readonly Vector2f next2 = ref verticies[vertMap[i + 2]];
 
-                // TODO: Find more effeicent method to handle colinear points
-                // Happens when hole has vertex on edge of mesh
-                if (MathF.Abs((Vector2f.Length(curr - prev) + Vector2f.Length(next - prev)) - Vector2f.Length(next - curr)) < 0.25f)
-                {
-                    ear = new Ear()
-                    {
-                        prev = vertMap[i - 1],
-                        curr = vertMap[i],
-                        next = vertMap[i + 1]
-                    };
+				// TODO: Find more effeicent method to handle colinear points
+				// Happens when hole has vertex on edge of mesh
+				if (MathF.Abs((Vector2f.Length(curr - prev) + Vector2f.Length(next - prev)) - Vector2f.Length(next - curr)) < 0.25f)
+				{
+					ear = new Ear()
+					{
+						prev = vertMap[i - 1],
+						curr = vertMap[i],
+						next = vertMap[i + 1]
+					};
 
-                    return true;
-                }
+					return true;
+				}
 
-                var angle = clockwise ? VectorMath.Angle(next, prev, curr) : VectorMath.Angle(curr, prev, next);
-                if (angle >= MathF.PI || MathF.Abs(angle - MathF.PI) < margin)
-                    continue;
-
-                if (MathHelpers.DistanceToLine(in prev, in next, in curr) < margin)
+				var angle = clockwise ? VectorMath.Angle(next, prev, curr) : VectorMath.Angle(curr, prev, next);
+				if (angle >= MathF.PI || MathF.Abs(angle - MathF.PI) < margin)
 					continue;
 
-                if (!IntersectOrContainsAny(in prev, in curr, in next, verticies, margin, doPrint))
-                {
-                    ear = new Ear()
-                    {
-                        prev = vertMap[i - 1],
-                        curr = vertMap[i],
-                        next = vertMap[i + 1]
-                    };
+				if (MathHelpers.DistanceToLine(in prev, in next, in curr) < margin)
+					continue;
 
-                    return true;
-                }
-            }
+				if (!IntersectOrContainsAny(in prev, in curr, in next, verticies, margin, doPrint))
+				{
+					ear = new Ear()
+					{
+						prev = vertMap[i - 1],
+						curr = vertMap[i],
+						next = vertMap[i + 1]
+					};
+
+					return true;
+				}
+			}
 
 			ear = default;
 			return false;
@@ -272,12 +272,12 @@ namespace Engine.Utils
 			for (int i = 0; i < verticies.Length; i++)
 			{
 				if (MathHelpers.IsClose(in p1, in verticies[i], margin) || MathHelpers.IsClose(in p1, in verticies[i + 1], margin))
-                    continue;
+					continue;
 
-                if (MathHelpers.IsClose(in p2, in verticies[i], margin) || MathHelpers.IsClose(in p2, in verticies[i + 1], margin))
-                    continue;
+				if (MathHelpers.IsClose(in p2, in verticies[i], margin) || MathHelpers.IsClose(in p2, in verticies[i + 1], margin))
+					continue;
 
-                if (MathHelpers.Intersect(in p1, in p2, in verticies[i], in verticies[i + 1]))
+				if (MathHelpers.Intersect(in p1, in p2, in verticies[i], in verticies[i + 1]))
 					return true;
 			}
 
@@ -292,8 +292,8 @@ namespace Engine.Utils
 					continue;
 
 				if (MathHelpers.IsClose(in verticies[skip], in verticies[i], margin))
-                    return true;
-            }
+					return true;
+			}
 
 			return false;
 		}
