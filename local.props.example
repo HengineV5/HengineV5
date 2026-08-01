@@ -1,0 +1,10 @@
+<Project>
+
+	<!-- Local-deps is the default (see Directory.Build.props). Copy this file to
+	     local.props (gitignored) to build against the published NuGet packages
+	     instead. -->
+	<PropertyGroup>
+		<UseLocalProjects>false</UseLocalProjects>
+	</PropertyGroup>
+
+</Project>

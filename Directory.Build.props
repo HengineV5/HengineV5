@@ -14,13 +14,24 @@
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 	</PropertyGroup>
 
-	<!-- Override MSBuild's automatic DefineConstants generation for configurations with invalid characters -->
-	<Target Name="FixDefineConstants" BeforeTargets="CoreCompile">
-		<PropertyGroup Condition="'$(Configuration)'=='Debug (local-deps)'">
-			<DefineConstants>DEBUG;TRACE;LOCAL_DEPS</DefineConstants>
-		</PropertyGroup>
-		<PropertyGroup Condition="'$(Configuration)'=='Release (local-deps)'">
-			<DefineConstants>RELEASE;LOCAL_DEPS</DefineConstants>
-		</PropertyGroup>
-	</Target>
+	<!--
+	Local-deps source switch — every project in this repo defaults to
+	ProjectReferences against sibling checkouts instead of the published NuGet
+	packages:
+		henke/
+			HengineV5/
+			EnCS/
+			ImageLib/
+			MathLib/
+			UtilLib/
+	To build against the published NuGet packages instead (e.g. to sanity-check
+	what will actually get published), copy local.props.example to local.props
+	and set UseLocalProjects to false.
+	CI always builds against NuGet packages: GitHub Actions sets CI=true, and a
+	single-repo CI checkout has no sibling directories to reference anyway.
+	-->
+	<Import Project="local.props" Condition="Exists('$(MSBuildThisFileDirectory)local.props')" />
+	<PropertyGroup Condition="'$(UseLocalProjects)' == '' And '$(CI)' != 'true'">
+		<UseLocalProjects>true</UseLocalProjects>
+	</PropertyGroup>
 </Project>
