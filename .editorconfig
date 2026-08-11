@@ -1,0 +1,5 @@
+root = true
+
+[*.cs]
+# CS9193 fires constantly on intentional temporaries in this expression-heavy math code; harmless noise here, not a real risk.
+dotnet_diagnostic.CS9193.severity = none

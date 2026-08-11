@@ -39,9 +39,6 @@ namespace Runner
 				{
 					x.SetMinimumLevel(LogLevel.Trace);
 
-					//x.UseSerilogConsoleStyle();
-					//x.UseMicrosoftConsoleStyle();
-
 					x.SetMinimumLevel("Engine.Server", LogLevel.Debug);
 					x.SetMinimumLevel("Engine.Client", LogLevel.Debug);
 					x.SetMinimumLevel("Engine.ClientSendSystem", LogLevel.Debug);
@@ -149,6 +146,7 @@ namespace Runner
 
 			engine.argIWindow.FramebufferResize += x =>
 			{
+				logger.Log(LogLevel.Debug, "Window resize.");
 				Main mainWorld = ecs.GetMain();
 				var cam = mainWorld.Get(in camRef);
 

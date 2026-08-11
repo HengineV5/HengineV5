@@ -106,7 +106,7 @@ namespace Engine
 		public unsafe void SetPushConstant<T>(VkContext context, in TPipelineEnum pipeline, ref T pushConstant) where T : unmanaged
 		{
 			context.vk.CmdPushConstants(renderTarget.frame.commandBuffer, TPipelineContainer.GetLayout(pipeline, ref pipelines), ShaderStageFlags.VertexBit, 0, (uint)sizeof(T), ref pushConstant);
-        }
+		}
 
 		public void EndRenderPass(VkContext context)
 		{

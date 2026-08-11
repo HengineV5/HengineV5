@@ -29,6 +29,10 @@
     <ProjectReference Include="..\..\UtilLib\UtilLib\UtilLib.csproj" />
   </ItemGroup>
 
+	<ItemGroup>
+		<None Update="**/*.png" CopyToOutputDirectory="PreserveNewest"/>
+	</ItemGroup>
+
   <ItemGroup>
     <None Update="Fonts\arial.ttf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

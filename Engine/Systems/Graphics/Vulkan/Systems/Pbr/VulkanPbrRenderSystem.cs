@@ -47,7 +47,7 @@ namespace Engine
 
 		public void Init()
 		{
-			var textureBrdfLUT = ETextureHdr.LoadImage("BrdfLUT", "Images/Skybox/integrationMap.png");
+			var textureBrdfLUT = ETextureHdr.LoadImage("BrdfLUT", "Images/Skybox/IntegrationMap.png");
 			skyboxHdrTextureBuffer = VulkanTextureResourceManager.CreateHdrTextureBuffer(context, textureBrdfLUT);
 		}
 

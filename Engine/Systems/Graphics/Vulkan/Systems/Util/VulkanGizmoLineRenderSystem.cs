@@ -2,6 +2,7 @@
 using Engine.Components;
 using Engine.Graphics;
 using MathLib;
+using MathLib.Vector.Extensions;
 
 namespace Engine
 {
@@ -47,7 +48,7 @@ namespace Engine
 			Vector3f ab = b - a;
 
 			context.gizmoUbo.translation = Matrix4x4f.CreateTranslation(a);
-			context.gizmoUbo.rotation = Matrix4x4f.FromQuaternion(MathHelpers.RotateTo<Float32, Quaternion_Ops_Generic<Float32>, Vector3_Ops_Generic<Float32>>(Vector3f.UnitX, Vector3f.Normalize(ab)));
+			context.gizmoUbo.rotation = Matrix4x4f.FromQuaternion(Quaternionf.CreateRotation(Vector3f.UnitX, Vector3f.Normalize(ab)));
 			context.gizmoUbo.scale = Matrix4x4f.CreateScale(Vector3f.One * Vector3f.Length(ab));
 
 			ref GizmoShaderInput shaderInput = ref renderContext.pipeline.GetUbo<GizmoShaderInput>(bufferIdx);
