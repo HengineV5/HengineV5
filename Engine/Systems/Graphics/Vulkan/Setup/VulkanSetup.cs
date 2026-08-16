@@ -1,19 +1,16 @@
-﻿using Silk.NET.Vulkan;
+using RenderLib;
+using RenderLib.Vulkan;
+using Silk.NET.Vulkan;
 using Silk.NET.Windowing;
 
 namespace Engine
 {
-	public class VulkanConfig
-	{
-		public string[] validationLayers;
-	}
-
 	public static class VulkanSetup
 	{
 		public static VkContext ContextSetup(Vk vk, IWindow window, EngineConfig engineConfig, VulkanConfig vulkanConfig)
 		{
 			VkContext vkContext = new VkContext(vk, window);
-			vkContext.Setup(engineConfig, vulkanConfig);
+			vkContext.Setup(ToAppInfo(engineConfig), vulkanConfig);
 
 			return vkContext;
 		}
@@ -25,6 +22,17 @@ namespace Engine
 			vkRenderContext.Setup();
 
 			return (vkContext, vkRenderContext);
+		}
+
+		static AppInfo ToAppInfo(EngineConfig engineConfig)
+		{
+			return new AppInfo
+			{
+				appName = engineConfig.appName,
+				appVersion = engineConfig.appVersion,
+				engineName = engineConfig.engineName,
+				engineVersion = engineConfig.engineVersion,
+			};
 		}
 	}
 }

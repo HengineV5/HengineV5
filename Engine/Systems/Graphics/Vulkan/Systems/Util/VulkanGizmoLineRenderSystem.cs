@@ -4,6 +4,9 @@ using Engine.Graphics;
 using MathLib;
 using MathLib.Vector.Extensions;
 
+using RenderLib;
+using RenderLib.Vulkan;
+
 namespace Engine
 {
 	[System]
@@ -61,7 +64,7 @@ namespace Engine
 		[SystemUpdate, SystemLayer(0, 2)]
 		public void RenderUpdate(ref VulkanRenderContext context, ref GizmoLine gizmoComp)
 		{
-			renderContext.pipeline.Render(this.context, PipelineContainerLayer.GizmoLine, line.vertexBuffer, line.indexBuffer, line.indicies, updateIdx);
+			renderContext.pipeline.Render(this.context, PipelineContainerLayer.GizmoLine, line.vertexBuffer.ToGpu(), line.indexBuffer.ToGpu(), line.indicies, updateIdx);
 
 			updateIdx++;
 		}

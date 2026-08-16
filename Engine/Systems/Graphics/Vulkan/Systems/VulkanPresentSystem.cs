@@ -2,6 +2,9 @@
 using Engine.Graphics;
 using Silk.NET.Windowing;
 
+using RenderLib;
+using RenderLib.Vulkan;
+
 namespace Engine
 {
 	[System]

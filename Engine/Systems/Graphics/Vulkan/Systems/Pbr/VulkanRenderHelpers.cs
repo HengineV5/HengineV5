@@ -2,12 +2,17 @@
 using Silk.NET.Vulkan;
 using System.Runtime.CompilerServices;
 
+using RenderLib;
+using RenderLib.Vulkan;
+
 namespace Engine
 {
 	static class VulkanRenderHelpers
 	{
-		public static unsafe void UpdateGuiDescriptorSet(VkContext context, DescriptorSet descriptorSet, VkTextureBuffer textureMap, Sampler sampler)
+		public static unsafe void UpdateGuiDescriptorSet(VkContext context, GpuDescriptorSet gpuDescriptorSet, VkTextureBuffer textureMap, Sampler sampler)
 		{
+			DescriptorSet descriptorSet = gpuDescriptorSet.ToVkDescriptorSet();
+
 			Span<DescriptorImageInfo> infos = stackalloc DescriptorImageInfo[1];
 			Span<WriteDescriptorSet> descriptorWrites = stackalloc WriteDescriptorSet[1];
 
@@ -16,8 +21,10 @@ namespace Engine
 			context.vk.UpdateDescriptorSets(context.device, descriptorWrites, 0, null);
 		}
 
-		public static unsafe void UpdateMeshDescriptorSet(VkContext context, DescriptorSet descriptorSet, VkTextureBuffer texture, VkPbrMaterial material, VkSkybox skybox, Span<Sampler> samplers)
+		public static unsafe void UpdateMeshDescriptorSet(VkContext context, GpuDescriptorSet gpuDescriptorSet, VkTextureBuffer texture, VkPbrMaterial material, VkSkybox skybox, Span<Sampler> samplers)
 		{
+			DescriptorSet descriptorSet = gpuDescriptorSet.ToVkDescriptorSet();
+
 			Span<DescriptorImageInfo> infos = stackalloc DescriptorImageInfo[9];
 			Span<WriteDescriptorSet> descriptorWrites = stackalloc WriteDescriptorSet[9];
 
@@ -34,8 +41,10 @@ namespace Engine
 			context.vk.UpdateDescriptorSets(context.device, descriptorWrites, 0, null);
 		}
 
-		public static unsafe void UpdateSkyboxDescriptorSet(VkContext context, DescriptorSet descriptorSet, VkTextureBuffer skybox, Span<Sampler> samplers)
+		public static unsafe void UpdateSkyboxDescriptorSet(VkContext context, GpuDescriptorSet gpuDescriptorSet, VkTextureBuffer skybox, Span<Sampler> samplers)
 		{
+			DescriptorSet descriptorSet = gpuDescriptorSet.ToVkDescriptorSet();
+
 			Span<DescriptorImageInfo> infos = stackalloc DescriptorImageInfo[1];
 			Span<WriteDescriptorSet> descriptorWrites = stackalloc WriteDescriptorSet[1];
 

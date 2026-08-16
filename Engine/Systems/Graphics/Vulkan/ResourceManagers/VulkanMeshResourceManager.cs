@@ -5,6 +5,9 @@ using Silk.NET.Vulkan;
 using System.Buffers;
 using Buffer = Silk.NET.Vulkan.Buffer;
 
+using RenderLib;
+using RenderLib.Vulkan;
+
 namespace Engine.Graphics
 {
 	public struct VkMeshBuffer

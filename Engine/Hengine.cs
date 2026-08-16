@@ -2,6 +2,9 @@
 using EnCS.Attributes;
 using Engine.Components;
 using Engine.Components.Graphics;
+using RenderLib;
+using RenderLib.OpenGL;
+using RenderLib.Vulkan;
 using Silk.NET.GLFW;
 using Silk.NET.Windowing;
 using Silk.NET.Vulkan;

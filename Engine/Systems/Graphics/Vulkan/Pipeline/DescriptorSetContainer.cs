@@ -1,9 +1,12 @@
 ﻿using Silk.NET.Vulkan;
 
+using RenderLib;
+using RenderLib.Vulkan;
+
 namespace Engine
 {
 	// TODO: Improve
-	internal static class DescriptorSetGroupCache<TDescriptorSet> where TDescriptorSet : struct, IUniformBufferObject<TDescriptorSet>
+	internal static class DescriptorSetGroupCache<TDescriptorSet> where TDescriptorSet : struct, IUniformBufferObject<TDescriptorSet, VkContext>
 	{
 		public static bool Initialized = false;
 		public static uint size;
@@ -15,7 +18,7 @@ namespace Engine
 		}
 	}
 
-	public struct DescriptorSetGroup<TDescriptorSet> where TDescriptorSet : struct, IUniformBufferObject<TDescriptorSet>
+	public struct DescriptorSetGroup<TDescriptorSet> where TDescriptorSet : struct, IUniformBufferObject<TDescriptorSet, VkContext>
 	{
 		public Memory<DescriptorSet> descriptorSets;
 		public uint size;
@@ -43,8 +46,9 @@ namespace Engine
 
 			for (int i = 0; i < group.descriptorSets.Length; i++)
 			{
-				group.descriptorSets.Span[i] = TDescriptorSet.Create(context, pool);
-				DescriptorSetGroupCache<TDescriptorSet>.mapped.Span[i] = TDescriptorSet.Map(context, group.descriptorSets.Span[i]);
+				GpuDescriptorSet gpuDescriptorSet = TDescriptorSet.Create(context, pool.ToGpu());
+				group.descriptorSets.Span[i] = gpuDescriptorSet.ToVkDescriptorSet();
+				DescriptorSetGroupCache<TDescriptorSet>.mapped.Span[i] = TDescriptorSet.Map(context, gpuDescriptorSet);
 			}
 
 			DescriptorSetGroupCache<TDescriptorSet>.Initialized = true;
@@ -53,7 +57,7 @@ namespace Engine
 		}
 	}
 
-	public struct DescriptorSetContainer : IDescriptorContainer<DescriptorSetContainer, PipelineContainerLayer>
+	public struct DescriptorSetContainer : IDescriptorContainer<DescriptorSetContainer, VkContext, PipelineContainerLayer>
 	{
 		DescriptorSetGroup<PbrShaderInput> pbrDescriptors;
 		DescriptorSetGroup<GuiShaderInput> guiDescriptors;
@@ -67,7 +71,7 @@ namespace Engine
 		}
 
 		public static DescriptorSetContainer Create<TRenderTargetManager, TRenderPassInfo, TPipelineInfo>(VkContext context)
-			where TRenderTargetManager : struct, IRenderTargetManager<TRenderTargetManager, TRenderPassInfo, TPipelineInfo>
+			where TRenderTargetManager : struct, IRenderTargetManager<TRenderTargetManager, VkContext, TRenderPassInfo, TPipelineInfo>
 			where TRenderPassInfo : struct
 			where TPipelineInfo : struct
 		{
@@ -86,43 +90,43 @@ namespace Engine
 			return new DescriptorSetContainer(pbr, gui, gizmo);
 		}
 
-		public static DescriptorSet GetDescriptorSet(PipelineContainerLayer layer, uint frame, uint idx, ref DescriptorSetContainer self)
+		public static GpuDescriptorSet GetDescriptorSet(PipelineContainerLayer layer, uint frame, uint idx, ref DescriptorSetContainer self)
 		{
 			switch (layer)
 			{
 				case PipelineContainerLayer.Skybox:
 				case PipelineContainerLayer.Pbr:
 				case PipelineContainerLayer.Wireframe:
-					return self.pbrDescriptors.GetDescriptorSet(frame, idx);
+					return self.pbrDescriptors.GetDescriptorSet(frame, idx).ToGpu();
 				case PipelineContainerLayer.Gui:
-					return self.guiDescriptors.GetDescriptorSet(frame, idx);
+					return self.guiDescriptors.GetDescriptorSet(frame, idx).ToGpu();
 				case PipelineContainerLayer.Gizmo:
 				case PipelineContainerLayer.GizmoLine:
-					return self.gizmoDescriptors.GetDescriptorSet(frame, idx);
+					return self.gizmoDescriptors.GetDescriptorSet(frame, idx).ToGpu();
 				default:
 					throw new Exception();
 			}
 		}
 
-		public static DescriptorSetLayout GetDescriptorSetLayout(VkContext context, PipelineContainerLayer layer)
+		public static GpuDescriptorSetLayout GetDescriptorSetLayout(VkContext context, PipelineContainerLayer layer)
 		{
 			switch (layer)
 			{
 				case PipelineContainerLayer.Skybox:
 				case PipelineContainerLayer.Pbr:
 				case PipelineContainerLayer.Wireframe:
-					return PbrShaderInput.GetLayout(context);
+					return PbrShaderInput.GetLayout(context).ToGpu();
 				case PipelineContainerLayer.Gui:
-					return GuiShaderInput.GetLayout(context);
+					return GuiShaderInput.GetLayout(context).ToGpu();
 				case PipelineContainerLayer.Gizmo:
 				case PipelineContainerLayer.GizmoLine:
-					return GizmoShaderInput.GetLayout(context);
+					return GizmoShaderInput.GetLayout(context).ToGpu();
 				default:
 					throw new Exception();
 			}
 		}
 
-		public static ref TUbo GetUbo<TUbo>(uint frame, uint idx) where TUbo : struct, IUniformBufferObject<TUbo>
+		public static ref TUbo GetUbo<TUbo>(uint frame, uint idx) where TUbo : struct, IUniformBufferObject<TUbo, VkContext>
 		{
 			return ref DescriptorSetGroupCache<TUbo>.GetMapped(frame, idx);
 		}

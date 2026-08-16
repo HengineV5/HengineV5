@@ -3,6 +3,9 @@ using EnCS.Attributes;
 using Microsoft.Extensions.Logging;
 using Silk.NET.Vulkan;
 
+using RenderLib;
+using RenderLib.Vulkan;
+
 namespace Engine.Graphics
 {
 	public struct VkSkybox

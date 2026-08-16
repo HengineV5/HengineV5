@@ -3,6 +3,9 @@ using Engine.Components;
 using Engine.Graphics;
 using Silk.NET.Windowing;
 
+using RenderLib;
+using RenderLib.Vulkan;
+
 namespace Engine
 {
 	[System]
@@ -46,7 +49,7 @@ namespace Engine
 			shaderInput.ubo.Value = context.skyboxUbo;
 			VulkanRenderHelpers.UpdateSkyboxDescriptorSet(this.context, renderContext.pipeline.GetDescriptorSet(PipelineContainerLayer.Skybox, 0), skybox.skybox, renderContext.samplers);
 
-			renderContext.pipeline.Render(this.context, PipelineContainerLayer.Skybox, skyboxBuffer.vertexBuffer, skyboxBuffer.indexBuffer, skyboxBuffer.indicies, 0);
+			renderContext.pipeline.Render(this.context, PipelineContainerLayer.Skybox, skyboxBuffer.vertexBuffer.ToGpu(), skyboxBuffer.indexBuffer.ToGpu(), skyboxBuffer.indicies, 0);
 			renderContext.pipeline.ClearDepthBuffer(this.context); // Clear depth buffer because mesh rendering might go over multiple render passes, so depth buffer is loaded for each pass.
 			renderContext.pipeline.EndRenderPass(this.context);
 

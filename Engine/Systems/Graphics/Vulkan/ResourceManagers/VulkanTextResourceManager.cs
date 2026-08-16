@@ -10,6 +10,9 @@ using UtilLib.Extensions;
 using UtilLib.Span;
 using Buffer = Silk.NET.Vulkan.Buffer;
 
+using RenderLib;
+using RenderLib.Vulkan;
+
 namespace Engine.Graphics
 {
 	record struct GlyphRange(int start, int length, bool clockwise);

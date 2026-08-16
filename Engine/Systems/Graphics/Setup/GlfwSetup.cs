@@ -1,4 +1,5 @@
-﻿using Silk.NET.Input;
+﻿using RenderLib.OpenGL;
+using Silk.NET.Input;
 using Silk.NET.Input.Glfw;
 using Silk.NET.Maths;
 using Silk.NET.OpenGL;
@@ -26,7 +27,7 @@ namespace Engine
 			return Vk.GetApi();
 		}
 
-		public static GL OpenGLSetup(IWindow window)
+		public static GlContext OpenGLSetup(IWindow window)
 		{
 			GL gl = GL.GetApi(window);
 
@@ -36,7 +37,7 @@ namespace Engine
 
 			gl.ClearColor(System.Drawing.Color.CornflowerBlue);
 
-			return gl;
+			return new GlContext(gl, window);
 		}
 
 		public static IWindow WindowSetup(WindowOptions options, EngineConfig config)

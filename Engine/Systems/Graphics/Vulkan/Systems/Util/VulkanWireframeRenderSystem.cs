@@ -3,6 +3,9 @@ using Engine.Components;
 using Engine.Graphics;
 using Silk.NET.Windowing;
 
+using RenderLib;
+using RenderLib.Vulkan;
+
 namespace Engine
 {
 	[System]
@@ -69,7 +72,7 @@ namespace Engine
 		public void RenderUpdate(ref VulkanRenderContext context, ref Position position, ref Rotation rotation, ref Scale scale, ref VkMeshBuffer mesh, ref VkPbrMaterial material)
 		{
 			if (wireframeEnabled)
-				renderContext.pipeline.Render(this.context, PipelineContainerLayer.Wireframe, mesh.vertexBuffer, mesh.indexBuffer, mesh.indicies, updateIdx);
+				renderContext.pipeline.Render(this.context, PipelineContainerLayer.Wireframe, mesh.vertexBuffer.ToGpu(), mesh.indexBuffer.ToGpu(), mesh.indicies, updateIdx);
 
 			updateIdx++;
 		}

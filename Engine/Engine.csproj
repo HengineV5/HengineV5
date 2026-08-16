@@ -58,6 +58,9 @@
     <PackageReference Include="Henke.EnCS.Generator" Version="0.0.108" />
     <PackageReference Include="Henke.ImageLib" Version="0.0.10" />
     <PackageReference Include="Henke.MathLib" Version="0.0.26" />
+    <PackageReference Include="Henke.RenderLib" Version="0.0.1" />
+    <PackageReference Include="Henke.RenderLib.Vulkan" Version="0.0.1" />
+    <PackageReference Include="Henke.RenderLib.OpenGL" Version="0.0.1" />
   </ItemGroup>
   <ItemGroup Condition="'$(UseLocalProjects)' == 'true'">
 	<ProjectReference Include="..\..\EnCS\EnCS\EnCS.csproj" />
@@ -65,6 +68,9 @@
     <Analyzer Include="..\..\EnCS\EnCS.Generator\bin\$(Configuration)\netstandard2.0\EnCS.Generator.dll" />
     <ProjectReference Include="..\..\ImageLib\ImageLib\ImageLib.csproj" />
     <ProjectReference Include="..\..\MathLib\MathLib\MathLib.csproj" />
+    <ProjectReference Include="..\..\RenderLib\RenderLib\RenderLib.csproj" />
+    <ProjectReference Include="..\..\RenderLib\RenderLib.Vulkan\RenderLib.Vulkan.csproj" />
+    <ProjectReference Include="..\..\RenderLib\RenderLib.OpenGL\RenderLib.OpenGL.csproj" />
   </ItemGroup>
 
 

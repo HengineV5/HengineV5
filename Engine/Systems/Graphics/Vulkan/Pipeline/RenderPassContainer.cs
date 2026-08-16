@@ -1,9 +1,12 @@
 ﻿using Silk.NET.Vulkan;
 using System.Runtime.CompilerServices;
 
+using RenderLib;
+using RenderLib.Vulkan;
+
 namespace Engine
 {
-	public struct RenderPassContainer : IRenderPassContainer<RenderPassContainer, DefaultRenderPassInfo, RenderPassId>
+	public struct RenderPassContainer : IRenderPassContainer<RenderPassContainer, VkContext, DefaultRenderPassInfo, RenderPassId>
 	{
 		public RenderPass skyboxRenderPass;
 		public RenderPass meshRenderPass;
@@ -31,23 +34,23 @@ namespace Engine
 			context.vk.DestroyRenderPass(context.device, self.meshRenderPass, null);
 		}
 
-		public static RenderPass Get(RenderPassId id, ref RenderPassContainer self)
+		public static GpuRenderPass Get(RenderPassId id, ref RenderPassContainer self)
 		{
 			switch (id)
 			{
 				case RenderPassId.Skybox:
-					return self.skyboxRenderPass;
+					return self.skyboxRenderPass.ToGpu();
 				case RenderPassId.Mesh:
-					return self.meshRenderPass;
+					return self.meshRenderPass.ToGpu();
 				case RenderPassId.Gui:
-					return self.guiRenderPass;
+					return self.guiRenderPass.ToGpu();
 				default:
 					throw new Exception();
 			}
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static RenderPass GetCompatibleRenderPass(ref RenderPassContainer self)
+		public static GpuRenderPass GetCompatibleRenderPass(ref RenderPassContainer self)
 		 => Get(RenderPassId.Skybox, ref self);
 
 		static unsafe RenderPass CreateSkyboxRenderPass(VkContext context, Format colorFormat, Format depthFormat)

@@ -4,6 +4,9 @@ using Engine.Graphics;
 using Silk.NET.Vulkan;
 using Silk.NET.Windowing;
 
+using RenderLib;
+using RenderLib.Vulkan;
+
 namespace Engine
 {
 	[System]
@@ -93,7 +96,7 @@ namespace Engine
 
 		void RenderMesh(VkMeshBuffer meshBuffer)
 		{
-			renderContext.pipeline.Render(this.context, PipelineContainerLayer.Gui, meshBuffer.vertexBuffer, meshBuffer.indexBuffer, meshBuffer.indicies, updateIdx);
+			renderContext.pipeline.Render(this.context, PipelineContainerLayer.Gui, meshBuffer.vertexBuffer.ToGpu(), meshBuffer.indexBuffer.ToGpu(), meshBuffer.indicies, updateIdx);
 		}
 	}
 

@@ -2,6 +2,9 @@
 using Engine.Components;
 using Engine.Graphics;
 
+using RenderLib;
+using RenderLib.Vulkan;
+
 namespace Engine
 {
 	[System]
@@ -57,10 +60,10 @@ namespace Engine
 			switch (gizmoComp.type)
 			{
 				case GizmoType.Point:
-					renderContext.pipeline.Render(this.context, PipelineContainerLayer.Gizmo, point.vertexBuffer, point.indexBuffer, point.indicies, updateIdx);
+					renderContext.pipeline.Render(this.context, PipelineContainerLayer.Gizmo, point.vertexBuffer.ToGpu(), point.indexBuffer.ToGpu(), point.indicies, updateIdx);
 					break;
 				case GizmoType.Arrow:
-					renderContext.pipeline.Render(this.context, PipelineContainerLayer.Gizmo, arrow.vertexBuffer, arrow.indexBuffer, arrow.indicies, updateIdx);
+					renderContext.pipeline.Render(this.context, PipelineContainerLayer.Gizmo, arrow.vertexBuffer.ToGpu(), arrow.indexBuffer.ToGpu(), arrow.indicies, updateIdx);
 					break;
 				default:
 					break;

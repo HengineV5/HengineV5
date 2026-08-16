@@ -4,6 +4,9 @@ using Engine.Graphics;
 using Silk.NET.Vulkan;
 using Silk.NET.Windowing;
 
+using RenderLib;
+using RenderLib.Vulkan;
+
 namespace Engine
 {
 	[System]
@@ -125,7 +128,7 @@ namespace Engine
 				var stop = textBuffer.indexOffsets.Span[idx + 1];
 				var length = stop - start;
 
-				renderContext.pipeline.Render(this.context, PipelineContainerLayer.Gui, textBuffer.vertexBuffer, textBuffer.indexBuffer, (uint)length, updateIdx, 0, (uint)start);
+				renderContext.pipeline.Render(this.context, PipelineContainerLayer.Gui, textBuffer.vertexBuffer.ToGpu(), textBuffer.indexBuffer.ToGpu(), (uint)length, updateIdx, 0, (uint)start);
 
 				pushConstant.offset += new Vector2f(textBuffer.advances.Span[idx], 0);
 				renderContext.pipeline.SetPushConstant(this.context, PipelineContainerLayer.Gui, ref pushConstant);
@@ -134,9 +137,9 @@ namespace Engine
 			pushConstant.offset = new Vector2f(0, 0);
 			renderContext.pipeline.SetPushConstant(this.context, PipelineContainerLayer.Gui, ref pushConstant);
 
-			//renderContext.pipeline.Render(this.context, PipelineContainerLayer.Gui, textBuffer.vertexBuffer, textBuffer.indexBuffer, textBuffer.indicies, updateIdx);
-			//renderContext.pipeline.Render(this.context, PipelineContainerLayer.Gui, textBuffer.vertexBuffer, textBuffer.indexBuffer, (uint)length, updateIdx);
-			//renderContext.pipeline.Render(this.context, PipelineContainerLayer.Gui, textBuffer.vertexBuffer, textBuffer.indexBuffer, (uint)length, updateIdx, 0, (uint)start);
+			//renderContext.pipeline.Render(this.context, PipelineContainerLayer.Gui, textBuffer.vertexBuffer.ToGpu(), textBuffer.indexBuffer.ToGpu(), textBuffer.indicies, updateIdx);
+			//renderContext.pipeline.Render(this.context, PipelineContainerLayer.Gui, textBuffer.vertexBuffer.ToGpu(), textBuffer.indexBuffer.ToGpu(), (uint)length, updateIdx);
+			//renderContext.pipeline.Render(this.context, PipelineContainerLayer.Gui, textBuffer.vertexBuffer.ToGpu(), textBuffer.indexBuffer.ToGpu(), (uint)length, updateIdx, 0, (uint)start);
 		}
 	}
 }

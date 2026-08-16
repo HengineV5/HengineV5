@@ -2,6 +2,9 @@
 using EnCS.Attributes;
 using Microsoft.Extensions.Logging;
 
+using RenderLib;
+using RenderLib.Vulkan;
+
 namespace Engine.Graphics
 {
 	public struct VkPbrMaterial

@@ -1,14 +1,16 @@
 ﻿using Engine.Graphics;
+using RenderLib;
+using RenderLib.Vulkan;
 using Silk.NET.Vulkan;
 
 namespace Engine
 {
-    public struct GuiPushConstant
-    {
-        public Vector2f offset;
-    }
+	public struct GuiPushConstant
+	{
+		public Vector2f offset;
+	}
 
-    public struct PipelineContainer : IPipelineContainer<PipelineContainer, DefaultPipelineInfo, PipelineContainerLayer>
+	public struct PipelineContainer : IPipelineContainer<PipelineContainer, VkContext, DefaultPipelineInfo, PipelineContainerLayer>
 	{
 		public RenderLayer skyboxLayer;
 		public RenderLayer pbrLayer;
@@ -27,26 +29,28 @@ namespace Engine
 			this.gizmoLineLayer = gizmoLineLayer;
 		}
 
-		public static PipelineContainer Create<TDescriptorContainer>(VkContext context, RenderPass compatibleRenderPass, in DefaultPipelineInfo info)
-			where TDescriptorContainer : struct, IDescriptorContainer<TDescriptorContainer, PipelineContainerLayer>
+		public static PipelineContainer Create<TDescriptorContainer>(VkContext context, GpuRenderPass compatibleGpuRenderPass, in DefaultPipelineInfo info)
+			where TDescriptorContainer : struct, IDescriptorContainer<TDescriptorContainer, VkContext, PipelineContainerLayer>
 		{
+			var compatibleRenderPass = compatibleGpuRenderPass.ToVkRenderPass();
+
 			var pbrDescriptorLayout = CreatePipelineLayout(context, TDescriptorContainer.GetDescriptorSetLayout(context, PipelineContainerLayer.Pbr));
 			var guiDescriptorLayout = CreatePipelineLayout(context, TDescriptorContainer.GetDescriptorSetLayout(context, PipelineContainerLayer.Gui));
 			var gizmoDescriptorLayout = CreatePipelineLayout(context, TDescriptorContainer.GetDescriptorSetLayout(context, PipelineContainerLayer.Gizmo));
 
-			var skyboxShader = Shader.FromFiles("Shaders/Skybox/SkyboxVert.spv", "Shaders/Skybox/SkyboxFrag.spv");
+			var skyboxShader = ShaderSource.FromFiles("Shaders/Skybox/SkyboxVert.spv", "Shaders/Skybox/SkyboxFrag.spv");
 			var skyboxPipeline = RenderLayer.CreateSkybox(context, skyboxShader, pbrDescriptorLayout, info.extent, compatibleRenderPass);
 
-			var pbrShader = Shader.FromFiles("Shaders/Pbr/PbrVert.spv", "Shaders/Pbr/PbrFrag.spv");
+			var pbrShader = ShaderSource.FromFiles("Shaders/Pbr/PbrVert.spv", "Shaders/Pbr/PbrFrag.spv");
 			var pbrPipeline = RenderLayer.CreatePbr(context, pbrShader, pbrDescriptorLayout, info.extent, compatibleRenderPass);
 
-			var wireframeShader = Shader.FromFiles("Shaders/Pbr/PbrVert.spv", "Shaders/Pbr/BlackFrag.spv");
+			var wireframeShader = ShaderSource.FromFiles("Shaders/Pbr/PbrVert.spv", "Shaders/Pbr/BlackFrag.spv");
 			var wireframePipeline = RenderLayer.CreateWireframe(context, wireframeShader, pbrDescriptorLayout, info.extent, compatibleRenderPass);
 
-			var guiShader = Shader.FromFiles("Shaders/Gui/GuiVert.spv", "Shaders/Gui/GuiFrag.spv");
+			var guiShader = ShaderSource.FromFiles("Shaders/Gui/GuiVert.spv", "Shaders/Gui/GuiFrag.spv");
 			var guiPipeline = RenderLayer.CreateGui(context, guiShader, guiDescriptorLayout, info.extent, compatibleRenderPass);
 
-			var gizmoShader = Shader.FromFiles("Shaders/Gizmo/GizmoVert.spv", "Shaders/Gizmo/GizmoFrag.spv");
+			var gizmoShader = ShaderSource.FromFiles("Shaders/Gizmo/GizmoVert.spv", "Shaders/Gizmo/GizmoFrag.spv");
 			var gizmoPipeline = RenderLayer.CreateGizmo(context, gizmoShader, gizmoDescriptorLayout, info.extent, compatibleRenderPass);
 			var gizmoLinePipeline = RenderLayer.CreateGizmoLine(context, gizmoShader, gizmoDescriptorLayout, info.extent, compatibleRenderPass);
 
@@ -63,50 +67,51 @@ namespace Engine
 			self.gizmoLayer.Dispose(context, true);
 		}
 
-		public static Pipeline Get(PipelineContainerLayer layer, ref PipelineContainer self)
+		public static GpuPipeline Get(PipelineContainerLayer layer, ref PipelineContainer self)
 		{
 			switch (layer)
 			{
 				case PipelineContainerLayer.Skybox:
-					return self.skyboxLayer.pipeline;
+					return self.skyboxLayer.pipeline.ToGpu();
 				case PipelineContainerLayer.Pbr:
-					return self.pbrLayer.pipeline;
+					return self.pbrLayer.pipeline.ToGpu();
 				case PipelineContainerLayer.Wireframe:
-					return self.wireframeLayer.pipeline;
+					return self.wireframeLayer.pipeline.ToGpu();
 				case PipelineContainerLayer.Gui:
-					return self.guiLayer.pipeline;
+					return self.guiLayer.pipeline.ToGpu();
 				case PipelineContainerLayer.Gizmo:
-					return self.gizmoLayer.pipeline;
+					return self.gizmoLayer.pipeline.ToGpu();
 				case PipelineContainerLayer.GizmoLine:
-					return self.gizmoLineLayer.pipeline;
+					return self.gizmoLineLayer.pipeline.ToGpu();
 				default:
 					throw new Exception();
 			}
 		}
 
-		public static PipelineLayout GetLayout(PipelineContainerLayer layer, ref PipelineContainer self)
+		public static GpuPipelineLayout GetLayout(PipelineContainerLayer layer, ref PipelineContainer self)
 		{
 			switch (layer)
 			{
 				case PipelineContainerLayer.Skybox:
-					return self.skyboxLayer.layout;
+					return self.skyboxLayer.layout.ToGpu();
 				case PipelineContainerLayer.Pbr:
-					return self.pbrLayer.layout;
+					return self.pbrLayer.layout.ToGpu();
 				case PipelineContainerLayer.Wireframe:
-					return self.wireframeLayer.layout;
+					return self.wireframeLayer.layout.ToGpu();
 				case PipelineContainerLayer.Gui:
-					return self.guiLayer.layout;
+					return self.guiLayer.layout.ToGpu();
 				case PipelineContainerLayer.Gizmo:
-					return self.gizmoLayer.layout;
+					return self.gizmoLayer.layout.ToGpu();
 				case PipelineContainerLayer.GizmoLine:
-					return self.gizmoLineLayer.layout;
+					return self.gizmoLineLayer.layout.ToGpu();
 				default:
 					throw new Exception();
 			}
 		}
 
-		static unsafe PipelineLayout CreatePipelineLayout(VkContext context, DescriptorSetLayout descriptorSetLayout)
+		static unsafe PipelineLayout CreatePipelineLayout(VkContext context, GpuDescriptorSetLayout gpuDescriptorSetLayout)
 		{
+			DescriptorSetLayout descriptorSetLayout = gpuDescriptorSetLayout.ToVkDescriptorSetLayout();
 			PipelineColorBlendAttachmentState colorBlendAttatchment = new();
 			colorBlendAttatchment.ColorWriteMask = ColorComponentFlags.RBit | ColorComponentFlags.GBit | ColorComponentFlags.BBit | ColorComponentFlags.ABit;
 			colorBlendAttatchment.BlendEnable = false;
@@ -140,11 +145,11 @@ namespace Engine
 
 	public struct RenderLayer
 	{
-		public Shader shader;
+		public ShaderSource shader;
 		public Pipeline pipeline;
 		public PipelineLayout layout;
 
-		public RenderLayer(Shader shader, Pipeline pipeline, PipelineLayout layout)
+		public RenderLayer(ShaderSource shader, Pipeline pipeline, PipelineLayout layout)
 		{
 			this.shader = shader;
 			this.pipeline = pipeline;
@@ -159,7 +164,7 @@ namespace Engine
 			context.vk.DestroyPipeline(context.device, pipeline, null);
 		}
 
-		public static RenderLayer CreatePbr(VkContext context, Shader shader, PipelineLayout layout, Extent2D extent, RenderPass compatibleRenderPass)
+		public static RenderLayer CreatePbr(VkContext context, ShaderSource shader, PipelineLayout layout, Silk.NET.Vulkan.Extent2D extent, RenderPass compatibleRenderPass)
 		{
 			var pipeline = new GraphicsPipelineBuilder()
 				.WithVertexInput(GetPbrBindingDescription(), GetPbrAttributeDescription())
@@ -175,7 +180,7 @@ namespace Engine
 			return new RenderLayer(shader, pipeline, layout);
 		}
 
-		public static RenderLayer CreateSkybox(VkContext context, Shader shader, PipelineLayout layout, Extent2D extent, RenderPass compatibleRenderPass)
+		public static RenderLayer CreateSkybox(VkContext context, ShaderSource shader, PipelineLayout layout, Silk.NET.Vulkan.Extent2D extent, RenderPass compatibleRenderPass)
 		{
 			var pipeline = new GraphicsPipelineBuilder()
 				.WithVertexInput(GetPbrBindingDescription(), GetPbrAttributeDescription())
@@ -191,7 +196,7 @@ namespace Engine
 			return new RenderLayer(shader, pipeline, layout);
 		}
 
-		public static RenderLayer CreateWireframe(VkContext context, Shader shader, PipelineLayout layout, Extent2D extent, RenderPass compatibleRenderPass)
+		public static RenderLayer CreateWireframe(VkContext context, ShaderSource shader, PipelineLayout layout, Silk.NET.Vulkan.Extent2D extent, RenderPass compatibleRenderPass)
 		{
 			var pipeline = new GraphicsPipelineBuilder()
 				.WithVertexInput(GetPbrBindingDescription(), GetPbrAttributeDescription())
@@ -207,7 +212,7 @@ namespace Engine
 			return new RenderLayer(shader, pipeline, layout);
 		}
 
-		public static RenderLayer CreateGui(VkContext context, Shader shader, PipelineLayout layout, Extent2D extent, RenderPass compatibleRenderPass)
+		public static RenderLayer CreateGui(VkContext context, ShaderSource shader, PipelineLayout layout, Silk.NET.Vulkan.Extent2D extent, RenderPass compatibleRenderPass)
 		{
 			var pipeline = new GraphicsPipelineBuilder()
 				.WithVertexInput(GetGuiBindingDescription(), GetGuiAttributeDescription())
@@ -223,7 +228,7 @@ namespace Engine
 			return new RenderLayer(shader, pipeline, layout);
 		}
 
-		public static RenderLayer CreateGizmo(VkContext context, Shader shader, PipelineLayout layout, Extent2D extent, RenderPass compatibleRenderPass)
+		public static RenderLayer CreateGizmo(VkContext context, ShaderSource shader, PipelineLayout layout, Silk.NET.Vulkan.Extent2D extent, RenderPass compatibleRenderPass)
 		{
 			var pipeline = new GraphicsPipelineBuilder()
 				.WithVertexInput(GetGizmoBindingDescription(), GetGizmoAttributeDescription())
@@ -239,7 +244,7 @@ namespace Engine
 			return new RenderLayer(shader, pipeline, layout);
 		}
 
-		public static RenderLayer CreateGizmoLine(VkContext context, Shader shader, PipelineLayout layout, Extent2D extent, RenderPass compatibleRenderPass)
+		public static RenderLayer CreateGizmoLine(VkContext context, ShaderSource shader, PipelineLayout layout, Silk.NET.Vulkan.Extent2D extent, RenderPass compatibleRenderPass)
 		{
 			var pipeline = new GraphicsPipelineBuilder()
 				.WithVertexInput(GetGizmoBindingDescription(), GetGizmoAttributeDescription())

@@ -1,25 +1,27 @@
 ﻿using EnCS;
 using Engine.Graphics;
-using Engine.Utils;
 using Silk.NET.Vulkan;
 using UtilLib.Memory;
 using Buffer = Silk.NET.Vulkan.Buffer;
 
+using RenderLib;
+using RenderLib.Vulkan;
+
 namespace Engine
 {
-	public struct PbrShaderInput : IUniformBufferObject<PbrShaderInput>
+	public struct PbrShaderInput : IUniformBufferObject<PbrShaderInput, VkContext>
 	{
 		public MappedMemory<MeshUniformBufferObject> ubo;
 		public MappedMemory<PbrMaterialInfo> material;
 		public FixedBuffer4<MappedMemory<Light>> lights;
 
-		public unsafe static DescriptorSet Create(VkContext context, DescriptorPool descriptorPool)
+		public unsafe static GpuDescriptorSet Create(VkContext context, GpuDescriptorPool descriptorPool)
 		{
 			DescriptorSetLayout layout = GetLayout(context);
 
 			DescriptorSetAllocateInfo allocInfo = new();
 			allocInfo.SType = StructureType.DescriptorSetAllocateInfo;
-			allocInfo.DescriptorPool = descriptorPool;
+			allocInfo.DescriptorPool = descriptorPool.ToVkDescriptorPool();
 			allocInfo.DescriptorSetCount = 1;
 			allocInfo.PSetLayouts = &layout;
 
@@ -27,11 +29,12 @@ namespace Engine
 			if (result != Result.Success)
 				throw new Exception("Failed to allocate vkDescriptorSets");
 
-			return descriptorSet;
+			return descriptorSet.ToGpu();
 		}
 
-		public unsafe static PbrShaderInput Map(VkContext context, DescriptorSet descriptorSet)
+		public unsafe static PbrShaderInput Map(VkContext context, GpuDescriptorSet gpuDescriptorSet)
 		{
+			DescriptorSet descriptorSet = gpuDescriptorSet.ToVkDescriptorSet();
 			Buffer uniformBuffer = VulkanHelper.CreateBuffer(context, BufferUsageFlags.UniformBufferBit, 704);
 			DeviceMemory uniformBuffersMemory = VulkanHelper.CreateBufferMemory(context, uniformBuffer, MemoryPropertyFlags.HostVisibleBit | MemoryPropertyFlags.HostCoherentBit);
 
@@ -69,18 +72,18 @@ namespace Engine
 		}
 	}
 
-	public struct GuiShaderInput : IUniformBufferObject<GuiShaderInput>
+	public struct GuiShaderInput : IUniformBufferObject<GuiShaderInput, VkContext>
 	{
 		public MappedMemory<GuiUniformBufferObject> ubo;
 		public MappedMemory<GuiStateBufferObject> guiState;
 
-		public unsafe static DescriptorSet Create(VkContext context, DescriptorPool descriptorPool)
+		public unsafe static GpuDescriptorSet Create(VkContext context, GpuDescriptorPool descriptorPool)
 		{
 			DescriptorSetLayout layout = GetLayout(context);
 
 			DescriptorSetAllocateInfo allocInfo = new();
 			allocInfo.SType = StructureType.DescriptorSetAllocateInfo;
-			allocInfo.DescriptorPool = descriptorPool;
+			allocInfo.DescriptorPool = descriptorPool.ToVkDescriptorPool();
 			allocInfo.DescriptorSetCount = 1;
 			allocInfo.PSetLayouts = &layout;
 
@@ -88,11 +91,12 @@ namespace Engine
 			if (result != Result.Success)
 				throw new Exception("Failed to allocate vkDescriptorSets");
 
-			return descriptorSet;
+			return descriptorSet.ToGpu();
 		}
 
-		public unsafe static GuiShaderInput Map(VkContext context, DescriptorSet descriptorSet)
+		public unsafe static GuiShaderInput Map(VkContext context, GpuDescriptorSet gpuDescriptorSet)
 		{
+			DescriptorSet descriptorSet = gpuDescriptorSet.ToVkDescriptorSet();
 			Buffer uniformBuffer = VulkanHelper.CreateBuffer(context, BufferUsageFlags.UniformBufferBit, 704);
 			DeviceMemory uniformBuffersMemory = VulkanHelper.CreateBufferMemory(context, uniformBuffer, MemoryPropertyFlags.HostVisibleBit | MemoryPropertyFlags.HostCoherentBit);
 
@@ -123,18 +127,18 @@ namespace Engine
 		}
 	}
 
-	public struct GizmoShaderInput : IUniformBufferObject<GizmoShaderInput>
+	public struct GizmoShaderInput : IUniformBufferObject<GizmoShaderInput, VkContext>
 	{
 		public MappedMemory<MeshUniformBufferObject> ubo;
 		public MappedMemory<GizmoUniformBufferObject> gizmoUbo;
 
-		public unsafe static DescriptorSet Create(VkContext context, DescriptorPool descriptorPool)
+		public unsafe static GpuDescriptorSet Create(VkContext context, GpuDescriptorPool descriptorPool)
 		{
 			DescriptorSetLayout layout = GetLayout(context);
 
 			DescriptorSetAllocateInfo allocInfo = new();
 			allocInfo.SType = StructureType.DescriptorSetAllocateInfo;
-			allocInfo.DescriptorPool = descriptorPool;
+			allocInfo.DescriptorPool = descriptorPool.ToVkDescriptorPool();
 			allocInfo.DescriptorSetCount = 1;
 			allocInfo.PSetLayouts = &layout;
 
@@ -142,11 +146,12 @@ namespace Engine
 			if (result != Result.Success)
 				throw new Exception("Failed to allocate vkDescriptorSets");
 
-			return descriptorSet;
+			return descriptorSet.ToGpu();
 		}
 
-		public unsafe static GizmoShaderInput Map(VkContext context, DescriptorSet descriptorSet)
+		public unsafe static GizmoShaderInput Map(VkContext context, GpuDescriptorSet gpuDescriptorSet)
 		{
+			DescriptorSet descriptorSet = gpuDescriptorSet.ToVkDescriptorSet();
 			Buffer uniformBuffer = VulkanHelper.CreateBuffer(context, BufferUsageFlags.UniformBufferBit, 704);
 			DeviceMemory uniformBuffersMemory = VulkanHelper.CreateBufferMemory(context, uniformBuffer, MemoryPropertyFlags.HostVisibleBit | MemoryPropertyFlags.HostCoherentBit);
 

@@ -1,6 +1,7 @@
 ﻿using EnCS;
 using EnCS.Attributes;
 using Engine.Components.Graphics;
+using RenderLib.OpenGL;
 using Silk.NET.OpenGL;
 
 namespace Engine.Graphics
@@ -23,9 +24,9 @@ namespace Engine.Graphics
 
 		GL gl;
 
-		public OpenGLMeshResourceManager(GL gl)
+		public OpenGLMeshResourceManager(GlContext context)
 		{
-			this.gl = gl;
+			this.gl = context.gl;
 		}
 
 		public ref Graphics.GlMeshBuffer Get(uint id)
