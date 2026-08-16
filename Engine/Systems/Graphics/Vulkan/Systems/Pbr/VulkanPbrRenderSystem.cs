@@ -61,7 +61,7 @@ namespace Engine
 		[SystemPreLoop, SystemLayer(0, 2)]
 		public void PreRenderPass()
 		{
-			renderContext.pipeline.StartRenderPass(context, RenderPassId.Mesh, PipelineContainerLayer.Pbr);
+			renderContext.pipeline.StartRenderPass(RenderPassId.Mesh, PipelineContainerLayer.Pbr);
 
 			bufferIdx = 0;
 			updateIdx = 0;
@@ -89,14 +89,14 @@ namespace Engine
 		[SystemUpdate, SystemLayer(0, 2)]
 		public void RenderUpdate(ref VulkanRenderContext context, ref Position position, ref Rotation rotation, ref Scale scale, ref VkMeshBuffer mesh, ref VkPbrMaterial material)
 		{
-			renderContext.pipeline.Render(this.context, PipelineContainerLayer.Pbr, mesh.vertexBuffer.ToGpu(), mesh.indexBuffer.ToGpu(), mesh.indicies, updateIdx);
+			renderContext.pipeline.Render(PipelineContainerLayer.Pbr, mesh.vertexBuffer.ToGpu(), mesh.indexBuffer.ToGpu(), mesh.indicies, updateIdx);
 			updateIdx++;
 		}
 
 		[SystemPostLoop, SystemLayer(0, 2)]
 		public void PostRenderPass()
 		{
-			renderContext.pipeline.EndRenderPass(context);
+			renderContext.pipeline.EndRenderPass();
 		}
 
 		static void UpdateEntityUbo(ref MeshUniformBufferObject ubo, ref Position position, ref Rotation rotation, ref Scale scale)

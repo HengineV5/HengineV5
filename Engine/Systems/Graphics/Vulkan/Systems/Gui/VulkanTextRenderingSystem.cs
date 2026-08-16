@@ -40,7 +40,7 @@ namespace Engine
 		[SystemPreLoop, SystemLayer(0, 2)]
 		public void PreRenderPass()
 		{
-			renderContext.pipeline.StartRenderPass(context, RenderPassId.Gui, PipelineContainerLayer.Gui);
+			renderContext.pipeline.StartRenderPass(RenderPassId.Gui, PipelineContainerLayer.Gui);
 
 			bufferIdx = 0;
 			updateIdx = 0;
@@ -69,7 +69,7 @@ namespace Engine
 		[SystemPostLoop, SystemLayer(0, 2)]
 		public void PostRenderPass()
 		{
-			renderContext.pipeline.EndRenderPass(context);
+			renderContext.pipeline.EndRenderPass();
 		}
 
 		int f = 0;
@@ -128,18 +128,18 @@ namespace Engine
 				var stop = textBuffer.indexOffsets.Span[idx + 1];
 				var length = stop - start;
 
-				renderContext.pipeline.Render(this.context, PipelineContainerLayer.Gui, textBuffer.vertexBuffer.ToGpu(), textBuffer.indexBuffer.ToGpu(), (uint)length, updateIdx, 0, (uint)start);
+				renderContext.pipeline.Render(PipelineContainerLayer.Gui, textBuffer.vertexBuffer.ToGpu(), textBuffer.indexBuffer.ToGpu(), (uint)length, updateIdx, 0, (uint)start);
 
 				pushConstant.offset += new Vector2f(textBuffer.advances.Span[idx], 0);
-				renderContext.pipeline.SetPushConstant(this.context, PipelineContainerLayer.Gui, ref pushConstant);
+				renderContext.pipeline.SetPushConstant(PipelineContainerLayer.Gui, ref pushConstant);
 			}
 
 			pushConstant.offset = new Vector2f(0, 0);
-			renderContext.pipeline.SetPushConstant(this.context, PipelineContainerLayer.Gui, ref pushConstant);
+			renderContext.pipeline.SetPushConstant(PipelineContainerLayer.Gui, ref pushConstant);
 
-			//renderContext.pipeline.Render(this.context, PipelineContainerLayer.Gui, textBuffer.vertexBuffer.ToGpu(), textBuffer.indexBuffer.ToGpu(), textBuffer.indicies, updateIdx);
-			//renderContext.pipeline.Render(this.context, PipelineContainerLayer.Gui, textBuffer.vertexBuffer.ToGpu(), textBuffer.indexBuffer.ToGpu(), (uint)length, updateIdx);
-			//renderContext.pipeline.Render(this.context, PipelineContainerLayer.Gui, textBuffer.vertexBuffer.ToGpu(), textBuffer.indexBuffer.ToGpu(), (uint)length, updateIdx, 0, (uint)start);
+			//renderContext.pipeline.Render(PipelineContainerLayer.Gui, textBuffer.vertexBuffer.ToGpu(), textBuffer.indexBuffer.ToGpu(), textBuffer.indicies, updateIdx);
+			//renderContext.pipeline.Render(PipelineContainerLayer.Gui, textBuffer.vertexBuffer.ToGpu(), textBuffer.indexBuffer.ToGpu(), (uint)length, updateIdx);
+			//renderContext.pipeline.Render(PipelineContainerLayer.Gui, textBuffer.vertexBuffer.ToGpu(), textBuffer.indexBuffer.ToGpu(), (uint)length, updateIdx, 0, (uint)start);
 		}
 	}
 }

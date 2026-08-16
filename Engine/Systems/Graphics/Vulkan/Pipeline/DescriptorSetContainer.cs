@@ -3,10 +3,12 @@
 using RenderLib;
 using RenderLib.Vulkan;
 
+using Backend = RenderLib.Backend;
+
 namespace Engine
 {
 	// TODO: Improve
-	internal static class DescriptorSetGroupCache<TDescriptorSet> where TDescriptorSet : struct, IUniformBufferObject<TDescriptorSet, VkContext>
+	internal static class DescriptorSetGroupCache<TDescriptorSet> where TDescriptorSet : struct, IUniformBufferObject<TDescriptorSet, Backend.Vulkan>
 	{
 		public static bool Initialized = false;
 		public static uint size;
@@ -18,7 +20,7 @@ namespace Engine
 		}
 	}
 
-	public struct DescriptorSetGroup<TDescriptorSet> where TDescriptorSet : struct, IUniformBufferObject<TDescriptorSet, VkContext>
+	public struct DescriptorSetGroup<TDescriptorSet> where TDescriptorSet : struct, IUniformBufferObject<TDescriptorSet, Backend.Vulkan>
 	{
 		public Memory<DescriptorSet> descriptorSets;
 		public uint size;
@@ -34,7 +36,7 @@ namespace Engine
 			return descriptorSets.Span[(int)(frame * size + idx)];
 		}
 
-		public static DescriptorSetGroup<TDescriptorSet> Create(VkContext context, DescriptorPool pool, uint frames, uint size)
+		public static DescriptorSetGroup<TDescriptorSet> Create(ref Backend.Vulkan backend, DescriptorPool pool, uint frames, uint size)
 		{
 			DescriptorSetGroup<TDescriptorSet> group = new DescriptorSetGroup<TDescriptorSet>(new DescriptorSet[frames * size], size);
 
@@ -46,9 +48,9 @@ namespace Engine
 
 			for (int i = 0; i < group.descriptorSets.Length; i++)
 			{
-				GpuDescriptorSet gpuDescriptorSet = TDescriptorSet.Create(context, pool.ToGpu());
+				GpuDescriptorSet gpuDescriptorSet = TDescriptorSet.Create(ref backend, pool.ToGpu());
 				group.descriptorSets.Span[i] = gpuDescriptorSet.ToVkDescriptorSet();
-				DescriptorSetGroupCache<TDescriptorSet>.mapped.Span[i] = TDescriptorSet.Map(context, gpuDescriptorSet);
+				DescriptorSetGroupCache<TDescriptorSet>.mapped.Span[i] = TDescriptorSet.Map(ref backend, gpuDescriptorSet);
 			}
 
 			DescriptorSetGroupCache<TDescriptorSet>.Initialized = true;
@@ -57,7 +59,7 @@ namespace Engine
 		}
 	}
 
-	public struct DescriptorSetContainer : IDescriptorContainer<DescriptorSetContainer, VkContext, PipelineContainerLayer>
+	public struct DescriptorSetContainer
 	{
 		DescriptorSetGroup<PbrShaderInput> pbrDescriptors;
 		DescriptorSetGroup<GuiShaderInput> guiDescriptors;
@@ -70,22 +72,21 @@ namespace Engine
 			this.gizmoDescriptors = gizmoDescriptors;
 		}
 
-		public static DescriptorSetContainer Create<TRenderTargetManager, TRenderPassInfo, TPipelineInfo>(VkContext context)
-			where TRenderTargetManager : struct, IRenderTargetManager<TRenderTargetManager, VkContext, TRenderPassInfo, TPipelineInfo>
-			where TRenderPassInfo : struct
-			where TPipelineInfo : struct
+		public static DescriptorSetContainer Create(ref Backend.Vulkan backend)
 		{
-			uint frames = TRenderTargetManager.GetFramesInFlight();
+			VkContext context = backend.Context;
+
+			uint frames = Backend.Vulkan.GetFramesInFlight();
 			uint descriptorsPerFrame = 16;
 
 			var pbrPool = VulkanHelper.CreateDescriptorPool(context, frames * descriptorsPerFrame);
-			var pbr = DescriptorSetGroup<PbrShaderInput>.Create(context, pbrPool, frames, descriptorsPerFrame);
+			var pbr = DescriptorSetGroup<PbrShaderInput>.Create(ref backend, pbrPool, frames, descriptorsPerFrame);
 
 			var guiPool = VulkanHelper.CreateDescriptorPool(context, frames * descriptorsPerFrame);
-			var gui = DescriptorSetGroup<GuiShaderInput>.Create(context, guiPool, frames, descriptorsPerFrame);
+			var gui = DescriptorSetGroup<GuiShaderInput>.Create(ref backend, guiPool, frames, descriptorsPerFrame);
 
 			var gizmoPool = VulkanHelper.CreateDescriptorPool(context, frames * descriptorsPerFrame);
-			var gizmo = DescriptorSetGroup<GizmoShaderInput>.Create(context, gizmoPool, frames, descriptorsPerFrame);
+			var gizmo = DescriptorSetGroup<GizmoShaderInput>.Create(ref backend, gizmoPool, frames, descriptorsPerFrame);
 
 			return new DescriptorSetContainer(pbr, gui, gizmo);
 		}
@@ -126,7 +127,7 @@ namespace Engine
 			}
 		}
 
-		public static ref TUbo GetUbo<TUbo>(uint frame, uint idx) where TUbo : struct, IUniformBufferObject<TUbo, VkContext>
+		public static ref TUbo GetUbo<TUbo>(uint frame, uint idx) where TUbo : struct, IUniformBufferObject<TUbo, Backend.Vulkan>
 		{
 			return ref DescriptorSetGroupCache<TUbo>.GetMapped(frame, idx);
 		}

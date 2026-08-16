@@ -48,7 +48,7 @@ namespace Engine
 		[SystemPreLoop, SystemLayer(0, 2)]
 		public void PreRenderPass()
 		{
-			renderContext.pipeline.StartRenderPass(context, RenderPassId.Gui, PipelineContainerLayer.Gui);
+			renderContext.pipeline.StartRenderPass(RenderPassId.Gui, PipelineContainerLayer.Gui);
 
 			bufferIdx = 0;
 			updateIdx = 0;
@@ -91,12 +91,12 @@ namespace Engine
 		[SystemPostLoop, SystemLayer(0, 2)]
 		public void PostRenderPass()
 		{
-			renderContext.pipeline.EndRenderPass(context);
+			renderContext.pipeline.EndRenderPass();
 		}
 
 		void RenderMesh(VkMeshBuffer meshBuffer)
 		{
-			renderContext.pipeline.Render(this.context, PipelineContainerLayer.Gui, meshBuffer.vertexBuffer.ToGpu(), meshBuffer.indexBuffer.ToGpu(), meshBuffer.indicies, updateIdx);
+			renderContext.pipeline.Render(PipelineContainerLayer.Gui, meshBuffer.vertexBuffer.ToGpu(), meshBuffer.indexBuffer.ToGpu(), meshBuffer.indicies, updateIdx);
 		}
 	}
 

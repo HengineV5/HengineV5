@@ -3,6 +3,8 @@ using RenderLib.Vulkan;
 using Silk.NET.Vulkan;
 using UtilLib.Memory;
 
+using Backend = RenderLib.Backend;
+
 namespace Engine
 {
 	public class VkRenderContext
@@ -12,7 +14,7 @@ namespace Engine
 		public CommandPool commandPool;
 		public FixedBuffer16<Sampler> samplers;
 
-		public RenderPipeline<VkContext, SwapchainRenderTargetManager, DefaultRenderPassInfo, DefaultPipelineInfo, DescriptorSetContainer, PipelineContainer, PipelineContainerLayer, RenderPassContainer, RenderPassId> pipeline;
+		public RenderPipeline<Backend.Vulkan, HengineRenderGraph, PipelineContainerLayer, RenderPassId> pipeline;
 
 		public VkRenderContext(VkContext context)
 		{
@@ -29,12 +31,10 @@ namespace Engine
 
 			samplers[8] = VulkanHelper.CreateSampler(context, 5);
 
-			uint graphicsQueueFamily = VulkanHelper.GetGraphicsQueueFamily(context);
-			Queue graphicsQueue = VulkanHelper.GetQueue(context, graphicsQueueFamily);
+			Backend.Vulkan backend = Backend.Vulkan.Create(context);
+			commandPool = backend.CommandPool;
 
-			commandPool = VulkanHelper.CreateCommandPool(context, graphicsQueueFamily);
-
-			pipeline = RenderPipeline<VkContext, SwapchainRenderTargetManager, DefaultRenderPassInfo, DefaultPipelineInfo, DescriptorSetContainer, PipelineContainer, PipelineContainerLayer, RenderPassContainer, RenderPassId>.Create(context, graphicsQueue.ToGpu(), commandPool.ToGpu());
+			pipeline = RenderPipeline<Backend.Vulkan, HengineRenderGraph, PipelineContainerLayer, RenderPassId>.Create(ref backend);
 		}
 	}
 }

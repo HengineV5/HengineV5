@@ -7,6 +7,8 @@ using RenderLib.OpenGL;
 using Silk.NET.OpenGL;
 using System.Text;
 
+using Backend = RenderLib.Backend;
+
 namespace Engine
 {
 	public struct OpenGLRenderContext
@@ -40,7 +42,7 @@ namespace Engine
 		private static readonly ClearColor clearColor = new(100 / 255f, 149 / 255f, 237 / 255f, 1f);
 
 		GlContext context;
-		GlRenderTargetManager renderTargetManager;
+		Backend.OpenGL backend;
 
 		ShaderSource shader;
 		ShaderProgram shaderProgram;
@@ -52,7 +54,7 @@ namespace Engine
 
 		public void Init()
 		{
-			renderTargetManager = GlRenderTargetManager.Create(context, GpuCommandPool.None);
+			backend = Backend.OpenGL.Create(context);
 
 			shader = ShaderSource.FromFiles("Shaders/Shader.vert", "Shaders/Shader.frag");
 			shaderProgram = CreateShaderProgram(context.gl, shader);
@@ -68,9 +70,9 @@ namespace Engine
 			context.window.DoEvents();
 
 			var renderPass = GlRenderPass.Create(GlAttachmentLoadOp.ClearAll);
-			var renderArea = GlRenderTargetManager.GetRenderArea(ref renderTargetManager);
+			var renderArea = Backend.OpenGL.GetRenderArea(ref backend);
 
-			GlContext.BeginRenderPass(context, GpuCommandBuffer.None, renderPass, GpuFramebuffer.None, renderArea, clearColor);
+			Backend.OpenGL.BeginRenderPass(ref backend, GpuCommandBuffer.None, renderPass, GpuFramebuffer.None, renderArea, clearColor);
 
 			Thread.Sleep(10);
 		}
@@ -99,21 +101,21 @@ namespace Engine
 			ShaderUniforms shaderUniforms = GetShaderUniforms(this.context.gl, shaderProgram);
 
 			GpuCommandBuffer cmd = GpuCommandBuffer.None;
-			GlContext.BindVertexArray(this.context, mesh.vao.ID.ToGpuVertexArray());
-			GlContext.BindPipeline(this.context, cmd, ((uint)shaderProgram.ID).ToGpuPipeline());
+			Backend.OpenGL.BindVertexArray(ref backend, mesh.vao.ID.ToGpuVertexArray());
+			Backend.OpenGL.BindPipeline(ref backend, cmd, ((uint)shaderProgram.ID).ToGpuPipeline());
 
 			SetModelUniforms(ref position, ref rotation, ref scale, shaderUniforms);
 			//SetCameraUniforms(ref context.camera, ref context.cameraPosition, ref context.cameraRotation, shaderUniforms);
 			SetMaterialUniforms(defaultMaterial, shaderUniforms);
 			SetLightUniforms(defaultLight, new Position(), shaderUniforms);
 
-			GlContext.DrawIndexed(this.context, cmd, mesh.vao.length, 0, 0);
+			Backend.OpenGL.DrawIndexed(ref backend, cmd, mesh.vao.length, 0, 0);
 		}
 
 		public void PostRun()
 		{
 			RenderTarget renderTarget = default;
-			GlRenderTargetManager.PresentTarget(context, ref renderTargetManager, ref renderTarget);
+			Backend.OpenGL.PresentTarget(ref backend, ref renderTarget);
 		}
 
 		unsafe void SetModelUniforms(ref Position position, ref Rotation rotation, ref Scale scale, in ShaderUniforms uniforms)

@@ -29,7 +29,7 @@ namespace Engine
 
 		public void PostRun()
 		{
-			renderContext.pipeline.PresentRender(context);
+			renderContext.pipeline.PresentRender();
 		}
 	}
 }

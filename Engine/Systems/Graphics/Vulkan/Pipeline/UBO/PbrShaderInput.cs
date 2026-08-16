@@ -7,16 +7,19 @@ using Buffer = Silk.NET.Vulkan.Buffer;
 using RenderLib;
 using RenderLib.Vulkan;
 
+using Backend = RenderLib.Backend;
+
 namespace Engine
 {
-	public struct PbrShaderInput : IUniformBufferObject<PbrShaderInput, VkContext>
+	public struct PbrShaderInput : IUniformBufferObject<PbrShaderInput, Backend.Vulkan>
 	{
 		public MappedMemory<MeshUniformBufferObject> ubo;
 		public MappedMemory<PbrMaterialInfo> material;
 		public FixedBuffer4<MappedMemory<Light>> lights;
 
-		public unsafe static GpuDescriptorSet Create(VkContext context, GpuDescriptorPool descriptorPool)
+		public unsafe static GpuDescriptorSet Create(ref Backend.Vulkan backend, GpuDescriptorPool descriptorPool)
 		{
+			VkContext context = backend.Context;
 			DescriptorSetLayout layout = GetLayout(context);
 
 			DescriptorSetAllocateInfo allocInfo = new();
@@ -32,8 +35,9 @@ namespace Engine
 			return descriptorSet.ToGpu();
 		}
 
-		public unsafe static PbrShaderInput Map(VkContext context, GpuDescriptorSet gpuDescriptorSet)
+		public unsafe static PbrShaderInput Map(ref Backend.Vulkan backend, GpuDescriptorSet gpuDescriptorSet)
 		{
+			VkContext context = backend.Context;
 			DescriptorSet descriptorSet = gpuDescriptorSet.ToVkDescriptorSet();
 			Buffer uniformBuffer = VulkanHelper.CreateBuffer(context, BufferUsageFlags.UniformBufferBit, 704);
 			DeviceMemory uniformBuffersMemory = VulkanHelper.CreateBufferMemory(context, uniformBuffer, MemoryPropertyFlags.HostVisibleBit | MemoryPropertyFlags.HostCoherentBit);
@@ -72,13 +76,14 @@ namespace Engine
 		}
 	}
 
-	public struct GuiShaderInput : IUniformBufferObject<GuiShaderInput, VkContext>
+	public struct GuiShaderInput : IUniformBufferObject<GuiShaderInput, Backend.Vulkan>
 	{
 		public MappedMemory<GuiUniformBufferObject> ubo;
 		public MappedMemory<GuiStateBufferObject> guiState;
 
-		public unsafe static GpuDescriptorSet Create(VkContext context, GpuDescriptorPool descriptorPool)
+		public unsafe static GpuDescriptorSet Create(ref Backend.Vulkan backend, GpuDescriptorPool descriptorPool)
 		{
+			VkContext context = backend.Context;
 			DescriptorSetLayout layout = GetLayout(context);
 
 			DescriptorSetAllocateInfo allocInfo = new();
@@ -94,8 +99,9 @@ namespace Engine
 			return descriptorSet.ToGpu();
 		}
 
-		public unsafe static GuiShaderInput Map(VkContext context, GpuDescriptorSet gpuDescriptorSet)
+		public unsafe static GuiShaderInput Map(ref Backend.Vulkan backend, GpuDescriptorSet gpuDescriptorSet)
 		{
+			VkContext context = backend.Context;
 			DescriptorSet descriptorSet = gpuDescriptorSet.ToVkDescriptorSet();
 			Buffer uniformBuffer = VulkanHelper.CreateBuffer(context, BufferUsageFlags.UniformBufferBit, 704);
 			DeviceMemory uniformBuffersMemory = VulkanHelper.CreateBufferMemory(context, uniformBuffer, MemoryPropertyFlags.HostVisibleBit | MemoryPropertyFlags.HostCoherentBit);
@@ -127,13 +133,14 @@ namespace Engine
 		}
 	}
 
-	public struct GizmoShaderInput : IUniformBufferObject<GizmoShaderInput, VkContext>
+	public struct GizmoShaderInput : IUniformBufferObject<GizmoShaderInput, Backend.Vulkan>
 	{
 		public MappedMemory<MeshUniformBufferObject> ubo;
 		public MappedMemory<GizmoUniformBufferObject> gizmoUbo;
 
-		public unsafe static GpuDescriptorSet Create(VkContext context, GpuDescriptorPool descriptorPool)
+		public unsafe static GpuDescriptorSet Create(ref Backend.Vulkan backend, GpuDescriptorPool descriptorPool)
 		{
+			VkContext context = backend.Context;
 			DescriptorSetLayout layout = GetLayout(context);
 
 			DescriptorSetAllocateInfo allocInfo = new();
@@ -149,8 +156,9 @@ namespace Engine
 			return descriptorSet.ToGpu();
 		}
 
-		public unsafe static GizmoShaderInput Map(VkContext context, GpuDescriptorSet gpuDescriptorSet)
+		public unsafe static GizmoShaderInput Map(ref Backend.Vulkan backend, GpuDescriptorSet gpuDescriptorSet)
 		{
+			VkContext context = backend.Context;
 			DescriptorSet descriptorSet = gpuDescriptorSet.ToVkDescriptorSet();
 			Buffer uniformBuffer = VulkanHelper.CreateBuffer(context, BufferUsageFlags.UniformBufferBit, 704);
 			DeviceMemory uniformBuffersMemory = VulkanHelper.CreateBufferMemory(context, uniformBuffer, MemoryPropertyFlags.HostVisibleBit | MemoryPropertyFlags.HostCoherentBit);

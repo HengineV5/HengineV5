@@ -36,7 +36,7 @@ namespace Engine
 		[SystemPreLoop, SystemLayer(0, 2)]
 		public void PreRenderPass()
 		{
-			renderContext.pipeline.StartRenderPass(context, RenderPassId.Mesh, PipelineContainerLayer.Gizmo);
+			renderContext.pipeline.StartRenderPass(RenderPassId.Mesh, PipelineContainerLayer.Gizmo);
 
 			bufferIdx = 0;
 			updateIdx = 0;
@@ -60,10 +60,10 @@ namespace Engine
 			switch (gizmoComp.type)
 			{
 				case GizmoType.Point:
-					renderContext.pipeline.Render(this.context, PipelineContainerLayer.Gizmo, point.vertexBuffer.ToGpu(), point.indexBuffer.ToGpu(), point.indicies, updateIdx);
+					renderContext.pipeline.Render(PipelineContainerLayer.Gizmo, point.vertexBuffer.ToGpu(), point.indexBuffer.ToGpu(), point.indicies, updateIdx);
 					break;
 				case GizmoType.Arrow:
-					renderContext.pipeline.Render(this.context, PipelineContainerLayer.Gizmo, arrow.vertexBuffer.ToGpu(), arrow.indexBuffer.ToGpu(), arrow.indicies, updateIdx);
+					renderContext.pipeline.Render(PipelineContainerLayer.Gizmo, arrow.vertexBuffer.ToGpu(), arrow.indexBuffer.ToGpu(), arrow.indicies, updateIdx);
 					break;
 				default:
 					break;
@@ -75,7 +75,7 @@ namespace Engine
 		[SystemPostLoop, SystemLayer(0, 2)]
 		public void PostRenderPass()
 		{
-			renderContext.pipeline.EndRenderPass(context);
+			renderContext.pipeline.EndRenderPass();
 		}
 
 		static void UpdateEntityUbo(ref MeshUniformBufferObject ubo, ref Position position, ref Rotation rotation, ref Scale scale)

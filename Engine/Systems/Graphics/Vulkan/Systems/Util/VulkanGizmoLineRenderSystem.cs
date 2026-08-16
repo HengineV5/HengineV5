@@ -36,7 +36,7 @@ namespace Engine
 		[SystemPreLoop, SystemLayer(0, 2)]
 		public void PreRenderPass()
 		{
-			renderContext.pipeline.StartRenderPass(context, RenderPassId.Mesh, PipelineContainerLayer.GizmoLine);
+			renderContext.pipeline.StartRenderPass(RenderPassId.Mesh, PipelineContainerLayer.GizmoLine);
 
 			bufferIdx = 0;
 			updateIdx = 0;
@@ -64,7 +64,7 @@ namespace Engine
 		[SystemUpdate, SystemLayer(0, 2)]
 		public void RenderUpdate(ref VulkanRenderContext context, ref GizmoLine gizmoComp)
 		{
-			renderContext.pipeline.Render(this.context, PipelineContainerLayer.GizmoLine, line.vertexBuffer.ToGpu(), line.indexBuffer.ToGpu(), line.indicies, updateIdx);
+			renderContext.pipeline.Render(PipelineContainerLayer.GizmoLine, line.vertexBuffer.ToGpu(), line.indexBuffer.ToGpu(), line.indicies, updateIdx);
 
 			updateIdx++;
 		}
@@ -72,7 +72,7 @@ namespace Engine
 		[SystemPostLoop, SystemLayer(0, 2)]
 		public void PostRenderPass()
 		{
-			renderContext.pipeline.EndRenderPass(context);
+			renderContext.pipeline.EndRenderPass();
 		}
 	}
 }

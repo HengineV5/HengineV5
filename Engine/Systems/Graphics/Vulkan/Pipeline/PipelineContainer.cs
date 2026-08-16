@@ -10,7 +10,7 @@ namespace Engine
 		public Vector2f offset;
 	}
 
-	public struct PipelineContainer : IPipelineContainer<PipelineContainer, VkContext, DefaultPipelineInfo, PipelineContainerLayer>
+	public struct PipelineContainer
 	{
 		public RenderLayer skyboxLayer;
 		public RenderLayer pbrLayer;
@@ -29,30 +29,30 @@ namespace Engine
 			this.gizmoLineLayer = gizmoLineLayer;
 		}
 
-		public static PipelineContainer Create<TDescriptorContainer>(VkContext context, GpuRenderPass compatibleGpuRenderPass, in DefaultPipelineInfo info)
-			where TDescriptorContainer : struct, IDescriptorContainer<TDescriptorContainer, VkContext, PipelineContainerLayer>
+		public static PipelineContainer Create(VkContext context, GpuRenderPass compatibleGpuRenderPass, in PipelineInfo info)
 		{
 			var compatibleRenderPass = compatibleGpuRenderPass.ToVkRenderPass();
+			var extent = new Silk.NET.Vulkan.Extent2D(info.extent.width, info.extent.height);
 
-			var pbrDescriptorLayout = CreatePipelineLayout(context, TDescriptorContainer.GetDescriptorSetLayout(context, PipelineContainerLayer.Pbr));
-			var guiDescriptorLayout = CreatePipelineLayout(context, TDescriptorContainer.GetDescriptorSetLayout(context, PipelineContainerLayer.Gui));
-			var gizmoDescriptorLayout = CreatePipelineLayout(context, TDescriptorContainer.GetDescriptorSetLayout(context, PipelineContainerLayer.Gizmo));
+			var pbrDescriptorLayout = CreatePipelineLayout(context, DescriptorSetContainer.GetDescriptorSetLayout(context, PipelineContainerLayer.Pbr));
+			var guiDescriptorLayout = CreatePipelineLayout(context, DescriptorSetContainer.GetDescriptorSetLayout(context, PipelineContainerLayer.Gui));
+			var gizmoDescriptorLayout = CreatePipelineLayout(context, DescriptorSetContainer.GetDescriptorSetLayout(context, PipelineContainerLayer.Gizmo));
 
 			var skyboxShader = ShaderSource.FromFiles("Shaders/Skybox/SkyboxVert.spv", "Shaders/Skybox/SkyboxFrag.spv");
-			var skyboxPipeline = RenderLayer.CreateSkybox(context, skyboxShader, pbrDescriptorLayout, info.extent, compatibleRenderPass);
+			var skyboxPipeline = RenderLayer.CreateSkybox(context, skyboxShader, pbrDescriptorLayout, extent, compatibleRenderPass);
 
 			var pbrShader = ShaderSource.FromFiles("Shaders/Pbr/PbrVert.spv", "Shaders/Pbr/PbrFrag.spv");
-			var pbrPipeline = RenderLayer.CreatePbr(context, pbrShader, pbrDescriptorLayout, info.extent, compatibleRenderPass);
+			var pbrPipeline = RenderLayer.CreatePbr(context, pbrShader, pbrDescriptorLayout, extent, compatibleRenderPass);
 
 			var wireframeShader = ShaderSource.FromFiles("Shaders/Pbr/PbrVert.spv", "Shaders/Pbr/BlackFrag.spv");
-			var wireframePipeline = RenderLayer.CreateWireframe(context, wireframeShader, pbrDescriptorLayout, info.extent, compatibleRenderPass);
+			var wireframePipeline = RenderLayer.CreateWireframe(context, wireframeShader, pbrDescriptorLayout, extent, compatibleRenderPass);
 
 			var guiShader = ShaderSource.FromFiles("Shaders/Gui/GuiVert.spv", "Shaders/Gui/GuiFrag.spv");
-			var guiPipeline = RenderLayer.CreateGui(context, guiShader, guiDescriptorLayout, info.extent, compatibleRenderPass);
+			var guiPipeline = RenderLayer.CreateGui(context, guiShader, guiDescriptorLayout, extent, compatibleRenderPass);
 
 			var gizmoShader = ShaderSource.FromFiles("Shaders/Gizmo/GizmoVert.spv", "Shaders/Gizmo/GizmoFrag.spv");
-			var gizmoPipeline = RenderLayer.CreateGizmo(context, gizmoShader, gizmoDescriptorLayout, info.extent, compatibleRenderPass);
-			var gizmoLinePipeline = RenderLayer.CreateGizmoLine(context, gizmoShader, gizmoDescriptorLayout, info.extent, compatibleRenderPass);
+			var gizmoPipeline = RenderLayer.CreateGizmo(context, gizmoShader, gizmoDescriptorLayout, extent, compatibleRenderPass);
+			var gizmoLinePipeline = RenderLayer.CreateGizmoLine(context, gizmoShader, gizmoDescriptorLayout, extent, compatibleRenderPass);
 
 			return new PipelineContainer(skyboxPipeline, pbrPipeline, wireframePipeline, guiPipeline, gizmoPipeline, gizmoLinePipeline);
 		}

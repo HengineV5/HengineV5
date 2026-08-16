@@ -6,7 +6,7 @@ using RenderLib.Vulkan;
 
 namespace Engine
 {
-	public struct RenderPassContainer : IRenderPassContainer<RenderPassContainer, VkContext, DefaultRenderPassInfo, RenderPassId>
+	public struct RenderPassContainer
 	{
 		public RenderPass skyboxRenderPass;
 		public RenderPass meshRenderPass;
@@ -19,11 +19,11 @@ namespace Engine
 			this.guiRenderPass = guiRenderPass;
 		}
 
-		public static RenderPassContainer Create(VkContext context, in DefaultRenderPassInfo renderPassInfo)
+		public static RenderPassContainer Create(VkContext context, in RenderPassInfo renderPassInfo)
 		{
-			var skyboxRenderPass = CreateSkyboxRenderPass(context, renderPassInfo.colorFormat, renderPassInfo.depthFormat);
-			var meshRenderPass = CreateMeshRenderPass(context, renderPassInfo.colorFormat, renderPassInfo.depthFormat);
-			var guiRenderPass = CreateGuiRenderPass(context, renderPassInfo.colorFormat, renderPassInfo.depthFormat);
+			var skyboxRenderPass = CreateSkyboxRenderPass(context, renderPassInfo.colorFormat.ToVk(), renderPassInfo.depthFormat.ToVk());
+			var meshRenderPass = CreateMeshRenderPass(context, renderPassInfo.colorFormat.ToVk(), renderPassInfo.depthFormat.ToVk());
+			var guiRenderPass = CreateGuiRenderPass(context, renderPassInfo.colorFormat.ToVk(), renderPassInfo.depthFormat.ToVk());
 
 			return new RenderPassContainer(skyboxRenderPass, meshRenderPass, guiRenderPass);
 		}

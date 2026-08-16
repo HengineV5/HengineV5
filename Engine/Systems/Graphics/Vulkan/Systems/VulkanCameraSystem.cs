@@ -42,16 +42,16 @@ namespace Engine
 			context.skybox = skybox;
 
 			// Skybox render
-			renderContext.pipeline.StartRender(this.context);
-			renderContext.pipeline.StartRenderPass(this.context, RenderPassId.Skybox, PipelineContainerLayer.Skybox);
+			renderContext.pipeline.StartRender();
+			renderContext.pipeline.StartRenderPass(RenderPassId.Skybox, PipelineContainerLayer.Skybox);
 
 			ref PbrShaderInput shaderInput = ref renderContext.pipeline.GetUbo<PbrShaderInput>(0);
 			shaderInput.ubo.Value = context.skyboxUbo;
 			VulkanRenderHelpers.UpdateSkyboxDescriptorSet(this.context, renderContext.pipeline.GetDescriptorSet(PipelineContainerLayer.Skybox, 0), skybox.skybox, renderContext.samplers);
 
-			renderContext.pipeline.Render(this.context, PipelineContainerLayer.Skybox, skyboxBuffer.vertexBuffer.ToGpu(), skyboxBuffer.indexBuffer.ToGpu(), skyboxBuffer.indicies, 0);
-			renderContext.pipeline.ClearDepthBuffer(this.context); // Clear depth buffer because mesh rendering might go over multiple render passes, so depth buffer is loaded for each pass.
-			renderContext.pipeline.EndRenderPass(this.context);
+			renderContext.pipeline.Render(PipelineContainerLayer.Skybox, skyboxBuffer.vertexBuffer.ToGpu(), skyboxBuffer.indexBuffer.ToGpu(), skyboxBuffer.indicies, 0);
+			renderContext.pipeline.ClearDepthBuffer(); // Clear depth buffer because mesh rendering might go over multiple render passes, so depth buffer is loaded for each pass.
+			renderContext.pipeline.EndRenderPass();
 
 			UpdateCameraUbo(ref context.pbrUbo, ref camera, ref position, ref rotation, window);
 			UpdateCameraGuiUbo(ref context.guiUbo, ref camera, window);

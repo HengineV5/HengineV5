@@ -47,7 +47,7 @@ namespace Engine
 			keyPressed = inputHandler.IsKeyDown(Silk.NET.Input.Key.F1);
 
 			if (wireframeEnabled)
-				renderContext.pipeline.StartRenderPass(context, RenderPassId.Mesh, PipelineContainerLayer.Wireframe);
+				renderContext.pipeline.StartRenderPass(RenderPassId.Mesh, PipelineContainerLayer.Wireframe);
 
 			bufferIdx = 0;
 			updateIdx = 0;
@@ -72,7 +72,7 @@ namespace Engine
 		public void RenderUpdate(ref VulkanRenderContext context, ref Position position, ref Rotation rotation, ref Scale scale, ref VkMeshBuffer mesh, ref VkPbrMaterial material)
 		{
 			if (wireframeEnabled)
-				renderContext.pipeline.Render(this.context, PipelineContainerLayer.Wireframe, mesh.vertexBuffer.ToGpu(), mesh.indexBuffer.ToGpu(), mesh.indicies, updateIdx);
+				renderContext.pipeline.Render(PipelineContainerLayer.Wireframe, mesh.vertexBuffer.ToGpu(), mesh.indexBuffer.ToGpu(), mesh.indicies, updateIdx);
 
 			updateIdx++;
 		}
@@ -81,7 +81,7 @@ namespace Engine
 		public void PostRenderPass()
 		{
 			if (wireframeEnabled)
-				renderContext.pipeline.EndRenderPass(context);
+				renderContext.pipeline.EndRenderPass();
 		}
 
 		static void UpdateEntityUbo(ref MeshUniformBufferObject ubo, ref Position position, ref Rotation rotation, ref Scale scale)
