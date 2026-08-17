@@ -8,7 +8,7 @@ layout(location = 0) out vec4 color;
 
 layout(binding = 1) uniform sampler2D u_TextureMap;
 
-layout(binding = 2) uniform UniformBufferObject {
+layout(binding = 2) uniform GuiStateBufferObject {
     int totalStates;
     int state;
     bool bezier;

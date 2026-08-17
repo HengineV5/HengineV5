@@ -9,32 +9,35 @@ namespace Engine
 {
 	public class VkRenderContext
 	{
-		VkContext context;
+		public FixedBuffer16<GpuSampler> samplers;
 
-		public CommandPool commandPool;
-		public FixedBuffer16<Sampler> samplers;
+		public RenderPipeline<Backend.Vulkan, HengineRenderGraph<Backend.Vulkan>, PipelineContainerLayer, RenderPassId> pipeline;
 
-		public RenderPipeline<Backend.Vulkan, HengineRenderGraph, PipelineContainerLayer, RenderPassId> pipeline;
+		VulkanStorageOwner storageOwner;
 
 		public VkRenderContext(VkContext context)
 		{
-			this.context = context;
+			this.storageOwner = new VulkanStorageOwner(context);
+		}
+
+		public Backend.Vulkan CreateBackend()
+		{
+			return storageOwner.CreateBackend();
 		}
 
 		public void Setup()
 		{
-			samplers = new FixedBuffer16<Sampler>();
+			Backend.Vulkan backend = storageOwner.Initialize();
+			samplers = new FixedBuffer16<GpuSampler>();
 			for (int i = 0; i < 16; i++)
 			{
-				samplers[i] = VulkanHelper.CreateSampler(context, 0);
+				samplers[i] = Backend.Vulkan.CreateSampler(ref backend, 0);
 			}
 
-			samplers[8] = VulkanHelper.CreateSampler(context, 5);
+			samplers[8] = Backend.Vulkan.CreateSampler(ref backend, 5);
 
-			Backend.Vulkan backend = Backend.Vulkan.Create(context);
-			commandPool = backend.CommandPool;
-
-			pipeline = RenderPipeline<Backend.Vulkan, HengineRenderGraph, PipelineContainerLayer, RenderPassId>.Create(ref backend);
+			pipeline = RenderPipeline<Backend.Vulkan, HengineRenderGraph<Backend.Vulkan>, PipelineContainerLayer, RenderPassId>.Create(ref backend);
 		}
+
 	}
 }

@@ -1,8 +1,7 @@
-﻿using Engine.Components.Graphics;
+﻿
 using Engine.Parsing;
 using Engine.Utils.Parsing.GLTF;
 using ImageLib;
-using Silk.NET.OpenGL;
 using UtilLib.Logging;
 
 namespace Engine.Graphics
@@ -110,18 +109,6 @@ namespace Engine.Graphics
 				verticies[indexB].normal = normal;
 				verticies[indexC].normal = normal;
 			}
-		}
-
-		public VertexArrayObject CreateVertexArray(GL gl)
-		{
-			uint vao = gl.GenVertexArray();
-			gl.BindVertexArray(vao);
-
-			return new VertexArrayObject()
-			{
-				ID = vao,
-				length = (uint)indicies.Length
-			};
 		}
 
 		public static Mesh LoadOBJ(string name, string filePath)

@@ -1,7 +1,6 @@
 ﻿using EnCS;
 using EnCS.Attributes;
 using Engine.Components;
-using Engine.Components.Graphics;
 using RenderLib;
 using RenderLib.OpenGL;
 using RenderLib.Vulkan;
@@ -83,16 +82,15 @@ namespace Engine
 					x.System<GuiButtonSystem>();
 					x.System<GuiDraggableSystem>();
 
-					x.System<OpenGLRenderSystem>();
 
-					x.System<VulkanCameraSystem>();
-					x.System<VulkanPbrRenderSystem>();
-					x.System<VulkanWireframeRenderSystem>();
-					x.System<VulkanPresentSystem>();
-					x.System<VulkanGuiRenderSystem>();
-					x.System<VulkanTextRenderingSystem>();
-					x.System<VulkanGizmoRenderSystem>();
-					x.System<VulkanGizmoLineRenderSystem>();
+					x.System<CameraRenderSystem>();
+					x.System<PbrRenderSystem>();
+					x.System<WireframeRenderSystem>();
+					x.System<PresentSystem>();
+					x.System<GuiRenderSystem>();
+					x.System<TextRenderSystem>();
+					x.System<GizmoRenderSystem>();
+					x.System<GizmoLineRenderSystem>();
 
 					x.System<ClientSendSystem>();
 					x.System<ClientReceiveSystem>();
@@ -104,15 +102,13 @@ namespace Engine
 				})
 				.Resource(x =>
 				{
-					x.ResourceManager<VulkanMeshResourceManager>();
-					x.ResourceManager<VulkanTextureResourceManager>();
-					x.ResourceManager<VulkanTextResourceManager>();
-					x.ResourceManager<VulkanMaterialResourceManager>();
-					x.ResourceManager<VulkanSkyboxResourceManager>();
-					x.ResourceManager<VulkanTextureAtlasResourceManager>();
+					x.ResourceManager<MeshResourceManager>();
+					x.ResourceManager<TextureResourceManager>();
+					x.ResourceManager<TextResourceManager>();
+					x.ResourceManager<MaterialResourceManager>();
+					x.ResourceManager<SkyboxResourceManager>();
+					x.ResourceManager<TextureAtlasResourceManager>();
 
-					//x.ResourceManager<OpenGLMeshResourceManager>();
-					//x.ResourceManager<OpenGLTextureResourceManager>();
 				})
 				.Build<HengineEcs>();
 		}
@@ -130,14 +126,14 @@ namespace Engine
 					x.Setup(LogSetup.LoggerSetup);
 					x.Setup(Translator.TranslationSetup);
 
-					//x.Setup(GlfwSetup.OpenGLWindowSetup);
-					x.Setup(GlfwSetup.VulkanWindowSetup);
-
 					x.Setup(GlfwSetup.WindowSetup);
 					x.Setup(GlfwSetup.InputSetup);
 
-					//x.Setup(GlfwSetup.OpenGLSetup);
+					// x.Setup(GlfwSetup.OpenGLWindowSetup);
+					// x.Setup(GlfwSetup.OpenGLSetup);
+					// x.Setup(OpenGLSetup.RenderSetup);
 
+					x.Setup(GlfwSetup.VulkanWindowSetup);
 					x.Setup(GlfwSetup.VulkanSetup);
 					x.Setup(VulkanSetup.RenderSetup);
 
@@ -145,31 +141,27 @@ namespace Engine
 				})
 				.Resource(x =>
 				{
-					x.ResourceManager<VulkanMeshResourceManager>();
-					x.ResourceManager<VulkanTextureResourceManager>();
-					x.ResourceManager<VulkanTextResourceManager>();
-					x.ResourceManager<VulkanMaterialResourceManager>();
-					x.ResourceManager<VulkanSkyboxResourceManager>();
-					x.ResourceManager<VulkanTextureAtlasResourceManager>();
+					x.ResourceManager<MeshResourceManager>();
+					x.ResourceManager<TextureResourceManager>();
+					x.ResourceManager<TextResourceManager>();
+					x.ResourceManager<MaterialResourceManager>();
+					x.ResourceManager<SkyboxResourceManager>();
+					x.ResourceManager<TextureAtlasResourceManager>();
 
-					//x.ResourceManager<OpenGLMeshResourceManager>();
-					//x.ResourceManager<OpenGLTextureResourceManager>();
 				})
 				.Layout(x =>
 				{
 					x.Pipeline("Camera", x =>
 					{
-						x.Sequential<VulkanCameraSystem>();
+						x.Sequential<CameraRenderSystem>();
 					});
 
 					x.Pipeline("Graphics", x =>
 					{
-						//x.Sequential<OpenGLRenderSystem>();
-
-						x.Sequential<VulkanPbrRenderSystem>();
-						x.Sequential<VulkanWireframeRenderSystem>();
-						x.Sequential<VulkanGizmoLineRenderSystem>();
-						x.Sequential<VulkanGizmoRenderSystem>();
+						x.Sequential<PbrRenderSystem>();
+						x.Sequential<WireframeRenderSystem>();
+						x.Sequential<GizmoLineRenderSystem>();
+						x.Sequential<GizmoRenderSystem>();
 					});
 
 					x.Pipeline("Overlay", x =>
@@ -177,13 +169,13 @@ namespace Engine
 						x.Sequential<GuiButtonSystem>();
 						x.Sequential<GuiDraggableSystem>();
 
-						x.Sequential<VulkanGuiRenderSystem>();
-						x.Sequential<VulkanTextRenderingSystem>();
+						x.Sequential<GuiRenderSystem>();
+						x.Sequential<TextRenderSystem>();
 					});
 
 					x.Pipeline("Present", x =>
 					{
-						x.Sequential<VulkanPresentSystem>();
+						x.Sequential<PresentSystem>();
 					});
 
 					x.Pipeline("Rotate", x =>

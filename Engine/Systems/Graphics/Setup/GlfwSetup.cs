@@ -14,7 +14,10 @@ namespace Engine
 	{
 		public static WindowOptions OpenGLWindowSetup()
 		{
-			return WindowOptions.Default;
+			var options = WindowOptions.Default;
+			options.API = new GraphicsAPI(ContextAPI.OpenGL, ContextProfile.Core, ContextFlags.ForwardCompatible, new APIVersion(4, 6));
+
+			return options;
 		}
 
 		public static WindowOptions VulkanWindowSetup()
