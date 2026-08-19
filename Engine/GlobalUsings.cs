@@ -7,8 +7,8 @@ global using Rgba64 = MathLib.Rgba<MathLib.UInt16, MathLib.Rgba_Ops_Generic<Math
 global using Vector2f = MathLib.Vector2<MathLib.Float32, MathLib.Vector2_Ops_Generic<MathLib.Float32>>;
 global using Vector3f = MathLib.Vector3<MathLib.Float32, MathLib.Vector3_Ops_Generic<MathLib.Float32>>;
 global using Vector4f = MathLib.Vector4<MathLib.Float32, MathLib.Vector4_Ops_Generic<MathLib.Float32>>;
-// Render backend selection
-// global using RenderBackend = RenderLib.Backend.OpenGL;
+// Render storage selection
+// global using RenderStorage = RenderLib.OpenGL.GlStorage;
 // global using GraphicsContext = Engine.GlRenderContext;
-global using RenderBackend = RenderLib.Backend.Vulkan;
+global using RenderStorage = RenderLib.Vulkan.VulkanStorage;
 global using GraphicsContext = Engine.VkRenderContext;

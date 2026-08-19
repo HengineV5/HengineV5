@@ -1,9 +1,6 @@
 using RenderLib;
 using RenderLib.Vulkan;
-using Silk.NET.Vulkan;
 using UtilLib.Memory;
-
-using Backend = RenderLib.Backend;
 
 namespace Engine
 {
@@ -11,7 +8,7 @@ namespace Engine
 	{
 		public FixedBuffer16<GpuSampler> samplers;
 
-		public RenderPipeline<Backend.Vulkan, HengineRenderGraph<Backend.Vulkan>, PipelineContainerLayer, RenderPassId> pipeline;
+		public RenderPipeline<VulkanStorage, HengineRenderGraph<VulkanStorage>, PipelineContainerLayer, RenderPassId> pipeline;
 
 		VulkanStorageOwner storageOwner;
 
@@ -20,24 +17,22 @@ namespace Engine
 			this.storageOwner = new VulkanStorageOwner(context);
 		}
 
-		public Backend.Vulkan CreateBackend()
-		{
-			return storageOwner.CreateBackend();
-		}
+		public VulkanStorage Storage => storageOwner.Storage;
 
 		public void Setup()
 		{
-			Backend.Vulkan backend = storageOwner.Initialize();
+			VulkanStorage storage = storageOwner.Storage;
+			VulkanStorage.Initialize(ref storage);
+
 			samplers = new FixedBuffer16<GpuSampler>();
 			for (int i = 0; i < 16; i++)
 			{
-				samplers[i] = Backend.Vulkan.CreateSampler(ref backend, 0);
+				samplers[i] = VulkanStorage.CreateSampler(ref storage, 0);
 			}
 
-			samplers[8] = Backend.Vulkan.CreateSampler(ref backend, 5);
+			samplers[8] = VulkanStorage.CreateSampler(ref storage, 5);
 
-			pipeline = RenderPipeline<Backend.Vulkan, HengineRenderGraph<Backend.Vulkan>, PipelineContainerLayer, RenderPassId>.Create(ref backend);
+			pipeline = RenderPipeline<VulkanStorage, HengineRenderGraph<VulkanStorage>, PipelineContainerLayer, RenderPassId>.Create(ref storage);
 		}
-
 	}
 }

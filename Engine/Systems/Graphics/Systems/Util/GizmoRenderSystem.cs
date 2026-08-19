@@ -23,10 +23,10 @@ namespace Engine
 
 		public void Init()
 		{
-			var backend = renderContext.CreateBackend();
+			var storage = renderContext.Storage;
 
-			arrow = MeshBufferFactory.CreateGizmoBuffer(ref backend, GizmoMeshes.Arrow);
-			point = MeshBufferFactory.CreateGizmoBuffer(ref backend, GizmoMeshes.Point);
+			arrow = MeshBufferFactory.CreateGizmoBuffer(ref storage, GizmoMeshes.Arrow);
+			point = MeshBufferFactory.CreateGizmoBuffer(ref storage, GizmoMeshes.Point);
 		}
 
 		// TODO: Refactor out
@@ -36,9 +36,9 @@ namespace Engine
 		[SystemPreLoop, SystemLayer(0, 2)]
 		public void PreRenderPass()
 		{
-			var backend = renderContext.CreateBackend();
+			var storage = renderContext.Storage;
 
-			renderContext.pipeline.StartRenderPass(ref backend, RenderPassId.Mesh, PipelineContainerLayer.Gizmo);
+			renderContext.pipeline.StartRenderPass(ref storage, RenderPassId.Mesh, PipelineContainerLayer.Gizmo);
 
 			bufferIdx = 0;
 			updateIdx = 0;
@@ -47,11 +47,11 @@ namespace Engine
 		[SystemUpdate, SystemLayer(0, 2)]
 		public void BufferUpdate(ref RenderContext context, ref Position position, ref Rotation rotation, ref Scale scale, ref GizmoComp gizmoComp)
 		{
-			var backend = renderContext.CreateBackend();
+			var storage = renderContext.Storage;
 
 			UpdateEntityUbo(ref context.gizmoUbo, ref position, ref rotation, ref scale);
 
-			ref GizmoShaderInput<RenderBackend> shaderInput = ref renderContext.pipeline.GetUbo<GizmoShaderInput<RenderBackend>>(ref backend, bufferIdx);
+			ref GizmoShaderInput<RenderStorage> shaderInput = ref renderContext.pipeline.GetUbo<GizmoShaderInput<RenderStorage>>(ref storage, bufferIdx);
 			shaderInput.ubo.Value = context.gizmoUbo;
 			shaderInput.gizmoUbo.Value.color = new Vector3f(gizmoComp.color.R, gizmoComp.color.G, gizmoComp.color.B);
 
@@ -61,15 +61,15 @@ namespace Engine
 		[SystemUpdate, SystemLayer(0, 2)]
 		public void RenderUpdate(ref RenderContext context, ref Position position, ref Rotation rotation, ref Scale scale, ref GizmoComp gizmoComp)
 		{
-			var backend = renderContext.CreateBackend();
+			var storage = renderContext.Storage;
 
 			switch (gizmoComp.type)
 			{
 				case GizmoType.Point:
-					renderContext.pipeline.Render(ref backend, PipelineContainerLayer.Gizmo, point.vertexBuffer, point.indexBuffer, point.indicies, updateIdx);
+					renderContext.pipeline.Render(ref storage, PipelineContainerLayer.Gizmo, point.vertexBuffer, point.indexBuffer, point.indicies, updateIdx);
 					break;
 				case GizmoType.Arrow:
-					renderContext.pipeline.Render(ref backend, PipelineContainerLayer.Gizmo, arrow.vertexBuffer, arrow.indexBuffer, arrow.indicies, updateIdx);
+					renderContext.pipeline.Render(ref storage, PipelineContainerLayer.Gizmo, arrow.vertexBuffer, arrow.indexBuffer, arrow.indicies, updateIdx);
 					break;
 				default:
 					break;
@@ -81,9 +81,9 @@ namespace Engine
 		[SystemPostLoop, SystemLayer(0, 2)]
 		public void PostRenderPass()
 		{
-			var backend = renderContext.CreateBackend();
+			var storage = renderContext.Storage;
 
-			renderContext.pipeline.EndRenderPass(ref backend);
+			renderContext.pipeline.EndRenderPass(ref storage);
 		}
 
 		static void UpdateEntityUbo(ref MeshUniformBufferObject ubo, ref Position position, ref Rotation rotation, ref Scale scale)

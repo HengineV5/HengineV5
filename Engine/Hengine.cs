@@ -126,14 +126,15 @@ namespace Engine
 					x.Setup(LogSetup.LoggerSetup);
 					x.Setup(Translator.TranslationSetup);
 
+					//x.Setup(GlfwSetup.OpenGLWindowSetup);
+					x.Setup(GlfwSetup.VulkanWindowSetup);
+
 					x.Setup(GlfwSetup.WindowSetup);
 					x.Setup(GlfwSetup.InputSetup);
 
-					// x.Setup(GlfwSetup.OpenGLWindowSetup);
-					// x.Setup(GlfwSetup.OpenGLSetup);
-					// x.Setup(OpenGLSetup.RenderSetup);
+					//x.Setup(GlfwSetup.OpenGLSetup);
+					//x.Setup(OpenGLSetup.RenderSetup);
 
-					x.Setup(GlfwSetup.VulkanWindowSetup);
 					x.Setup(GlfwSetup.VulkanSetup);
 					x.Setup(VulkanSetup.RenderSetup);
 
@@ -158,6 +159,7 @@ namespace Engine
 
 					x.Pipeline("Graphics", x =>
 					{
+
 						x.Sequential<PbrRenderSystem>();
 						x.Sequential<WireframeRenderSystem>();
 						x.Sequential<GizmoLineRenderSystem>();

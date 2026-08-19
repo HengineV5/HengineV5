@@ -50,24 +50,24 @@ namespace Engine.Graphics
 
 			materialCache.Add(resource.name, idx);
 
-			var backend = renderContext.CreateBackend();
-			materialBuffers.Span[(int)idx] = CreateMaterialBuffer(ref backend, resource);
+			var storage = renderContext.Storage;
+			materialBuffers.Span[(int)idx] = CreateMaterialBuffer(ref storage, resource);
 			return idx++;
 		}
 
-		public static PbrMaterialBuffer CreateMaterialBuffer<TBackend>(ref TBackend backend, Graphics.PbrMaterial material) where TBackend : struct, IRenderBackend<TBackend>, allows ref struct
+		public static PbrMaterialBuffer CreateMaterialBuffer<TStorage>(ref TStorage storage, Graphics.PbrMaterial material) where TStorage : struct, IRenderBackend<TStorage>, allows ref struct
 		{
 			return new PbrMaterialBuffer()
 			{
 				albedo = material.albedo,
-				albedoMap = TextureBufferFactory.CreateTextureBuffer(ref backend, material.albedoMap),
+				albedoMap = TextureBufferFactory.CreateTextureBuffer(ref storage, material.albedoMap),
 				metallic = material.metallic,
-				metallicMap = TextureBufferFactory.CreateTextureBuffer(ref backend, material.metallicMap),
+				metallicMap = TextureBufferFactory.CreateTextureBuffer(ref storage, material.metallicMap),
 				roughness = material.roughness,
-				roughnessMap = TextureBufferFactory.CreateTextureBuffer(ref backend, material.roughnessMap),
-				aoMap = TextureBufferFactory.CreateTextureBuffer(ref backend, material.aoMap),
-				normalMap = TextureBufferFactory.CreateTextureBuffer(ref backend, material.normalMap),
-				depthMap = TextureBufferFactory.CreateTextureBuffer(ref backend, material.depthMap),
+				roughnessMap = TextureBufferFactory.CreateTextureBuffer(ref storage, material.roughnessMap),
+				aoMap = TextureBufferFactory.CreateTextureBuffer(ref storage, material.aoMap),
+				normalMap = TextureBufferFactory.CreateTextureBuffer(ref storage, material.normalMap),
+				depthMap = TextureBufferFactory.CreateTextureBuffer(ref storage, material.depthMap),
 			};
 		}
 	}

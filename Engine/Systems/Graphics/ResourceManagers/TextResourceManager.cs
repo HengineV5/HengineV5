@@ -59,13 +59,13 @@ namespace Engine.Graphics
 			logger.LogResourceManagerStore(resource.id);
 
 			meshCache.Add(resource.id, idx);
-			//meshBuffers.Span[(int)idx] = CreateTextBuffer(ref backend, translationManager, resource);
-			var backend = renderContext.CreateBackend();
-			meshBuffers.Span[(int)idx] = CreateFontBuffer(ref backend, resource.font);
+			//meshBuffers.Span[(int)idx] = CreateTextBuffer(ref storage, translationManager, resource);
+			var storage = renderContext.Storage;
+			meshBuffers.Span[(int)idx] = CreateFontBuffer(ref storage, resource.font);
 			return idx++;
 		}
 
-		static Graphics.TextBuffer CreateFontBuffer<TBackend>(ref TBackend backend, Font font) where TBackend : struct, IRenderBackend<TBackend>, allows ref struct
+		static Graphics.TextBuffer CreateFontBuffer<TStorage>(ref TStorage storage, Font font) where TStorage : struct, IRenderBackend<TStorage>, allows ref struct
 		{
 			using var vertBuff = MemoryPool<Vector2f>.Shared.Rent(1000000);
 			using var uvBuff = MemoryPool<Vector3f>.Shared.Rent(1000000);
@@ -139,7 +139,7 @@ namespace Engine.Graphics
 			for (int i = 0; i < indicies.Count; i++)
 				indexMemory.Memory.Span[i] = (ushort)indicies[i];
 
-			var meshBuffer = MeshBufferFactory.CreateBuffer(ref backend, vertMemory.Memory.Span[..verticies.Count], indexMemory.Memory.Span[..indicies.Count]);
+			var meshBuffer = MeshBufferFactory.CreateBuffer(ref storage, vertMemory.Memory.Span[..verticies.Count], indexMemory.Memory.Span[..indicies.Count]);
 
 			var vOffsets = new int[vertexOffsets.Count];
 			vertexOffsets.AsSpan().CopyTo(vOffsets);
@@ -166,7 +166,7 @@ namespace Engine.Graphics
             };
 		}
 
-		static Graphics.TextBuffer CreateTextBuffer<TBackend>(ref TBackend backend, TranslationManager translationManager, in Graphics.GuiText resource) where TBackend : struct, IRenderBackend<TBackend>, allows ref struct
+		static Graphics.TextBuffer CreateTextBuffer<TStorage>(ref TStorage storage, TranslationManager translationManager, in Graphics.GuiText resource) where TStorage : struct, IRenderBackend<TStorage>, allows ref struct
 		{
 			string str = translationManager.GetTranslation(resource.id);
 
@@ -210,7 +210,7 @@ namespace Engine.Graphics
 			for (int i = 0; i < indicies.Count; i++)
 				indexMemory.Memory.Span[i] = (ushort)indicies[i];
 
-			var meshBuffer = MeshBufferFactory.CreateBuffer(ref backend, vertMemory.Memory.Span[..verticies.Count], indexMemory.Memory.Span[..indicies.Count]);
+			var meshBuffer = MeshBufferFactory.CreateBuffer(ref storage, vertMemory.Memory.Span[..verticies.Count], indexMemory.Memory.Span[..indicies.Count]);
 
 			return new()
 			{

@@ -44,19 +44,19 @@ namespace Engine.Graphics
 
 			skyboxCache.Add(resource.name, idx);
 
-			var backend = renderContext.CreateBackend();
-			skyboxBuffers.Span[(int)idx] = CreateSkyboxBuffer(ref backend, resource);
+			var storage = renderContext.Storage;
+			skyboxBuffers.Span[(int)idx] = CreateSkyboxBuffer(ref storage, resource);
 
 			return idx++;
 		}
 
-		public static SkyboxBuffer CreateSkyboxBuffer<TBackend>(ref TBackend backend, Graphics.Skybox skybox) where TBackend : struct, IRenderBackend<TBackend>, allows ref struct
+		public static SkyboxBuffer CreateSkyboxBuffer<TStorage>(ref TStorage storage, Graphics.Skybox skybox) where TStorage : struct, IRenderBackend<TStorage>, allows ref struct
 		{
 			return new SkyboxBuffer()
 			{
-				skybox = TextureBufferFactory.CreateCrossCubeTextureBuffer(ref backend, skybox.skybox, TextureFormat.R16G16B16A16Unorm),
-				irradiance = TextureBufferFactory.CreateCrossCubeTextureBuffer(ref backend, skybox.irradiance, TextureFormat.R16G16B16A16Unorm),
-				specular = TextureBufferFactory.CreateMipCrossCubeTextureBuffer(ref backend, skybox.specular, 5, TextureFormat.R16G16B16A16Unorm)
+				skybox = TextureBufferFactory.CreateCrossCubeTextureBuffer(ref storage, skybox.skybox, TextureFormat.R16G16B16A16Unorm),
+				irradiance = TextureBufferFactory.CreateCrossCubeTextureBuffer(ref storage, skybox.irradiance, TextureFormat.R16G16B16A16Unorm),
+				specular = TextureBufferFactory.CreateMipCrossCubeTextureBuffer(ref storage, skybox.specular, 5, TextureFormat.R16G16B16A16Unorm)
 			};
 		}
 	}

@@ -44,18 +44,18 @@ namespace Engine.Graphics
 
 			atlasCache.Add(resource.name, idx);
 
-			var backend = renderContext.CreateBackend();
-			atlasBuffers.Span[(int)idx] = CreateAtlasBuffer(ref backend, resource);
+			var storage = renderContext.Storage;
+			atlasBuffers.Span[(int)idx] = CreateAtlasBuffer(ref storage, resource);
 
 			return idx++;
 		}
 
-		public static TextureAtlasBuffer CreateAtlasBuffer<TBackend>(ref TBackend backend, Graphics.TextureAtlas atlas) where TBackend : struct, IRenderBackend<TBackend>, allows ref struct
+		public static TextureAtlasBuffer CreateAtlasBuffer<TStorage>(ref TStorage storage, Graphics.TextureAtlas atlas) where TStorage : struct, IRenderBackend<TStorage>, allows ref struct
 		{
 			return new TextureAtlasBuffer()
 			{
 				textures = atlas.textures,
-				atlas = TextureBufferFactory.CreateTextureBuffer(ref backend, atlas.textureAtlas)
+				atlas = TextureBufferFactory.CreateTextureBuffer(ref storage, atlas.textureAtlas)
 			};
 		}
 	}

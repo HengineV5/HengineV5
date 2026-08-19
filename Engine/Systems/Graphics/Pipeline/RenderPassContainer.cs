@@ -4,7 +4,7 @@ using RenderLib;
 
 namespace Engine
 {
-	public struct RenderPassContainer<TBackend> where TBackend : struct, IRenderBackend<TBackend>, allows ref struct
+	public struct RenderPassContainer<TStorage> where TStorage : struct, IRenderBackend<TStorage>, allows ref struct
 	{
 		public GpuRenderPass skyboxRenderPass;
 		public GpuRenderPass meshRenderPass;
@@ -17,34 +17,34 @@ namespace Engine
 			this.guiRenderPass = guiRenderPass;
 		}
 
-		public static RenderPassContainer<TBackend> Create(ref TBackend backend, TextureFormat colorFormat, TextureFormat depthFormat)
+		public static RenderPassContainer<TStorage> Create(ref TStorage storage, TextureFormat colorFormat, TextureFormat depthFormat)
 		{
-			var skyboxRenderPass = TBackend.CreateRenderPass(ref backend, new RenderPassDesc(
+			var skyboxRenderPass = TStorage.CreateRenderPass(ref storage, new RenderPassDesc(
 				colorFormat, depthFormat,
 				AttachmentLoadOp.Clear, AttachmentLoadOp.Clear,
 				AttachmentStoreOp.Store, AttachmentStoreOp.None));
 
-			var meshRenderPass = TBackend.CreateRenderPass(ref backend, new RenderPassDesc(
+			var meshRenderPass = TStorage.CreateRenderPass(ref storage, new RenderPassDesc(
 				colorFormat, depthFormat,
 				AttachmentLoadOp.Load, AttachmentLoadOp.Load,
 				AttachmentStoreOp.Store, AttachmentStoreOp.Store));
 
-			var guiRenderPass = TBackend.CreateRenderPass(ref backend, new RenderPassDesc(
+			var guiRenderPass = TStorage.CreateRenderPass(ref storage, new RenderPassDesc(
 				colorFormat, depthFormat,
 				AttachmentLoadOp.Load, AttachmentLoadOp.Load,
 				AttachmentStoreOp.Store, AttachmentStoreOp.None));
 
-			return new RenderPassContainer<TBackend>(skyboxRenderPass, meshRenderPass, guiRenderPass);
+			return new RenderPassContainer<TStorage>(skyboxRenderPass, meshRenderPass, guiRenderPass);
 		}
 
-		public static void Dispose(ref TBackend backend, ref RenderPassContainer<TBackend> self)
+		public static void Dispose(ref TStorage storage, ref RenderPassContainer<TStorage> self)
 		{
-			TBackend.DestroyRenderPass(ref backend, self.skyboxRenderPass);
-			TBackend.DestroyRenderPass(ref backend, self.meshRenderPass);
-			TBackend.DestroyRenderPass(ref backend, self.guiRenderPass);
+			TStorage.DestroyRenderPass(ref storage, self.skyboxRenderPass);
+			TStorage.DestroyRenderPass(ref storage, self.meshRenderPass);
+			TStorage.DestroyRenderPass(ref storage, self.guiRenderPass);
 		}
 
-		public static GpuRenderPass Get(RenderPassId id, ref RenderPassContainer<TBackend> self)
+		public static GpuRenderPass Get(RenderPassId id, ref RenderPassContainer<TStorage> self)
 		{
 			switch (id)
 			{
@@ -60,7 +60,7 @@ namespace Engine
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static GpuRenderPass GetCompatibleRenderPass(ref RenderPassContainer<TBackend> self)
+		public static GpuRenderPass GetCompatibleRenderPass(ref RenderPassContainer<TStorage> self)
 		 => Get(RenderPassId.Skybox, ref self);
 	}
 }

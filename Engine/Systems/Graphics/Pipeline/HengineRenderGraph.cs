@@ -2,72 +2,72 @@ using RenderLib;
 
 namespace Engine
 {
-	public struct HengineRenderGraph<TBackend> : IRenderGraph<HengineRenderGraph<TBackend>, TBackend, PipelineContainerLayer, RenderPassId>
-		where TBackend : struct, IRenderBackend<TBackend>, allows ref struct
+	public struct HengineRenderGraph<TStorage> : IRenderGraph<HengineRenderGraph<TStorage>, TStorage, PipelineContainerLayer, RenderPassId>
+		where TStorage : struct, IRenderBackend<TStorage>, allows ref struct
 	{
-		DescriptorSetContainer<TBackend> descriptorSets;
-		PipelineContainer<TBackend> pipelines;
-		RenderPassContainer<TBackend> renderPasses;
+		DescriptorSetContainer<TStorage> descriptorSets;
+		PipelineContainer<TStorage> pipelines;
+		RenderPassContainer<TStorage> renderPasses;
 
-		public HengineRenderGraph(DescriptorSetContainer<TBackend> descriptorSets, PipelineContainer<TBackend> pipelines, RenderPassContainer<TBackend> renderPasses)
+		public HengineRenderGraph(DescriptorSetContainer<TStorage> descriptorSets, PipelineContainer<TStorage> pipelines, RenderPassContainer<TStorage> renderPasses)
 		{
 			this.descriptorSets = descriptorSets;
 			this.pipelines = pipelines;
 			this.renderPasses = renderPasses;
 		}
 
-		public static HengineRenderGraph<TBackend> Create(ref TBackend backend)
+		public static HengineRenderGraph<TStorage> Create(ref TStorage storage)
 		{
-			var descriptorSets = DescriptorSetContainer<TBackend>.Create(ref backend);
+			var descriptorSets = DescriptorSetContainer<TStorage>.Create(ref storage);
 
-			var (colorFormat, depthFormat) = TBackend.GetRenderPassFormats(ref backend);
-			var renderPasses = RenderPassContainer<TBackend>.Create(ref backend, colorFormat, depthFormat);
+			var (colorFormat, depthFormat) = TStorage.GetRenderPassFormats(ref storage);
+			var renderPasses = RenderPassContainer<TStorage>.Create(ref storage, colorFormat, depthFormat);
 
-			GpuRenderPass compatibleRenderPass = RenderPassContainer<TBackend>.GetCompatibleRenderPass(ref renderPasses);
-			Extent2D extent = TBackend.GetRenderArea(ref backend).extent;
+			GpuRenderPass compatibleRenderPass = RenderPassContainer<TStorage>.GetCompatibleRenderPass(ref renderPasses);
+			Extent2D extent = TStorage.GetRenderArea(ref storage).extent;
 
-			var pipelines = PipelineContainer<TBackend>.Create(ref backend, compatibleRenderPass, extent, ref descriptorSets);
+			var pipelines = PipelineContainer<TStorage>.Create(ref storage, compatibleRenderPass, extent, ref descriptorSets);
 
-			return new HengineRenderGraph<TBackend>(descriptorSets, pipelines, renderPasses);
+			return new HengineRenderGraph<TStorage>(descriptorSets, pipelines, renderPasses);
 		}
 
-		public static void Dispose(ref HengineRenderGraph<TBackend> self, ref TBackend backend)
+		public static void Dispose(ref HengineRenderGraph<TStorage> self, ref TStorage storage)
 		{
-			RenderPassContainer<TBackend>.Dispose(ref backend, ref self.renderPasses);
-			PipelineContainer<TBackend>.Dispose(ref backend, ref self.pipelines);
+			RenderPassContainer<TStorage>.Dispose(ref storage, ref self.renderPasses);
+			PipelineContainer<TStorage>.Dispose(ref storage, ref self.pipelines);
 		}
 
-		public static GpuRenderPass GetRenderPass(RenderPassId id, ref HengineRenderGraph<TBackend> self)
+		public static GpuRenderPass GetRenderPass(RenderPassId id, ref HengineRenderGraph<TStorage> self)
 		{
-			return RenderPassContainer<TBackend>.Get(id, ref self.renderPasses);
+			return RenderPassContainer<TStorage>.Get(id, ref self.renderPasses);
 		}
 
-		public static GpuRenderPass GetCompatibleRenderPass(ref HengineRenderGraph<TBackend> self)
+		public static GpuRenderPass GetCompatibleRenderPass(ref HengineRenderGraph<TStorage> self)
 		{
-			return RenderPassContainer<TBackend>.GetCompatibleRenderPass(ref self.renderPasses);
+			return RenderPassContainer<TStorage>.GetCompatibleRenderPass(ref self.renderPasses);
 		}
 
-		public static GpuPipeline GetPipeline(PipelineContainerLayer layer, ref HengineRenderGraph<TBackend> self)
+		public static GpuPipeline GetPipeline(PipelineContainerLayer layer, ref HengineRenderGraph<TStorage> self)
 		{
-			return PipelineContainer<TBackend>.Get(layer, ref self.pipelines);
+			return PipelineContainer<TStorage>.Get(layer, ref self.pipelines);
 		}
 
-		public static GpuPipelineLayout GetPipelineLayout(PipelineContainerLayer layer, ref HengineRenderGraph<TBackend> self)
+		public static GpuPipelineLayout GetPipelineLayout(PipelineContainerLayer layer, ref HengineRenderGraph<TStorage> self)
 		{
-			return PipelineContainer<TBackend>.GetLayout(layer, ref self.pipelines);
+			return PipelineContainer<TStorage>.GetLayout(layer, ref self.pipelines);
 		}
 
-		public static GpuDescriptorSet GetDescriptorSet(PipelineContainerLayer layer, uint frame, uint idx, ref HengineRenderGraph<TBackend> self)
+		public static GpuDescriptorSet GetDescriptorSet(PipelineContainerLayer layer, uint frame, uint idx, ref HengineRenderGraph<TStorage> self)
 		{
-			return DescriptorSetContainer<TBackend>.GetDescriptorSet(layer, frame, idx, ref self.descriptorSets);
+			return DescriptorSetContainer<TStorage>.GetDescriptorSet(layer, frame, idx, ref self.descriptorSets);
 		}
 
-		public static ref TUbo GetUbo<TUbo>(uint frame, uint idx) where TUbo : struct, IUniformBufferObject<TUbo, TBackend>
+		public static ref TUbo GetUbo<TUbo>(uint frame, uint idx) where TUbo : struct, IUniformBufferObject<TUbo, TStorage>
 		{
-			return ref DescriptorSetContainer<TBackend>.GetUbo<TUbo>(frame, idx);
+			return ref DescriptorSetContainer<TStorage>.GetUbo<TUbo>(frame, idx);
 		}
 
-		public static ClearColor GetClearColor(ref HengineRenderGraph<TBackend> self)
+		public static ClearColor GetClearColor(ref HengineRenderGraph<TStorage> self)
 		{
 			System.Drawing.Color color = System.Drawing.Color.CornflowerBlue;
 			return new ClearColor(color.R / 255f, color.G / 255f, color.B / 255f, color.A / 255f);

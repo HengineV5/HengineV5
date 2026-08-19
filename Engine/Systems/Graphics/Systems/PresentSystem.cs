@@ -26,9 +26,9 @@ namespace Engine
 
 		public void PostRun()
 		{
-			var backend = renderContext.CreateBackend();
+			var storage = renderContext.Storage;
 
-			renderContext.pipeline.PresentRender(ref backend);
+			renderContext.pipeline.PresentRender(ref storage);
 		}
 	}
 }

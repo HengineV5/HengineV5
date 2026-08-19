@@ -39,7 +39,7 @@ namespace Engine
 		[SystemPreLoop, SystemLayer(0, 2)]
 		public void PreRenderPass()
 		{
-			var backend = renderContext.CreateBackend();
+			var storage = renderContext.Storage;
 
 			if (inputHandler.IsKeyDown(Silk.NET.Input.Key.F1) && !keyPressed)
 				wireframeEnabled = !wireframeEnabled;
@@ -47,7 +47,7 @@ namespace Engine
 			keyPressed = inputHandler.IsKeyDown(Silk.NET.Input.Key.F1);
 
 			if (wireframeEnabled)
-				renderContext.pipeline.StartRenderPass(ref backend, RenderPassId.Mesh, PipelineContainerLayer.Wireframe);
+				renderContext.pipeline.StartRenderPass(ref storage, RenderPassId.Mesh, PipelineContainerLayer.Wireframe);
 
 			bufferIdx = 0;
 			updateIdx = 0;
@@ -56,13 +56,13 @@ namespace Engine
 		[SystemUpdate, SystemLayer(0, 2)]
 		public void BufferUpdate(ref RenderContext context, ref Position position, ref Rotation rotation, ref Scale scale, ref MeshBuffer mesh, ref PbrMaterialBuffer material)
 		{
-			var backend = renderContext.CreateBackend();
+			var storage = renderContext.Storage;
 
 			if (wireframeEnabled)
 			{
 				UpdateEntityUbo(ref context.pbrUbo, ref position, ref rotation, ref scale);
 
-				ref PbrShaderInput<RenderBackend> shaderInput = ref renderContext.pipeline.GetUbo<PbrShaderInput<RenderBackend>>(ref backend, bufferIdx);
+				ref PbrShaderInput<RenderStorage> shaderInput = ref renderContext.pipeline.GetUbo<PbrShaderInput<RenderStorage>>(ref storage, bufferIdx);
 				shaderInput.ubo.Value = context.pbrUbo;
 			}
 
@@ -73,10 +73,10 @@ namespace Engine
 		[SystemUpdate, SystemLayer(0, 2)]
 		public void RenderUpdate(ref RenderContext context, ref Position position, ref Rotation rotation, ref Scale scale, ref MeshBuffer mesh, ref PbrMaterialBuffer material)
 		{
-			var backend = renderContext.CreateBackend();
+			var storage = renderContext.Storage;
 
 			if (wireframeEnabled)
-				renderContext.pipeline.Render(ref backend, PipelineContainerLayer.Wireframe, mesh.vertexBuffer, mesh.indexBuffer, mesh.indicies, updateIdx);
+				renderContext.pipeline.Render(ref storage, PipelineContainerLayer.Wireframe, mesh.vertexBuffer, mesh.indexBuffer, mesh.indicies, updateIdx);
 
 			updateIdx++;
 		}
@@ -84,10 +84,10 @@ namespace Engine
 		[SystemPostLoop, SystemLayer(0, 2)]
 		public void PostRenderPass()
 		{
-			var backend = renderContext.CreateBackend();
+			var storage = renderContext.Storage;
 
 			if (wireframeEnabled)
-				renderContext.pipeline.EndRenderPass(ref backend);
+				renderContext.pipeline.EndRenderPass(ref storage);
 		}
 
 		static void UpdateEntityUbo(ref MeshUniformBufferObject ubo, ref Position position, ref Rotation rotation, ref Scale scale)

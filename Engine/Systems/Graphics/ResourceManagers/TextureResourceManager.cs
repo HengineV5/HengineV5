@@ -22,33 +22,33 @@ namespace Engine.Graphics
 
 	public static class TextureBufferFactory
 	{
-		public static TextureBuffer CreateTextureBuffer<TBackend>(ref TBackend backend, ETexture texture) where TBackend : struct, IRenderBackend<TBackend>, allows ref struct
+		public static TextureBuffer CreateTextureBuffer<TStorage>(ref TStorage storage, ETexture texture) where TStorage : struct, IRenderBackend<TStorage>, allows ref struct
 		{
-			return CreateLayered(ref backend, [texture.data], TextureFormat.R8G8B8A8Srgb);
+			return CreateLayered(ref storage, [texture.data], TextureFormat.R8G8B8A8Srgb);
 		}
 
-		public static TextureBuffer CreateHdrTextureBuffer<TBackend>(ref TBackend backend, ETextureHdr texture) where TBackend : struct, IRenderBackend<TBackend>, allows ref struct
+		public static TextureBuffer CreateHdrTextureBuffer<TStorage>(ref TStorage storage, ETextureHdr texture) where TStorage : struct, IRenderBackend<TStorage>, allows ref struct
 		{
-			return CreateLayered(ref backend, [texture.data], TextureFormat.R16G16B16A16Unorm);
+			return CreateLayered(ref storage, [texture.data], TextureFormat.R16G16B16A16Unorm);
 		}
 
-		public static TextureBuffer CreateCubeTextureBuffer<TBackend>(ref TBackend backend, ECubemapHdr texture) where TBackend : struct, IRenderBackend<TBackend>, allows ref struct
+		public static TextureBuffer CreateCubeTextureBuffer<TStorage>(ref TStorage storage, ECubemapHdr texture) where TStorage : struct, IRenderBackend<TStorage>, allows ref struct
 		{
-			return CreateLayered(ref backend, [texture.right, texture.left, texture.top, texture.bottom, texture.front, texture.back], TextureFormat.R16G16B16A16Unorm);
+			return CreateLayered(ref storage, [texture.right, texture.left, texture.top, texture.bottom, texture.front, texture.back], TextureFormat.R16G16B16A16Unorm);
 		}
 
-		public static TextureBuffer CreateCrossCubeTextureBuffer<TBackend>(ref TBackend backend, ETextureHdr texture, TextureFormat format) where TBackend : struct, IRenderBackend<TBackend>, allows ref struct
+		public static TextureBuffer CreateCrossCubeTextureBuffer<TStorage>(ref TStorage storage, ETextureHdr texture, TextureFormat format) where TStorage : struct, IRenderBackend<TStorage>, allows ref struct
 		{
-			return CreateCrossCubeTextureBuffer(ref backend, texture.data.Span, format);
+			return CreateCrossCubeTextureBuffer(ref storage, texture.data.Span, format);
 		}
 
-		public static TextureBuffer CreateMipCrossCubeTextureBuffer<TBackend>(ref TBackend backend, ETextureHdr texture, uint mipLevels, TextureFormat format) where TBackend : struct, IRenderBackend<TBackend>, allows ref struct
+		public static TextureBuffer CreateMipCrossCubeTextureBuffer<TStorage>(ref TStorage storage, ETextureHdr texture, uint mipLevels, TextureFormat format) where TStorage : struct, IRenderBackend<TStorage>, allows ref struct
 		{
-			return CreateMipCrossCubeTextureBuffer(ref backend, texture.data.Span, mipLevels, format);
+			return CreateMipCrossCubeTextureBuffer(ref storage, texture.data.Span, mipLevels, format);
 		}
 
-		public static TextureBuffer CreateCrossCubeTextureBuffer<TBackend, TPixel>(ref TBackend backend, ImageSpan<TPixel> img, TextureFormat format)
-			where TBackend : struct, IRenderBackend<TBackend>, allows ref struct
+		public static TextureBuffer CreateCrossCubeTextureBuffer<TStorage, TPixel>(ref TStorage storage, ImageSpan<TPixel> img, TextureFormat format)
+			where TStorage : struct, IRenderBackend<TStorage>, allows ref struct
 			where TPixel : unmanaged, IPixel<TPixel>
 		{
 			uint sideWidth = (uint)img.Width / 4u;
@@ -60,11 +60,11 @@ namespace Engine.Graphics
 				regions[(int)side] = new TextureRegion(side, 0, sideWidth, sideHeight, GetSideOffset((int)side, sideWidth, sideHeight, img.Width), (uint)img.Width);
 			}
 
-			return CreateFromCross(ref backend, img, format, sideWidth, sideHeight, 1, regions);
+			return CreateFromCross(ref storage, img, format, sideWidth, sideHeight, 1, regions);
 		}
 
-		public static TextureBuffer CreateMipCrossCubeTextureBuffer<TBackend, TPixel>(ref TBackend backend, ImageSpan<TPixel> img, uint mipLevels, TextureFormat format)
-			where TBackend : struct, IRenderBackend<TBackend>, allows ref struct
+		public static TextureBuffer CreateMipCrossCubeTextureBuffer<TStorage, TPixel>(ref TStorage storage, ImageSpan<TPixel> img, uint mipLevels, TextureFormat format)
+			where TStorage : struct, IRenderBackend<TStorage>, allows ref struct
 			where TPixel : unmanaged, IPixel<TPixel>
 		{
 			int imgWidth = img.Width;
@@ -95,11 +95,11 @@ namespace Engine.Graphics
 				}
 			}
 
-			return CreateFromCross(ref backend, img, format, sideWidth, sideHeight, mipLevels, regions);
+			return CreateFromCross(ref storage, img, format, sideWidth, sideHeight, mipLevels, regions);
 		}
 
-		static TextureBuffer CreateFromCross<TBackend, TPixel>(ref TBackend backend, ImageSpan<TPixel> img, TextureFormat format, uint sideWidth, uint sideHeight, uint mipLevels, scoped Span<TextureRegion> regions)
-			where TBackend : struct, IRenderBackend<TBackend>, allows ref struct
+		static TextureBuffer CreateFromCross<TStorage, TPixel>(ref TStorage storage, ImageSpan<TPixel> img, TextureFormat format, uint sideWidth, uint sideHeight, uint mipLevels, scoped Span<TextureRegion> regions)
+			where TStorage : struct, IRenderBackend<TStorage>, allows ref struct
 			where TPixel : unmanaged, IPixel<TPixel>
 		{
 			int bytesPerPixel = (TPixel.BitDepth / 8) * TPixel.Channels;
@@ -115,11 +115,11 @@ namespace Engine.Graphics
 
 			var desc = new TextureDesc(sideWidth, sideHeight, format, 6, mipLevels);
 
-			return new TextureBuffer { texture = TBackend.CreateTexture(ref backend, desc, buff.Memory.Span.Slice(0, imageSize), regions) };
+			return new TextureBuffer { texture = TStorage.CreateTexture(ref storage, desc, buff.Memory.Span.Slice(0, imageSize), regions) };
 		}
 
-		static TextureBuffer CreateLayered<TBackend, TPixel>(ref TBackend backend, scoped Span<ImageMemory<TPixel>> imgs, TextureFormat format)
-			where TBackend : struct, IRenderBackend<TBackend>, allows ref struct
+		static TextureBuffer CreateLayered<TStorage, TPixel>(ref TStorage storage, scoped Span<ImageMemory<TPixel>> imgs, TextureFormat format)
+			where TStorage : struct, IRenderBackend<TStorage>, allows ref struct
 			where TPixel : unmanaged, IPixel<TPixel>
 		{
 			int bytesPerPixel = (TPixel.BitDepth / 8) * TPixel.Channels;
@@ -136,7 +136,7 @@ namespace Engine.Graphics
 
 			var desc = new TextureDesc((uint)imgs[0].Width, (uint)imgs[0].Height, format, (uint)imgs.Length, 1);
 
-			return new TextureBuffer { texture = TBackend.CreateTexture(ref backend, desc, buff.Memory.Span.Slice(0, layerSize * imgs.Length), regions) };
+			return new TextureBuffer { texture = TStorage.CreateTexture(ref storage, desc, buff.Memory.Span.Slice(0, layerSize * imgs.Length), regions) };
 		}
 
 		static ulong GetSideOffset(int side, uint sideWidth, uint sideHeight, int rowLength)
@@ -207,8 +207,8 @@ namespace Engine.Graphics
 			logger.LogResourceManagerStore(texture.name);
 
 			textureCache.Add(texture.name, idx);
-			var backend = renderContext.CreateBackend();
-			textureBuffers.Span[(int)idx] = TextureBufferFactory.CreateTextureBuffer(ref backend, texture);
+			var storage = renderContext.Storage;
+			textureBuffers.Span[(int)idx] = TextureBufferFactory.CreateTextureBuffer(ref storage, texture);
 			return idx++;
 		}
 	}

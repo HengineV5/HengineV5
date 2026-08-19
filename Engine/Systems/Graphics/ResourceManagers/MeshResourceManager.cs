@@ -18,7 +18,7 @@ namespace Engine.Graphics
 
 	public static class MeshBufferFactory
 	{
-		public static MeshBuffer CreateMeshBuffer<TBackend>(ref TBackend backend, Mesh mesh) where TBackend : struct, IRenderBackend<TBackend>, allows ref struct
+		public static MeshBuffer CreateMeshBuffer<TStorage>(ref TStorage storage, Mesh mesh) where TStorage : struct, IRenderBackend<TStorage>, allows ref struct
 		{
 			using var indicies = MemoryPool<ushort>.Shared.Rent(mesh.indicies.Length);
 
@@ -27,10 +27,10 @@ namespace Engine.Graphics
 				indicies.Memory.Span[i] = (ushort)mesh.indicies[i];
 			}
 
-			return CreateBuffer(ref backend, mesh.verticies.AsSpan(), indicies.Memory.Span.Slice(0, mesh.indicies.Length));
+			return CreateBuffer(ref storage, mesh.verticies.AsSpan(), indicies.Memory.Span.Slice(0, mesh.indicies.Length));
 		}
 
-		public static MeshBuffer CreateGizmoBuffer<TBackend>(ref TBackend backend, Mesh mesh) where TBackend : struct, IRenderBackend<TBackend>, allows ref struct
+		public static MeshBuffer CreateGizmoBuffer<TStorage>(ref TStorage storage, Mesh mesh) where TStorage : struct, IRenderBackend<TStorage>, allows ref struct
 		{
 			using var verticies = MemoryPool<GizmoVertex>.Shared.Rent(mesh.verticies.Length);
 			using var indicies = MemoryPool<ushort>.Shared.Rent(mesh.indicies.Length);
@@ -45,18 +45,18 @@ namespace Engine.Graphics
 				verticies.Memory.Span[i] = new(mesh.verticies[i].position, mesh.verticies[i].normal);
 			}
 
-			return CreateBuffer(ref backend, verticies.Memory.Span.Slice(0, mesh.verticies.Length), indicies.Memory.Span.Slice(0, mesh.indicies.Length));
+			return CreateBuffer(ref storage, verticies.Memory.Span.Slice(0, mesh.verticies.Length), indicies.Memory.Span.Slice(0, mesh.indicies.Length));
 		}
 
-		public static MeshBuffer CreateBuffer<TBackend, TVertex>(ref TBackend backend, scoped Span<TVertex> vertices, scoped Span<ushort> indicies)
-			where TBackend : struct, IRenderBackend<TBackend>, allows ref struct
+		public static MeshBuffer CreateBuffer<TStorage, TVertex>(ref TStorage storage, scoped Span<TVertex> vertices, scoped Span<ushort> indicies)
+			where TStorage : struct, IRenderBackend<TStorage>, allows ref struct
 			where TVertex : unmanaged, IVertex
 		{
 			MeshBuffer meshBuffer = new MeshBuffer();
 
 			meshBuffer.indicies = (uint)indicies.Length;
-			meshBuffer.vertexBuffer = TBackend.CreateVertexBuffer(ref backend, MemoryMarshal.AsBytes(vertices));
-			meshBuffer.indexBuffer = TBackend.CreateIndexBuffer(ref backend, MemoryMarshal.AsBytes(indicies));
+			meshBuffer.vertexBuffer = TStorage.CreateVertexBuffer(ref storage, MemoryMarshal.AsBytes(vertices));
+			meshBuffer.indexBuffer = TStorage.CreateIndexBuffer(ref storage, MemoryMarshal.AsBytes(indicies));
 
 			return meshBuffer;
 		}
@@ -92,8 +92,8 @@ namespace Engine.Graphics
 			logger.LogResourceManagerStore(mesh.name);
 
 			meshCache.Add(mesh.name, idx);
-			var backend = renderContext.CreateBackend();
-			meshBuffers.Span[(int)idx] = MeshBufferFactory.CreateMeshBuffer(ref backend, mesh);
+			var storage = renderContext.Storage;
+			meshBuffers.Span[(int)idx] = MeshBufferFactory.CreateMeshBuffer(ref storage, mesh);
 			return idx++;
 		}
 	}

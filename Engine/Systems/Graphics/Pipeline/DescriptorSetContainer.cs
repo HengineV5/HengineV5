@@ -3,9 +3,9 @@ using RenderLib;
 namespace Engine
 {
 	// TODO: Improve
-	internal static class DescriptorSetGroupCache<TDescriptorSet, TBackend>
-		where TDescriptorSet : struct, IUniformBufferObject<TDescriptorSet, TBackend>
-		where TBackend : struct, IRenderBackend<TBackend>, allows ref struct
+	internal static class DescriptorSetGroupCache<TDescriptorSet, TStorage>
+		where TDescriptorSet : struct, IUniformBufferObject<TDescriptorSet, TStorage>
+		where TStorage : struct, IRenderBackend<TStorage>, allows ref struct
 	{
 		public static bool Initialized = false;
 		public static uint size;
@@ -17,9 +17,9 @@ namespace Engine
 		}
 	}
 
-	public struct DescriptorSetGroup<TDescriptorSet, TBackend>
-		where TDescriptorSet : struct, IUniformBufferObject<TDescriptorSet, TBackend>
-		where TBackend : struct, IRenderBackend<TBackend>, allows ref struct
+	public struct DescriptorSetGroup<TDescriptorSet, TStorage>
+		where TDescriptorSet : struct, IUniformBufferObject<TDescriptorSet, TStorage>
+		where TStorage : struct, IRenderBackend<TStorage>, allows ref struct
 	{
 		public Memory<GpuDescriptorSet> descriptorSets;
 		public uint size;
@@ -35,41 +35,41 @@ namespace Engine
 			return descriptorSets.Span[(int)(frame * size + idx)];
 		}
 
-		public static DescriptorSetGroup<TDescriptorSet, TBackend> Create(ref TBackend backend, GpuDescriptorPool pool, GpuDescriptorSetLayout layout, uint frames, uint size)
+		public static DescriptorSetGroup<TDescriptorSet, TStorage> Create(ref TStorage storage, GpuDescriptorPool pool, GpuDescriptorSetLayout layout, uint frames, uint size)
 		{
-			var group = new DescriptorSetGroup<TDescriptorSet, TBackend>(new GpuDescriptorSet[frames * size], size);
+			var group = new DescriptorSetGroup<TDescriptorSet, TStorage>(new GpuDescriptorSet[frames * size], size);
 
-			if (DescriptorSetGroupCache<TDescriptorSet, TBackend>.Initialized)
+			if (DescriptorSetGroupCache<TDescriptorSet, TStorage>.Initialized)
 				throw new Exception();
 
-			DescriptorSetGroupCache<TDescriptorSet, TBackend>.mapped = new TDescriptorSet[frames * size];
-			DescriptorSetGroupCache<TDescriptorSet, TBackend>.size = size;
+			DescriptorSetGroupCache<TDescriptorSet, TStorage>.mapped = new TDescriptorSet[frames * size];
+			DescriptorSetGroupCache<TDescriptorSet, TStorage>.size = size;
 
 			for (int i = 0; i < group.descriptorSets.Length; i++)
 			{
-				GpuDescriptorSet descriptorSet = TBackend.AllocateDescriptorSet(ref backend, pool, layout);
+				GpuDescriptorSet descriptorSet = TStorage.AllocateDescriptorSet(ref storage, pool, layout);
 
 				group.descriptorSets.Span[i] = descriptorSet;
-				DescriptorSetGroupCache<TDescriptorSet, TBackend>.mapped.Span[i] = TDescriptorSet.Map(ref backend, descriptorSet);
+				DescriptorSetGroupCache<TDescriptorSet, TStorage>.mapped.Span[i] = TDescriptorSet.Map(ref storage, descriptorSet);
 			}
 
-			DescriptorSetGroupCache<TDescriptorSet, TBackend>.Initialized = true;
+			DescriptorSetGroupCache<TDescriptorSet, TStorage>.Initialized = true;
 
 			return group;
 		}
 	}
 
-	public struct DescriptorSetContainer<TBackend> where TBackend : struct, IRenderBackend<TBackend>, allows ref struct
+	public struct DescriptorSetContainer<TStorage> where TStorage : struct, IRenderBackend<TStorage>, allows ref struct
 	{
-		DescriptorSetGroup<PbrShaderInput<TBackend>, TBackend> pbrDescriptors;
-		DescriptorSetGroup<GuiShaderInput<TBackend>, TBackend> guiDescriptors;
-		DescriptorSetGroup<GizmoShaderInput<TBackend>, TBackend> gizmoDescriptors;
+		DescriptorSetGroup<PbrShaderInput<TStorage>, TStorage> pbrDescriptors;
+		DescriptorSetGroup<GuiShaderInput<TStorage>, TStorage> guiDescriptors;
+		DescriptorSetGroup<GizmoShaderInput<TStorage>, TStorage> gizmoDescriptors;
 
 		GpuDescriptorSetLayout pbrLayout;
 		GpuDescriptorSetLayout guiLayout;
 		GpuDescriptorSetLayout gizmoLayout;
 
-		public DescriptorSetContainer(DescriptorSetGroup<PbrShaderInput<TBackend>, TBackend> pbrDescriptors, DescriptorSetGroup<GuiShaderInput<TBackend>, TBackend> guiDescriptors, DescriptorSetGroup<GizmoShaderInput<TBackend>, TBackend> gizmoDescriptors, GpuDescriptorSetLayout pbrLayout, GpuDescriptorSetLayout guiLayout, GpuDescriptorSetLayout gizmoLayout)
+		public DescriptorSetContainer(DescriptorSetGroup<PbrShaderInput<TStorage>, TStorage> pbrDescriptors, DescriptorSetGroup<GuiShaderInput<TStorage>, TStorage> guiDescriptors, DescriptorSetGroup<GizmoShaderInput<TStorage>, TStorage> gizmoDescriptors, GpuDescriptorSetLayout pbrLayout, GpuDescriptorSetLayout guiLayout, GpuDescriptorSetLayout gizmoLayout)
 		{
 			this.pbrDescriptors = pbrDescriptors;
 			this.guiDescriptors = guiDescriptors;
@@ -79,27 +79,27 @@ namespace Engine
 			this.gizmoLayout = gizmoLayout;
 		}
 
-		public static DescriptorSetContainer<TBackend> Create(ref TBackend backend)
+		public static DescriptorSetContainer<TStorage> Create(ref TStorage storage)
 		{
-			uint frames = TBackend.GetFramesInFlight(ref backend);
+			uint frames = TStorage.GetFramesInFlight(ref storage);
 			uint descriptorsPerFrame = 16;
 
-			var pbrLayout = TBackend.CreateDescriptorSetLayout(ref backend, PbrShaderInput<TBackend>.GetLayoutDesc());
-			var pbrPool = TBackend.CreateDescriptorPool(ref backend, frames * descriptorsPerFrame);
-			var pbr = DescriptorSetGroup<PbrShaderInput<TBackend>, TBackend>.Create(ref backend, pbrPool, pbrLayout, frames, descriptorsPerFrame);
+			var pbrLayout = TStorage.CreateDescriptorSetLayout(ref storage, PbrShaderInput<TStorage>.GetLayoutDesc());
+			var pbrPool = TStorage.CreateDescriptorPool(ref storage, frames * descriptorsPerFrame);
+			var pbr = DescriptorSetGroup<PbrShaderInput<TStorage>, TStorage>.Create(ref storage, pbrPool, pbrLayout, frames, descriptorsPerFrame);
 
-			var guiLayout = TBackend.CreateDescriptorSetLayout(ref backend, GuiShaderInput<TBackend>.GetLayoutDesc());
-			var guiPool = TBackend.CreateDescriptorPool(ref backend, frames * descriptorsPerFrame);
-			var gui = DescriptorSetGroup<GuiShaderInput<TBackend>, TBackend>.Create(ref backend, guiPool, guiLayout, frames, descriptorsPerFrame);
+			var guiLayout = TStorage.CreateDescriptorSetLayout(ref storage, GuiShaderInput<TStorage>.GetLayoutDesc());
+			var guiPool = TStorage.CreateDescriptorPool(ref storage, frames * descriptorsPerFrame);
+			var gui = DescriptorSetGroup<GuiShaderInput<TStorage>, TStorage>.Create(ref storage, guiPool, guiLayout, frames, descriptorsPerFrame);
 
-			var gizmoLayout = TBackend.CreateDescriptorSetLayout(ref backend, GizmoShaderInput<TBackend>.GetLayoutDesc());
-			var gizmoPool = TBackend.CreateDescriptorPool(ref backend, frames * descriptorsPerFrame);
-			var gizmo = DescriptorSetGroup<GizmoShaderInput<TBackend>, TBackend>.Create(ref backend, gizmoPool, gizmoLayout, frames, descriptorsPerFrame);
+			var gizmoLayout = TStorage.CreateDescriptorSetLayout(ref storage, GizmoShaderInput<TStorage>.GetLayoutDesc());
+			var gizmoPool = TStorage.CreateDescriptorPool(ref storage, frames * descriptorsPerFrame);
+			var gizmo = DescriptorSetGroup<GizmoShaderInput<TStorage>, TStorage>.Create(ref storage, gizmoPool, gizmoLayout, frames, descriptorsPerFrame);
 
-			return new DescriptorSetContainer<TBackend>(pbr, gui, gizmo, pbrLayout, guiLayout, gizmoLayout);
+			return new DescriptorSetContainer<TStorage>(pbr, gui, gizmo, pbrLayout, guiLayout, gizmoLayout);
 		}
 
-		public static GpuDescriptorSet GetDescriptorSet(PipelineContainerLayer layer, uint frame, uint idx, ref DescriptorSetContainer<TBackend> self)
+		public static GpuDescriptorSet GetDescriptorSet(PipelineContainerLayer layer, uint frame, uint idx, ref DescriptorSetContainer<TStorage> self)
 		{
 			switch (layer)
 			{
@@ -117,7 +117,7 @@ namespace Engine
 			}
 		}
 
-		public static GpuDescriptorSetLayout GetDescriptorSetLayout(PipelineContainerLayer layer, ref DescriptorSetContainer<TBackend> self)
+		public static GpuDescriptorSetLayout GetDescriptorSetLayout(PipelineContainerLayer layer, ref DescriptorSetContainer<TStorage> self)
 		{
 			switch (layer)
 			{
@@ -135,9 +135,9 @@ namespace Engine
 			}
 		}
 
-		public static ref TUbo GetUbo<TUbo>(uint frame, uint idx) where TUbo : struct, IUniformBufferObject<TUbo, TBackend>
+		public static ref TUbo GetUbo<TUbo>(uint frame, uint idx) where TUbo : struct, IUniformBufferObject<TUbo, TStorage>
 		{
-			return ref DescriptorSetGroupCache<TUbo, TBackend>.GetMapped(frame, idx);
+			return ref DescriptorSetGroupCache<TUbo, TStorage>.GetMapped(frame, idx);
 		}
 	}
 }

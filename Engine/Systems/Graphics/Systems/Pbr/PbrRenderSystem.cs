@@ -48,10 +48,10 @@ namespace Engine
 
 		public void Init()
 		{
-			var backend = renderContext.CreateBackend();
+			var storage = renderContext.Storage;
 
 			var textureBrdfLUT = ETextureHdr.LoadImage("BrdfLUT", "Images/Skybox/IntegrationMap.png");
-			skyboxHdrTextureBuffer = TextureBufferFactory.CreateHdrTextureBuffer(ref backend, textureBrdfLUT);
+			skyboxHdrTextureBuffer = TextureBufferFactory.CreateHdrTextureBuffer(ref storage, textureBrdfLUT);
 		}
 
 		// TODO: Refactor out
@@ -61,9 +61,9 @@ namespace Engine
 		[SystemPreLoop, SystemLayer(0, 2)]
 		public void PreRenderPass()
 		{
-			var backend = renderContext.CreateBackend();
+			var storage = renderContext.Storage;
 
-			renderContext.pipeline.StartRenderPass(ref backend, RenderPassId.Mesh, PipelineContainerLayer.Pbr);
+			renderContext.pipeline.StartRenderPass(ref storage, RenderPassId.Mesh, PipelineContainerLayer.Pbr);
 
 			bufferIdx = 0;
 			updateIdx = 0;
@@ -72,11 +72,11 @@ namespace Engine
 		[SystemUpdate, SystemLayer(0, 2)]
 		public void BufferUpdate(ref RenderContext context, ref Position position, ref Rotation rotation, ref Scale scale, ref MeshBuffer mesh, ref PbrMaterialBuffer material)
 		{
-			var backend = renderContext.CreateBackend();
+			var storage = renderContext.Storage;
 
 			UpdateEntityUbo(ref context.pbrUbo, ref position, ref rotation, ref scale);
 
-			ref PbrShaderInput<RenderBackend> shaderInput = ref renderContext.pipeline.GetUbo<PbrShaderInput<RenderBackend>>(ref backend, bufferIdx);
+			ref PbrShaderInput<RenderStorage> shaderInput = ref renderContext.pipeline.GetUbo<PbrShaderInput<RenderStorage>>(ref storage, bufferIdx);
 			shaderInput.ubo.Value = context.pbrUbo;
 
 			shaderInput.material.Value = PbrMaterialInfo.FromMaterial(material);
@@ -85,7 +85,7 @@ namespace Engine
 				shaderInput.lights[i].Value = defaultLights[i];
 			}
 
-			DescriptorSetWriter.UpdateMeshDescriptorSet(ref backend, renderContext.pipeline.GetDescriptorSet(ref backend, PipelineContainerLayer.Pbr, bufferIdx), skyboxHdrTextureBuffer, material, context.skybox, renderContext.samplers);
+			DescriptorSetWriter.UpdateMeshDescriptorSet(ref storage, renderContext.pipeline.GetDescriptorSet(ref storage, PipelineContainerLayer.Pbr, bufferIdx), skyboxHdrTextureBuffer, material, context.skybox, renderContext.samplers);
 
 			bufferIdx++;
 		}
@@ -93,18 +93,18 @@ namespace Engine
 		[SystemUpdate, SystemLayer(0, 2)]
 		public void RenderUpdate(ref RenderContext context, ref Position position, ref Rotation rotation, ref Scale scale, ref MeshBuffer mesh, ref PbrMaterialBuffer material)
 		{
-			var backend = renderContext.CreateBackend();
+			var storage = renderContext.Storage;
 
-			renderContext.pipeline.Render(ref backend, PipelineContainerLayer.Pbr, mesh.vertexBuffer, mesh.indexBuffer, mesh.indicies, updateIdx);
+			renderContext.pipeline.Render(ref storage, PipelineContainerLayer.Pbr, mesh.vertexBuffer, mesh.indexBuffer, mesh.indicies, updateIdx);
 			updateIdx++;
 		}
 
 		[SystemPostLoop, SystemLayer(0, 2)]
 		public void PostRenderPass()
 		{
-			var backend = renderContext.CreateBackend();
+			var storage = renderContext.Storage;
 
-			renderContext.pipeline.EndRenderPass(ref backend);
+			renderContext.pipeline.EndRenderPass(ref storage);
 		}
 
 		static void UpdateEntityUbo(ref MeshUniformBufferObject ubo, ref Position position, ref Rotation rotation, ref Scale scale)

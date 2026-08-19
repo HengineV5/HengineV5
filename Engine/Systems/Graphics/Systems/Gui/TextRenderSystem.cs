@@ -27,9 +27,9 @@ namespace Engine
 
 		public void Init()
 		{
-			var backend = renderContext.CreateBackend();
+			var storage = renderContext.Storage;
 
-			sampler = RenderBackend.CreateSampler(ref backend, 5);
+			sampler = RenderStorage.CreateSampler(ref storage, 5);
 		}
 
 		// TODO: Refactor out
@@ -39,9 +39,9 @@ namespace Engine
 		[SystemPreLoop, SystemLayer(0, 2)]
 		public void PreRenderPass()
 		{
-			var backend = renderContext.CreateBackend();
+			var storage = renderContext.Storage;
 
-			renderContext.pipeline.StartRenderPass(ref backend, RenderPassId.Gui, PipelineContainerLayer.Gui);
+			renderContext.pipeline.StartRenderPass(ref storage, RenderPassId.Gui, PipelineContainerLayer.Gui);
 
 			bufferIdx = 0;
 			updateIdx = 0;
@@ -50,9 +50,9 @@ namespace Engine
 		[SystemUpdate, SystemLayer(0, 2)]
 		public void BufferUpdate(ref RenderContext context, ref GuiProperties properties, ref GuiPosition position, ref TextBuffer text, ref TextureAtlasBuffer textureAtlas)
 		{
-			var backend = renderContext.CreateBackend();
+			var storage = renderContext.Storage;
 
-			ref GuiShaderInput<RenderBackend> shaderInput = ref renderContext.pipeline.GetUbo<GuiShaderInput<RenderBackend>>(ref backend, bufferIdx);
+			ref GuiShaderInput<RenderStorage> shaderInput = ref renderContext.pipeline.GetUbo<GuiShaderInput<RenderStorage>>(ref storage, bufferIdx);
 			shaderInput.ubo.Value = context.guiUbo;
 			shaderInput.guiState.Value.bezier = true;
 
@@ -60,7 +60,7 @@ namespace Engine
 			shaderInput.ubo.Value.size = new Vector4f(100, 0, 100, 0);
 			shaderInput.guiState.Value.totalStates = textureAtlas.textures;
 
-			DescriptorSetWriter.UpdateGuiDescriptorSet(ref backend, renderContext.pipeline.GetDescriptorSet(ref backend, PipelineContainerLayer.Gui, bufferIdx), textureAtlas.atlas, sampler);
+			DescriptorSetWriter.UpdateGuiDescriptorSet(ref storage, renderContext.pipeline.GetDescriptorSet(ref storage, PipelineContainerLayer.Gui, bufferIdx), textureAtlas.atlas, sampler);
 		}
 
 		[SystemUpdate, SystemLayer(0, 2)]
@@ -72,9 +72,9 @@ namespace Engine
 		[SystemPostLoop, SystemLayer(0, 2)]
 		public void PostRenderPass()
 		{
-			var backend = renderContext.CreateBackend();
+			var storage = renderContext.Storage;
 
-			renderContext.pipeline.EndRenderPass(ref backend);
+			renderContext.pipeline.EndRenderPass(ref storage);
 		}
 
 		int f = 0;
@@ -83,7 +83,7 @@ namespace Engine
 
 		void RenderMesh(TextBuffer textBuffer)
 		{
-			var backend = renderContext.CreateBackend();
+			var storage = renderContext.Storage;
 
 			f++;
 			if (f > 300)
@@ -135,18 +135,18 @@ namespace Engine
 				var stop = textBuffer.indexOffsets.Span[idx + 1];
 				var length = stop - start;
 
-				renderContext.pipeline.Render(ref backend, PipelineContainerLayer.Gui, textBuffer.vertexBuffer, textBuffer.indexBuffer, (uint)length, updateIdx, 0, (uint)start);
+				renderContext.pipeline.Render(ref storage, PipelineContainerLayer.Gui, textBuffer.vertexBuffer, textBuffer.indexBuffer, (uint)length, updateIdx, 0, (uint)start);
 
 				pushConstant.offset += new Vector2f(textBuffer.advances.Span[idx], 0);
-				renderContext.pipeline.SetPushConstant(ref backend, PipelineContainerLayer.Gui, ref pushConstant);
+				renderContext.pipeline.SetPushConstant(ref storage, PipelineContainerLayer.Gui, ref pushConstant);
 			}
 
 			pushConstant.offset = new Vector2f(0, 0);
-			renderContext.pipeline.SetPushConstant(ref backend, PipelineContainerLayer.Gui, ref pushConstant);
+			renderContext.pipeline.SetPushConstant(ref storage, PipelineContainerLayer.Gui, ref pushConstant);
 
-			//renderContext.pipeline.Render(ref backend, PipelineContainerLayer.Gui, textBuffer.vertexBuffer, textBuffer.indexBuffer, textBuffer.indicies, updateIdx);
-			//renderContext.pipeline.Render(ref backend, PipelineContainerLayer.Gui, textBuffer.vertexBuffer, textBuffer.indexBuffer, (uint)length, updateIdx);
-			//renderContext.pipeline.Render(ref backend, PipelineContainerLayer.Gui, textBuffer.vertexBuffer, textBuffer.indexBuffer, (uint)length, updateIdx, 0, (uint)start);
+			//renderContext.pipeline.Render(ref storage, PipelineContainerLayer.Gui, textBuffer.vertexBuffer, textBuffer.indexBuffer, textBuffer.indicies, updateIdx);
+			//renderContext.pipeline.Render(ref storage, PipelineContainerLayer.Gui, textBuffer.vertexBuffer, textBuffer.indexBuffer, (uint)length, updateIdx);
+			//renderContext.pipeline.Render(ref storage, PipelineContainerLayer.Gui, textBuffer.vertexBuffer, textBuffer.indexBuffer, (uint)length, updateIdx, 0, (uint)start);
 		}
 	}
 }

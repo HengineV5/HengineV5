@@ -5,8 +5,8 @@ using RenderLib;
 
 namespace Engine
 {
-	public struct PbrShaderInput<TBackend> : IUniformBufferObject<PbrShaderInput<TBackend>, TBackend>
-		where TBackend : struct, IRenderBackend<TBackend>, allows ref struct
+	public struct PbrShaderInput<TStorage> : IUniformBufferObject<PbrShaderInput<TStorage>, TStorage>
+		where TStorage : struct, IRenderBackend<TStorage>, allows ref struct
 	{
 		public MappedMemory<MeshUniformBufferObject> ubo;
 		public MappedMemory<PbrMaterialInfo> material;
@@ -22,16 +22,16 @@ namespace Engine
 				.Build();
 		}
 
-		public unsafe static PbrShaderInput<TBackend> Map(ref TBackend backend, GpuDescriptorSet descriptorSet)
+		public unsafe static PbrShaderInput<TStorage> Map(ref TStorage storage, GpuDescriptorSet descriptorSet)
 		{
-			var uniformBufferBuilder = new UniformBufferBuilder<TBackend>(ref backend, descriptorSet)
+			var uniformBufferBuilder = new UniformBufferBuilder<TStorage>(ref storage, descriptorSet)
 						.Variable<MeshUniformBufferObject>(0)
 						.Variable<PbrMaterialInfo>(10)
 						.Array<Light>(11, 4);
 
-			var uniform = TBackend.CreateMappedUniformBuffer(ref backend, uniformBufferBuilder.GetSize());
+			var uniform = TStorage.CreateMappedUniformBuffer(ref storage, uniformBufferBuilder.GetSize());
 
-			PbrShaderInput<TBackend> shaderInput = new PbrShaderInput<TBackend>();
+			PbrShaderInput<TStorage> shaderInput = new PbrShaderInput<TStorage>();
 
 			shaderInput.ubo = uniformBufferBuilder.GetElement<MeshUniformBufferObject>(uniform.ptr, 0);
 			shaderInput.material = uniformBufferBuilder.GetElement<PbrMaterialInfo>(uniform.ptr, 1);
@@ -40,14 +40,14 @@ namespace Engine
 				shaderInput.lights[b] = uniformBufferBuilder.GetElement<Light>(uniform.ptr, 2 + (uint)b);
 			}
 
-			uniformBufferBuilder.UpdateDescriptorSet(ref backend, uniform.buffer);
+			uniformBufferBuilder.UpdateDescriptorSet(ref storage, uniform.buffer);
 
 			return shaderInput;
 		}
 	}
 
-	public struct GuiShaderInput<TBackend> : IUniformBufferObject<GuiShaderInput<TBackend>, TBackend>
-		where TBackend : struct, IRenderBackend<TBackend>, allows ref struct
+	public struct GuiShaderInput<TStorage> : IUniformBufferObject<GuiShaderInput<TStorage>, TStorage>
+		where TStorage : struct, IRenderBackend<TStorage>, allows ref struct
 	{
 		public MappedMemory<GuiUniformBufferObject> ubo;
 		public MappedMemory<GuiStateBufferObject> guiState;
@@ -61,27 +61,27 @@ namespace Engine
 				.Build();
 		}
 
-		public unsafe static GuiShaderInput<TBackend> Map(ref TBackend backend, GpuDescriptorSet descriptorSet)
+		public unsafe static GuiShaderInput<TStorage> Map(ref TStorage storage, GpuDescriptorSet descriptorSet)
 		{
-			var uniformBufferBuilder = new UniformBufferBuilder<TBackend>(ref backend, descriptorSet)
+			var uniformBufferBuilder = new UniformBufferBuilder<TStorage>(ref storage, descriptorSet)
 						.Variable<GuiUniformBufferObject>(0)
 						.Variable<GuiStateBufferObject>(2);
 
-			var uniform = TBackend.CreateMappedUniformBuffer(ref backend, uniformBufferBuilder.GetSize());
+			var uniform = TStorage.CreateMappedUniformBuffer(ref storage, uniformBufferBuilder.GetSize());
 
-			var shaderInput = new GuiShaderInput<TBackend>();
+			var shaderInput = new GuiShaderInput<TStorage>();
 
 			shaderInput.ubo = uniformBufferBuilder.GetElement<GuiUniformBufferObject>(uniform.ptr, 0);
 			shaderInput.guiState = uniformBufferBuilder.GetElement<GuiStateBufferObject>(uniform.ptr, 1);
 
-			uniformBufferBuilder.UpdateDescriptorSet(ref backend, uniform.buffer);
+			uniformBufferBuilder.UpdateDescriptorSet(ref storage, uniform.buffer);
 
 			return shaderInput;
 		}
 	}
 
-	public struct GizmoShaderInput<TBackend> : IUniformBufferObject<GizmoShaderInput<TBackend>, TBackend>
-		where TBackend : struct, IRenderBackend<TBackend>, allows ref struct
+	public struct GizmoShaderInput<TStorage> : IUniformBufferObject<GizmoShaderInput<TStorage>, TStorage>
+		where TStorage : struct, IRenderBackend<TStorage>, allows ref struct
 	{
 		public MappedMemory<MeshUniformBufferObject> ubo;
 		public MappedMemory<GizmoUniformBufferObject> gizmoUbo;
@@ -94,20 +94,20 @@ namespace Engine
 				.Build();
 		}
 
-		public unsafe static GizmoShaderInput<TBackend> Map(ref TBackend backend, GpuDescriptorSet descriptorSet)
+		public unsafe static GizmoShaderInput<TStorage> Map(ref TStorage storage, GpuDescriptorSet descriptorSet)
 		{
-			var uniformBufferBuilder = new UniformBufferBuilder<TBackend>(ref backend, descriptorSet)
+			var uniformBufferBuilder = new UniformBufferBuilder<TStorage>(ref storage, descriptorSet)
 						.Variable<MeshUniformBufferObject>(0)
 						.Variable<GizmoUniformBufferObject>(1);
 
-			var uniform = TBackend.CreateMappedUniformBuffer(ref backend, uniformBufferBuilder.GetSize());
+			var uniform = TStorage.CreateMappedUniformBuffer(ref storage, uniformBufferBuilder.GetSize());
 
-			var shaderInput = new GizmoShaderInput<TBackend>();
+			var shaderInput = new GizmoShaderInput<TStorage>();
 
 			shaderInput.ubo = uniformBufferBuilder.GetElement<MeshUniformBufferObject>(uniform.ptr, 0);
 			shaderInput.gizmoUbo = uniformBufferBuilder.GetElement<GizmoUniformBufferObject>(uniform.ptr, 1);
 
-			uniformBufferBuilder.UpdateDescriptorSet(ref backend, uniform.buffer);
+			uniformBufferBuilder.UpdateDescriptorSet(ref storage, uniform.buffer);
 
 			return shaderInput;
 		}

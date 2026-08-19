@@ -30,12 +30,12 @@ namespace Engine
 
 		public void Init()
 		{
-			var backend = renderContext.CreateBackend();
+			var storage = renderContext.Storage;
 
-			sampler = RenderBackend.CreateSampler(ref backend, 5);
+			sampler = RenderStorage.CreateSampler(ref storage, 5);
 
 			var boxMesh = GuiMeshes.Box;
-			boxBuffer = MeshBufferFactory.CreateBuffer(ref backend, boxMesh.verticies, boxMesh.indicies);
+			boxBuffer = MeshBufferFactory.CreateBuffer(ref storage, boxMesh.verticies, boxMesh.indicies);
 		}
 
 		// TODO: Refactor out
@@ -47,9 +47,9 @@ namespace Engine
 		[SystemPreLoop, SystemLayer(0, 2)]
 		public void PreRenderPass()
 		{
-			var backend = renderContext.CreateBackend();
+			var storage = renderContext.Storage;
 
-			renderContext.pipeline.StartRenderPass(ref backend, RenderPassId.Gui, PipelineContainerLayer.Gui);
+			renderContext.pipeline.StartRenderPass(ref storage, RenderPassId.Gui, PipelineContainerLayer.Gui);
 
 			bufferIdx = 0;
 			updateIdx = 0;
@@ -58,9 +58,9 @@ namespace Engine
 		[SystemUpdate, SystemLayer(0, 2)]
 		public void BufferUpdate(ref RenderContext context, ref GuiProperties properties, ref GuiPosition position, ref GuiSize size, ref GuiState guiState, ref TextureAtlasBuffer textureAtlas)
 		{
-			var backend = renderContext.CreateBackend();
+			var storage = renderContext.Storage;
 
-			ref GuiShaderInput<RenderBackend> shaderInput = ref renderContext.pipeline.GetUbo<GuiShaderInput<RenderBackend>>(ref backend, bufferIdx);
+			ref GuiShaderInput<RenderStorage> shaderInput = ref renderContext.pipeline.GetUbo<GuiShaderInput<RenderStorage>>(ref storage, bufferIdx);
 			shaderInput.ubo.Value = context.guiUbo;
 			shaderInput.guiState.Value.bezier = false;
 
@@ -69,7 +69,7 @@ namespace Engine
 			shaderInput.guiState.Value.totalStates = textureAtlas.textures;
 			shaderInput.guiState.Value.state = guiState.state;
 
-			DescriptorSetWriter.UpdateGuiDescriptorSet(ref backend, renderContext.pipeline.GetDescriptorSet(ref backend, PipelineContainerLayer.Gui, bufferIdx), textureAtlas.atlas, sampler);
+			DescriptorSetWriter.UpdateGuiDescriptorSet(ref storage, renderContext.pipeline.GetDescriptorSet(ref storage, PipelineContainerLayer.Gui, bufferIdx), textureAtlas.atlas, sampler);
 
 			t += 0.0001f;
 
@@ -94,16 +94,16 @@ namespace Engine
 		[SystemPostLoop, SystemLayer(0, 2)]
 		public void PostRenderPass()
 		{
-			var backend = renderContext.CreateBackend();
+			var storage = renderContext.Storage;
 
-			renderContext.pipeline.EndRenderPass(ref backend);
+			renderContext.pipeline.EndRenderPass(ref storage);
 		}
 
 		void RenderMesh(MeshBuffer meshBuffer)
 		{
-			var backend = renderContext.CreateBackend();
+			var storage = renderContext.Storage;
 
-			renderContext.pipeline.Render(ref backend, PipelineContainerLayer.Gui, meshBuffer.vertexBuffer, meshBuffer.indexBuffer, meshBuffer.indicies, updateIdx);
+			renderContext.pipeline.Render(ref storage, PipelineContainerLayer.Gui, meshBuffer.vertexBuffer, meshBuffer.indexBuffer, meshBuffer.indicies, updateIdx);
 		}
 	}
 
